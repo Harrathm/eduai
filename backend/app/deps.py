@@ -147,7 +147,7 @@ def check_school_access(current_user, resource_school_id: int):
 # Course ownership check
 # ---------------------------------------------------------------------------
 
-def check_course_ownership(course, current_user, require_write: bool = False):
+def check_course_ownership(course, current_user, require_write: bool = False, db=None):
     """Verify the current user has access to a course based on its owner_type.
 
     - owner_type="school": user must belong to the course's school (via school_id),
@@ -173,51 +173,47 @@ def check_course_ownership(course, current_user, require_write: bool = False):
 
     if owner_type == "independent_teacher":
         if require_write:
-            # Only the teacher owner can modify
             if course.owner_id != current_user.id:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Access denied: only the course owner can modify this course",
                 )
         else:
-            # Read access: owner OR enrolled student
             if course.owner_id != current_user.id:
-                # Check if student is enrolled
+                if db is None:
+                    raise HTTPException(
+                        status_code=500,
+                        detail="check_course_ownership requires a db session for enrollment check",
+                    )
                 from app.models import CourseEnrollment
-                from app.db import SessionLocal
-                db = SessionLocal()
-                try:
-                    enrollment = db.query(CourseEnrollment).filter(
-                        CourseEnrollment.student_id == current_user.id,
-                        CourseEnrollment.course_id == course.id,
-                    ).first()
-                    if not enrollment:
-                        raise HTTPException(
-                            status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Access denied: you are not enrolled in this course",
-                        )
-                finally:
-                    db.close()
+                enrollment = db.query(CourseEnrollment).filter(
+                    CourseEnrollment.student_id == current_user.id,
+                    CourseEnrollment.course_id == course.id,
+                ).first()
+                if not enrollment:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="Access denied: you are not enrolled in this course",
+                    )
         return
 
     if owner_type == "eduai_catalog":
-        # Check SchoolCourseAccess for school users
+        if db is None:
+            raise HTTPException(
+                status_code=500,
+                detail="check_course_ownership requires a db session for catalog access check",
+            )
         from app.models import SchoolCourseAccess
-        from app.db import SessionLocal
-        db = SessionLocal()
-        try:
-            access = db.query(SchoolCourseAccess).filter(
-                SchoolCourseAccess.course_id == course.id,
-                SchoolCourseAccess.school_id == current_user.school_id,
-                SchoolCourseAccess.is_active == True,
-            ).first()
-            if not access:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Access denied: your school does not have access to this course",
-                )
-        finally:
-            db.close()
+        access = db.query(SchoolCourseAccess).filter(
+            SchoolCourseAccess.course_id == course.id,
+            SchoolCourseAccess.school_id == current_user.school_id,
+            SchoolCourseAccess.is_active == True,
+        ).first()
+        if not access:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: your school does not have access to this course",
+            )
         return
 
 
