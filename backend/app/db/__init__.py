@@ -1,6 +1,8 @@
 """Database package for EDUAI Learning"""
-from app.db.session import get_db, Base, engine, SessionLocal
-from app.db.session import current_tenant_id
+from app.db.session import (
+    get_db, Base, engine, SessionLocal,
+    current_tenant_id, _tenant_filter_suppressed, tenant_unaware,
+)
 
 # PostgreSQL not available → skip old models to avoid conflicts
 LMSClass = None
@@ -75,9 +77,11 @@ Attempt = QuizAttempt
 
 __all__ = [
     "engine",
-    "SessionLocal", 
+    "SessionLocal",
     "Base",
     "get_db",
     "HAS_PSYCOPG2",
     "current_tenant_id",
+    "_tenant_filter_suppressed",
+    "tenant_unaware",
 ]

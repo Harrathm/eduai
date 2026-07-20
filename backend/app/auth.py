@@ -58,6 +58,21 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account disabled",
         )
+
+    # --- Multi-tenant context setup (SECURITY: second line of defense) ---
+    # After authentication, set the tenant context so that all subsequent ORM
+    # SELECT queries are automatically filtered by school_id (see db.py).
+    # Global roles (super_admin, pedagogical_admin) suppress the filter.
+    from app.db import current_tenant_id, _tenant_filter_suppressed
+    from app.deps import get_user_role
+    role = get_user_role(user)
+    if role in ("super_admin", "pedagogical_admin"):
+        _tenant_filter_suppressed.set(True)
+    else:
+        school_id = getattr(user, "school_id", None)
+        if school_id is not None:
+            current_tenant_id.set(school_id)
+
     return user
 
 

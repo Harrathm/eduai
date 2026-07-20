@@ -58,15 +58,15 @@ def require_admin(current_user: User = Depends(set_tenant_context)) -> User:
     return current_user
 
 
-def require_super_admin(current_user: User = Depends(get_current_user)) -> User:
-    """Require SUPER_ADMIN role only."""
+def require_super_admin(current_user: User = Depends(set_tenant_context)) -> User:
+    """Require SUPER_ADMIN role only. Also sets tenant context."""
     if get_user_role(current_user) != "super_admin":
         raise HTTPException(status_code=403, detail="Super admin access required")
     return current_user
 
 
-def require_teacher_or_admin(current_user: User = Depends(get_current_user)) -> User:
-    """Require TEACHER, ADMIN_SCHOOL, or SUPER_ADMIN role."""
+def require_teacher_or_admin(current_user: User = Depends(set_tenant_context)) -> User:
+    """Require TEACHER, ADMIN_SCHOOL, or SUPER_ADMIN role. Also sets tenant context."""
     role = get_user_role(current_user)
     if role not in ("super_admin", "admin_school", "teacher"):
         raise HTTPException(status_code=403, detail=f"Teacher or admin access required. Role='{role}'")
@@ -77,18 +77,15 @@ def require_teacher_or_admin(current_user: User = Depends(get_current_user)) -> 
 # Permission dependencies — Pedagogical roles
 # ---------------------------------------------------------------------------
 
-def require_pedagogical_admin(current_user: User = Depends(get_current_user)) -> User:
-    """Require PEDAGOGICAL_ADMIN role (super admin pedagogique — portee plateforme)."""
+def require_pedagogical_admin(current_user: User = Depends(set_tenant_context)) -> User:
+    """Require PEDAGOGICAL_ADMIN role (platform-wide). Also sets tenant context."""
     if get_user_role(current_user) != "pedagogical_admin":
         raise HTTPException(status_code=403, detail="Pedagogical admin (platform) access required")
     return current_user
 
 
-def require_pedagogical_lead(current_user: User = Depends(get_current_user)) -> User:
-    """Require PEDAGOGICAL_LEAD role (admin pedagogique — portee ecole).
-
-    Also verifies school_id is set on the user account.
-    """
+def require_pedagogical_lead(current_user: User = Depends(set_tenant_context)) -> User:
+    """Require PEDAGOGICAL_LEAD role (school-scoped). Also sets tenant context."""
     if get_user_role(current_user) != "pedagogical_lead":
         raise HTTPException(status_code=403, detail="Pedagogical lead (school) access required")
     if not getattr(current_user, "school_id", None):
@@ -96,11 +93,8 @@ def require_pedagogical_lead(current_user: User = Depends(get_current_user)) -> 
     return current_user
 
 
-def require_pedagogical_any(current_user: User = Depends(get_current_user)) -> User:
-    """Require either PEDAGOGICAL_ADMIN or PEDAGOGICAL_LEAD role.
-
-    Use for shared endpoints where only data scope differs (not access to the action).
-    """
+def require_pedagogical_any(current_user: User = Depends(set_tenant_context)) -> User:
+    """Require either PEDAGOGICAL_ADMIN or PEDAGOGICAL_LEAD role. Also sets tenant context."""
     role = get_user_role(current_user)
     if role not in ("pedagogical_admin", "pedagogical_lead"):
         raise HTTPException(status_code=403, detail="Pedagogical access required")
@@ -209,7 +203,7 @@ def check_course_ownership(course, current_user, require_write: bool = False):
 # Demo account isolation
 # ---------------------------------------------------------------------------
 
-def require_non_demo_access(current_user: User = Depends(get_current_user)) -> User:
+def require_non_demo_access(current_user: User = Depends(set_tenant_context)) -> User:
     """Block demo accounts from accessing resources outside the demo school.
 
     Demo accounts (is_demo_account=True) can only operate within their own
@@ -229,7 +223,7 @@ def require_non_demo_access(current_user: User = Depends(get_current_user)) -> U
 # Subscription expiration check (independent paid teachers)
 # ---------------------------------------------------------------------------
 
-def require_active_subscription(current_user: User = Depends(get_current_user)) -> User:
+def require_active_subscription(current_user: User = Depends(set_tenant_context)) -> User:
     """For independent_paid teachers, block creation actions when subscription expired.
 
     - Does NOT block read/consult actions (viewing existing courses, students, etc.)
