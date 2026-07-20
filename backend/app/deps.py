@@ -58,6 +58,28 @@ def require_admin(current_user: User = Depends(set_tenant_context)) -> User:
     return current_user
 
 
+# Alias for clarity in new code
+require_any_admin = require_admin
+
+
+def require_platform_admin(current_user: User = Depends(set_tenant_context)) -> User:
+    """Require SUPER_ADMIN or PEDAGOGICAL_ADMIN role (platform-level, no school scope)."""
+    role = get_user_role(current_user)
+    if role not in ("super_admin", "pedagogical_admin"):
+        raise HTTPException(status_code=403, detail="Platform admin access required")
+    return current_user
+
+
+def require_school_admin(current_user: User = Depends(set_tenant_context)) -> User:
+    """Require ADMIN_SCHOOL or PEDAGOGICAL_LEAD role (school-scoped)."""
+    role = get_user_role(current_user)
+    if role not in ("admin_school", "pedagogical_lead"):
+        raise HTTPException(status_code=403, detail="School admin access required")
+    if not getattr(current_user, "school_id", None):
+        raise HTTPException(status_code=403, detail="School admin must be assigned to a school")
+    return current_user
+
+
 def require_super_admin(current_user: User = Depends(set_tenant_context)) -> User:
     """Require SUPER_ADMIN role only. Also sets tenant context."""
     if get_user_role(current_user) != "super_admin":
