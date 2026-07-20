@@ -15,6 +15,7 @@ from app.auth import get_current_user
 from app.db import get_db
 from sqlalchemy import text, func
 from app.deps import require_admin, get_user_role, require_active_subscription
+from app.services.course_lifecycle import can_transition_status
 from app.audit import log_admin_action
 
 from app.models import Course, CourseStatus, Module, Lesson, User, UserRole
@@ -374,6 +375,8 @@ def submit_for_review(course_id: int, db: Session = Depends(get_db), admin: User
         raise HTTPException(status_code=404, detail="Course not found")
     if not _can_access_course(admin, course):
         raise HTTPException(status_code=403, detail="Access denied")
+
+    can_transition_status(course, "pending_review", admin)
 
     course.pedagogical_status = "pending_review"
     course.modified_by = admin.id
