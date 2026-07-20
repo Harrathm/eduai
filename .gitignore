@@ -1,0 +1,15 @@
+node_modules/
+__pycache__/
+*.pyc
+.env
+.env.local
+*.db
+*.log
+dist/
+build/
+.vite/
+.pytest_cache/
+*.egg-info/
+API_Keys.txt
+backend/data/
+mobile/.dart_tool/

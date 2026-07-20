@@ -1,0 +1,37 @@
+services:
+  backend:
+    image: ghcr.io/eduai/eduai-backend:latest
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_ALGORITHM=HS256
+      - JWT_EXPIRE_MINUTES=1440
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - STRIPE_PRICE_PRO=${STRIPE_PRICE_PRO}
+      - STRIPE_PRICE_SCHOOL=${STRIPE_PRICE_SCHOOL}
+      - STRIPE_PRICE_INSTITUTION=${STRIPE_PRICE_INSTITUTION}
+      - ENVIRONMENT=production
+      - CORS_ORIGINS=${CORS_ORIGINS}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/docs || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    volumes:
+      - faiss_data:/app/data
+
+volumes:
+  faiss_data:

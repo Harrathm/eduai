@@ -1,0 +1,406 @@
+import { useState, useEffect } from "react";
+import { useAuthStore } from "../../../store/authStore";
+import { 
+  Send, 
+  Inbox, 
+  Users, 
+  Search,
+  X,
+  Trash2,
+  CheckCircle,
+  AlertTriangle,
+  User,
+  Megaphone,
+  Send as SendIcon,
+  Reply,
+  AlertOctagon,
+  Loader2
+} from "lucide-react";
+
+const API_URL = "";
+
+interface Message {
+  id: number;
+  type: "broadcast" | "direct" | "observation";
+  title: string;
+  content: string;
+  sender_id?: number;
+  sender_name?: string;
+  recipient_id?: number;
+  recipient_name?: string;
+  recipient_role?: string;
+  created_at: string;
+  is_read: boolean;
+}
+
+interface UserList {
+  id: number;
+  full_name: string;
+  email: string;
+  role: string;
+}
+
+export default function AdminInboxView() {
+  const { token, user } = useAuthStore();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [users, setUsers] = useState<UserList[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"inbox" | "sent" | "compose">("inbox");
+  const [showComposeModal, setShowComposeModal] = useState(false);
+  const [composeType, setComposeType] = useState<"broadcast" | "direct">("broadcast");
+  const [selectedUser, setSelectedUser] = useState<UserList | null>(null);
+  const [composeForm, setComposeForm] = useState({
+    title: "",
+    content: "",
+    targetRole: "all",
+  });
+  const [sending, setSending] = useState(false);
+  const [searchUser, setSearchUser] = useState("");
+  const [sendResult, setSendResult] = useState<{success: boolean; message: string} | null>(null);
+
+  useEffect(() => {
+    if (token) {
+      fetchMessages();
+      fetchUsers();
+    }
+  }, [token]);
+
+  const fetchMessages = async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/messages`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMessages(Array.isArray(data) ? data : data.items || []);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+    setLoading(false);
+  };
+
+  const fetchUsers = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/api/admin/users`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(Array.isArray(data) ? data : data.items || []);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!token || !composeForm.title || !composeForm.content) return;
+    setSending(true);
+    setSendResult(null);
+    try {
+      const payload = {
+        type: composeType,
+        title: composeForm.title,
+        content: composeForm.content,
+        ...(composeType === "direct" && selectedUser ? { recipient_id: selectedUser.id } : {}),
+        ...(composeType === "broadcast" && composeForm.targetRole !== "all" ? { recipient_role: composeForm.targetRole } : {}),
+      };
+      const res = await fetch(`${API_URL}/api/admin/messages`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        setSendResult({ success: true, message: "Message envoyé avec succès!" });
+        setTimeout(() => {
+          setShowComposeModal(false);
+          setComposeForm({ title: "", content: "", targetRole: "all" });
+          setSelectedUser(null);
+          setSendResult(null);
+          fetchMessages();
+        }, 1500);
+      } else {
+        setSendResult({ success: false, message: "Erreur lors de l'envoi" });
+      }
+    } catch (err) {
+      setSendResult({ success: false, message: "Erreur de connexion" });
+    }
+    setSending(false);
+  };
+
+  const deleteMessage = async (messageId: number) => {
+    if (!token || !confirm("Supprimer ce message?")) return;
+    try {
+      const res = await fetch(`${API_URL}/api/admin/messages/${messageId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) fetchMessages();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const filteredUsers = users.filter(u => 
+    searchUser === "" ||
+    u.full_name?.toLowerCase().includes(searchUser.toLowerCase()) ||
+    u.email.toLowerCase().includes(searchUser.toLowerCase())
+  );
+
+  const stats = {
+    total: messages.length,
+    unread: messages.filter(m => !m.is_read).length,
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-white rounded-3xl p-8 shadow-sm border border-black/5">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-[300] text-navy">
+              Communication <span className="italic text-orange">Center</span>
+            </h1>
+            <p className="text-gray mt-2">Envoyez des messages et notifications</p>
+          </div>
+          <button
+            onClick={() => setShowComposeModal(true)}
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange to-orange-l text-white rounded-xl font-medium"
+          >
+            <SendIcon className="w-5 h-5" />
+            Nouveau Message
+          </button>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-gradient-to-br from-blue-50 to-cream rounded-2xl p-6">
+          <div className="text-3xl font-[300] text-navy">{stats.total}</div>
+          <div className="text-sm text-gray">Total Messages</div>
+        </div>
+        <div className="bg-gradient-to-br from-orange-50 to-cream rounded-2xl p-6">
+          <div className="text-3xl font-[300] text-orange">{stats.unread}</div>
+          <div className="text-sm text-gray">Non lus</div>
+        </div>
+        <div className="bg-gradient-to-br from-green-50 to-cream rounded-2xl p-6">
+          <div className="text-3xl font-[300] text-green-700">
+            {messages.filter(m => m.type === "broadcast").length}
+          </div>
+          <div className="text-sm text-gray">Broadcasts</div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="bg-white rounded-2xl shadow-sm border border-black/5 overflow-hidden">
+        <div className="flex border-b">
+          <button
+            onClick={() => setActiveTab("inbox")}
+            className={`flex-1 px-6 py-4 text-sm font-medium transition-colors ${
+              activeTab === "inbox" ? "text-orange border-b-2 border-orange" : "text-gray hover:text-navy"
+            }`}
+          >
+            Inbox
+          </button>
+          <button
+            onClick={() => setActiveTab("sent")}
+            className={`flex-1 px-6 py-4 text-sm font-medium transition-colors ${
+              activeTab === "sent" ? "text-orange border-b-2 border-orange" : "text-gray hover:text-navy"
+            }`}
+          >
+            Envoyés
+          </button>
+        </div>
+
+        <div className="p-6">
+          {loading ? (
+            <div className="text-center py-8">
+              <Loader2 className="w-8 h-8 mx-auto animate-spin text-orange" />
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="text-center py-12 text-gray">
+              <Inbox className="w-16 h-16 mx-auto mb-4 opacity-20" />
+              <p>Aucun message</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {messages.map((msg) => (
+                <div key={msg.id} className="p-4 rounded-xl border border-black/5">
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-start gap-3">
+                      <div className={`p-2 rounded-lg ${
+                        msg.type === "observation" ? "bg-red-100" :
+                        msg.type === "broadcast" ? "bg-purple-100" : "bg-blue-100"
+                      }`}>
+                        {msg.type === "observation" && <AlertOctagon className="w-4 h-4 text-red-600" />}
+                        {msg.type === "broadcast" && <Megaphone className="w-4 h-4 text-purple-600" />}
+                        {msg.type === "direct" && <User className="w-4 h-4 text-blue-600" />}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-navy">{msg.title}</h3>
+                        <p className="text-sm text-gray">{msg.content}</p>
+                        <div className="text-xs text-gray mt-2">
+                          {msg.sender_name && <span>De: {msg.sender_name}</span>}
+                          {msg.recipient_name && <span> • À: {msg.recipient_name}</span>}
+                          {msg.recipient_role && <span> • Rôle: {msg.recipient_role}</span>}
+                          <span className="ml-2">
+                            {new Date(msg.created_at).toLocaleDateString("fr-FR")}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => deleteMessage(msg.id)}
+                      className="p-2 hover:bg-red-100 text-red-600 rounded-lg"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Compose Modal */}
+      {showComposeModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="p-8">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-semibold text-navy">Nouveau Message</h2>
+                <button onClick={() => setShowComposeModal(false)} className="p-2 hover:bg-cream rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray mb-3">Type</label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <button
+                      onClick={() => setComposeType("broadcast")}
+                      className={`p-4 rounded-xl text-center ${
+                        composeType === "broadcast" ? "bg-purple-100 border-2 border-purple-500" : "bg-cream-m"
+                      }`}
+                    >
+                      <Megaphone className="w-6 h-6 mx-auto text-purple-600 mb-2" />
+                      <div className="text-sm font-medium">Broadcast</div>
+                    </button>
+                    <button
+                      onClick={() => setComposeType("direct")}
+                      className={`p-4 rounded-xl text-center ${
+                        composeType === "direct" ? "bg-blue-100 border-2 border-blue-500" : "bg-cream-m"
+                      }`}
+                    >
+                      <User className="w-6 h-6 mx-auto text-blue-600 mb-2" />
+                      <div className="text-sm font-medium">Direct</div>
+                    </button>
+                  </div>
+                </div>
+
+                {composeType === "broadcast" && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray mb-2">Destinataires</label>
+                    <select
+                      value={composeForm.targetRole}
+                      onChange={(e) => setComposeForm({ ...composeForm, targetRole: e.target.value })}
+                      className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5"
+                    >
+                      <option value="all">Tous les utilisateurs</option>
+                      <option value="teacher">Tous les teachers</option>
+                      <option value="student">Tous les students</option>
+                    </select>
+                  </div>
+                )}
+
+                {composeType === "direct" && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray mb-2">Destinataire</label>
+                    <div className="relative">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray" />
+                      <input
+                        type="text"
+                        value={searchUser}
+                        onChange={(e) => setSearchUser(e.target.value)}
+                        className="w-full pl-12 pr-4 py-3 bg-cream-m rounded-xl border border-black/5"
+                        placeholder="Rechercher..."
+                      />
+                    </div>
+                    {searchUser && (
+                      <div className="mt-2 max-h-40 overflow-y-auto bg-white border rounded-xl">
+                        {filteredUsers.slice(0, 5).map((u) => (
+                          <button
+                            key={u.id}
+                            onClick={() => { setSelectedUser(u); setSearchUser(""); }}
+                            className="w-full px-4 py-2 text-left hover:bg-cream"
+                          >
+                            <div className="font-medium">{u.full_name}</div>
+                            <div className="text-xs text-gray">{u.role}</div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {selectedUser && (
+                      <div className="mt-2 flex items-center gap-2 p-2 bg-green-50 rounded-xl">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span className="text-sm">{selectedUser.full_name}</span>
+                        <button onClick={() => setSelectedUser(null)} className="ml-auto text-gray">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray mb-2">Sujet</label>
+                  <input
+                    type="text"
+                    value={composeForm.title}
+                    onChange={(e) => setComposeForm({ ...composeForm, title: e.target.value })}
+                    className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5"
+                    placeholder="Sujet..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray mb-2">Message</label>
+                  <textarea
+                    value={composeForm.content}
+                    onChange={(e) => setComposeForm({ ...composeForm, content: e.target.value })}
+                    className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5 min-h-[150px]"
+                    placeholder="Message..."
+                  />
+                </div>
+
+                <button
+                  onClick={sendMessage}
+                  disabled={sending || !composeForm.title || !composeForm.content || (composeType === "direct" && !selectedUser)}
+                  className="w-full py-4 bg-gradient-to-r from-orange to-orange-l text-white rounded-xl font-medium disabled:opacity-50"
+                >
+                  {sending ? "Envoi..." : "Envoyer"}
+                </button>
+                {sendResult && (
+                  <div className={`p-4 rounded-xl text-center ${
+                    sendResult.success ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                  }`}>
+                    {sendResult.message}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

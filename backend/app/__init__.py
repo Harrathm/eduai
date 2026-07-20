@@ -1,0 +1,1 @@
+"""EDUAI Backend package."""

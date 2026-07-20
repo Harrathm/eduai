@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "eduai-backend"
+version = "0.1.0"
+description = "EDUAI Learning backend"
+authors = ["EDUAI"]
+
+[tool.poetry.dependencies]
+fastapi = "^0.95.0"
+uvicorn = "^0.22.0"
+sqlalchemy = "^1.4"
+psycopg2-binary = "^2.9"
+pydantic = "^1.10"
+jose = "^3.3"
+passlib = "^1.11"
+
+[tool.poetry.dev-dependencies]
+black = "^23.3.0"
+ruff = "^0.4.0"

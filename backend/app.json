@@ -1,0 +1,46 @@
+{
+  "name": "EDUAI Learning Backend",
+  "description": "FastAPI backend for EDUAI Learning platform",
+  "repository": "https://github.com/your-org/eduai",
+  "website": "https://eduai.app",
+  "keywords": ["education", "ai", "lms", "fastapi", "postgresql"],
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "env": {
+    "JWT_SECRET": {
+      "description": "Secret key for JWT tokens - generate with: openssl rand -base64 32",
+      "required": true,
+      "generator": "secret"
+    },
+    "DATABASE_URL": {
+      "description": "PostgreSQL connection string",
+      "required": true
+    },
+    "OPENAI_API_KEY": {
+      "description": "OpenAI API key for AI features",
+      "required": false
+    },
+    "STRIPE_SECRET_KEY": {
+      "description": "Stripe secret key for payments",
+      "required": false
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "hobby"
+    }
+  },
+  "addons": [
+    {
+      "plan": "heroku-postgresql:hobby-tier",
+      "as": "DATABASE"
+    }
+  ],
+  "scripts": {
+    "postdeploy": "python -c \"from app.db import engine, Base; Base.metadata.create_all(engine); print('Database initialized')\""
+  }
+}

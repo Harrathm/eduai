@@ -1,0 +1,17 @@
+# Frontend .dockerignore
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+coverage/
+htmlcov/
