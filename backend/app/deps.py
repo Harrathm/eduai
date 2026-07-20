@@ -204,18 +204,7 @@ def check_course_ownership(course, current_user, require_write: bool = False):
 # ---------------------------------------------------------------------------
 
 def require_non_demo_access(current_user: User = Depends(set_tenant_context)) -> User:
-    """Block demo accounts from accessing resources outside the demo school.
-
-    Demo accounts (is_demo_account=True) can only operate within their own
-    school_id.  Any attempt to cross boundaries raises 403.
-    """
-    if not getattr(current_user, "is_demo_account", False):
-        return current_user
-
-    # Demo accounts are allowed to access their own school — verified elsewhere
-    # by check_school_access.  This dependency catches attempts to reach
-    # endpoints that expose cross-school data (user lists, exports, etc.)
-    # BEFORE the resource is even fetched.
+    """DEPRECATED: Kept for backward compatibility. Tenant filter (C1) handles isolation."""
     return current_user
 
 
