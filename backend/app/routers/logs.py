@@ -73,10 +73,11 @@ def get_audit_logs(
 ):
     """List audit logs with filtering and pagination. Non-super admins see only their school's logs."""
     query = db.query(AuditLog)
-    # School isolation: non-super admins only see their school's audit logs
+    # School isolation: non-super admins only see logs from admins in their school
     from app.deps import get_user_role
     if get_user_role(admin) != "super_admin":
-        query = query.filter(AuditLog.admin_id == admin.id)
+        school_admin_ids = [u.id for u in db.query(User.id).filter(User.school_id == admin.school_id).all()]
+        query = query.filter(AuditLog.admin_id.in_(school_admin_ids))
     if action:
         query = query.filter(AuditLog.action == action)
     if admin_id:

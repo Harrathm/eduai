@@ -1674,15 +1674,21 @@ def enrollment_trends(
     days = {"7d": 7, "30d": 30, "90d": 90, "12m": 365}.get(period, 30)
     start = now - timedelta(days=days)
 
+    school_filter = ""
+    params = {"start": start}
+    if not _is_super(admin):
+        school_filter = "AND school_id = :school_id"
+        params["school_id"] = admin.school_id
+
     rows = db.execute(
-        text("""
+        text(f"""
             SELECT DATE(created_at) AS day, COUNT(*) AS count
             FROM users
-            WHERE created_at >= :start
+            WHERE created_at >= :start {school_filter}
             GROUP BY DATE(created_at)
             ORDER BY day
         """),
-        {"start": start},
+        params,
     ).mappings()
 
     # Pad missing days with 0
@@ -1711,19 +1717,25 @@ def api_cost_trends(
     days = {"7d": 7, "30d": 30, "90d": 90, "12m": 365}.get(period, 30)
     start = now - timedelta(days=days)
 
+    school_filter = ""
+    params = {"start": start}
+    if not _is_super(admin):
+        school_filter = "AND school_id = :school_id"
+        params["school_id"] = admin.school_id
+
     rows = db.execute(
-        text("""
+        text(f"""
             SELECT DATE(created_at) AS day,
                    COALESCE(SUM(amount), 0) AS tokens_consumed
             FROM transactions
             WHERE type::text IN ('token_consumption','TOKEN_CONSUMPTION')
               AND currency = 'TOKEN'
               AND status = 'completed'
-              AND created_at >= :start
+              AND created_at >= :start {school_filter}
             GROUP BY DATE(created_at)
             ORDER BY day
         """),
-        {"start": start},
+        params,
     ).mappings()
 
     from collections import defaultdict
