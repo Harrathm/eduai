@@ -80,6 +80,17 @@ def require_school_admin(current_user: User = Depends(set_tenant_context)) -> Us
     return current_user
 
 
+def require_school_admin_strict(current_user: User = Depends(set_tenant_context)) -> User:
+    """Require ADMIN_SCHOOL role ONLY — for administrative/commercial actions
+    (pack purchases, student imports) that pedagogical_lead must NOT perform."""
+    role = get_user_role(current_user)
+    if role != "admin_school":
+        raise HTTPException(status_code=403, detail="School admin (strict) access required")
+    if not getattr(current_user, "school_id", None):
+        raise HTTPException(status_code=403, detail="School admin must be assigned to a school")
+    return current_user
+
+
 def require_super_admin(current_user: User = Depends(set_tenant_context)) -> User:
     """Require SUPER_ADMIN role only. Also sets tenant context."""
     if get_user_role(current_user) != "super_admin":

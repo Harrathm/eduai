@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.auth import get_current_user
 from app.db import get_db
 from app.models import User
-from app.routers.admin import require_admin
+from app.routers.admin import require_admin, require_platform_admin
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +101,7 @@ class PreviewCourseResponse(BaseModel):
 @router.post("/generate-plan", response_model=GeneratePlanResponse)
 def generate_plan(
     req: GeneratePlanRequest,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_platform_admin),
     db: Session = Depends(get_db),
 ):
     """Step 1: Generate a course plan from a topic."""
@@ -122,7 +122,7 @@ def generate_plan(
 @router.post("/generate-content-stream")
 def generate_content_stream(
     req: GenerateContentStreamRequest,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_platform_admin),
     db: Session = Depends(get_db),
 ):
     """Step 3 (streaming): Generate lesson content via SSE."""
@@ -150,7 +150,7 @@ def generate_content_stream(
 @router.post("/generate-quiz", response_model=GenerateQuizResponse)
 def generate_quiz(
     req: GenerateQuizRequest,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_platform_admin),
     db: Session = Depends(get_db),
 ):
     """Generate quiz questions for a lesson."""
@@ -171,7 +171,7 @@ def generate_quiz(
 @router.post("/generate-media-prompts", response_model=GenerateMediaPromptsResponse)
 def generate_media_prompts(
     req: GenerateMediaPromptsRequest,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_platform_admin),
     db: Session = Depends(get_db),
 ):
     """Generate DALL-E image and video prompts for a lesson."""
@@ -195,7 +195,7 @@ def generate_media_prompts(
 @router.post("/generate-image", response_model=GenerateImageResponse)
 def generate_image(
     req: GenerateImageRequest,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_platform_admin),
     db: Session = Depends(get_db),
 ):
     """Generate an image using DALL-E 3 from a prompt."""
@@ -219,7 +219,7 @@ def generate_image(
 @router.post("/save-image-to-bundle", response_model=SaveImageToBundleResponse)
 def save_image_to_bundle(
     req: SaveImageToBundleRequest,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_platform_admin),
 ):
     """Save a generated image URL to the course bundle for later publishing."""
     bundle = req.bundle
@@ -235,7 +235,7 @@ def save_image_to_bundle(
 @router.post("/generate-bundle")
 def generate_full_bundle(
     req: GeneratePlanRequest,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_platform_admin),
     db: Session = Depends(get_db),
 ):
     """Generate complete course bundle (plan + all content) in one call."""
@@ -262,7 +262,7 @@ def generate_full_bundle(
 @router.post("/publish", response_model=PublishCourseResponse)
 def publish_course(
     req: PublishCourseRequest,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_platform_admin),
     db: Session = Depends(get_db),
 ):
     """Publish the generated course bundle as a draft course in the database."""
@@ -285,7 +285,7 @@ def publish_course(
 @router.post("/preview", response_model=PreviewCourseResponse)
 def preview_course(
     req: PreviewCourseRequest,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_platform_admin),
 ):
     """Preview the generated course bundle (no DB write)."""
     bundle = req.bundle

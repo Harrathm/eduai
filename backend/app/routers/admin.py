@@ -11,7 +11,7 @@ import io
 
 from app.db import get_db
 from app.auth import get_current_user
-from app.deps import require_admin, require_super_admin, check_school_access, get_user_role, require_non_demo_access
+from app.deps import require_admin, require_platform_admin, require_school_admin_strict, require_super_admin, check_school_access, get_user_role, require_non_demo_access
 from app.models import User, School, ClassRoom, Course, Assignment, Submission, Module, Lesson, Quiz, TeacherRegistration, Transaction, TokenPackage, CoursePurchase, Message, PlatformSettings, Plan, TransactionType, SchoolType, UserRole, WalletPool, LessonProgress
 from app.core.security import get_password_hash
 from app.core.validation import validate_password_strength
@@ -554,7 +554,7 @@ def update_user(user_id: int, body: UserEditRequest, db: Session = Depends(get_d
 
 
 @router.put("/users/{user_id}/balance", response_model=UserDetail)
-def update_user_balance(user_id: int, balance: UserBalanceUpdate, db: Session = Depends(get_db), admin=Depends(require_admin)):
+def update_user_balance(user_id: int, balance: UserBalanceUpdate, db: Session = Depends(get_db), admin=Depends(require_platform_admin)):
     if _is_super(admin):
         user = db.query(User).filter(User.id == user_id).first()
     else:
@@ -571,7 +571,7 @@ def update_user_balance(user_id: int, balance: UserBalanceUpdate, db: Session = 
 
 
 @router.put("/users/{user_id}/toggle-active", response_model=dict)
-def toggle_user_active(user_id: int, db: Session = Depends(get_db), admin=Depends(require_admin)):
+def toggle_user_active(user_id: int, db: Session = Depends(get_db), admin=Depends(require_platform_admin)):
     """Toggle user active status (suspend/reactivate)"""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -596,7 +596,7 @@ def toggle_user_active(user_id: int, db: Session = Depends(get_db), admin=Depend
 
 
 @router.put("/users/{user_id}/change-role", response_model=dict)
-def change_user_role(user_id: int, new_role: str, db: Session = Depends(get_db), admin=Depends(require_admin)):
+def change_user_role(user_id: int, new_role: str, db: Session = Depends(get_db), admin=Depends(require_platform_admin)):
     """Change user role - super_admin can change any role, admin can change within their school"""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -637,7 +637,7 @@ def change_user_role(user_id: int, new_role: str, db: Session = Depends(get_db),
 
 
 @router.put("/users/{user_id}/approve", response_model=UserDetail)
-def approve_user(user_id: int, approval: UserApproval, db: Session = Depends(get_db), admin=Depends(require_admin)):
+def approve_user(user_id: int, approval: UserApproval, db: Session = Depends(get_db), admin=Depends(require_platform_admin)):
     if _is_super(admin):
         user = db.query(User).filter(User.id == user_id).first()
     else:
@@ -655,7 +655,7 @@ def approve_user(user_id: int, approval: UserApproval, db: Session = Depends(get
 
 
 @router.post("/transactions", response_model=TransactionRead)
-def create_transaction(trans_in: TransactionCreate, db: Session = Depends(get_db), admin=Depends(require_admin)):
+def create_transaction(trans_in: TransactionCreate, db: Session = Depends(get_db), admin=Depends(require_platform_admin)):
     if _is_super(admin):
         user = db.query(User).filter(User.id == trans_in.user_id).first()
     else:
@@ -699,7 +699,7 @@ def list_token_packages(
 
 
 @router.post("/token-packages", response_model=TokenPackageRead)
-def create_token_package(pkg_in: TokenPackageCreate, db: Session = Depends(get_db), admin=Depends(require_admin)):
+def create_token_package(pkg_in: TokenPackageCreate, db: Session = Depends(get_db), admin=Depends(require_platform_admin)):
     pkg = TokenPackage(**pkg_in.model_dump())
     db.add(pkg)
     db.commit()
@@ -708,7 +708,7 @@ def create_token_package(pkg_in: TokenPackageCreate, db: Session = Depends(get_d
 
 
 @router.put("/token-packages/{pkg_id}", response_model=TokenPackageRead)
-def update_token_package(pkg_id: int, pkg_in: TokenPackageCreate, db: Session = Depends(get_db), admin=Depends(require_admin)):
+def update_token_package(pkg_id: int, pkg_in: TokenPackageCreate, db: Session = Depends(get_db), admin=Depends(require_platform_admin)):
     pkg = db.query(TokenPackage).filter(TokenPackage.id == pkg_id).first()
     if not pkg:
         raise HTTPException(status_code=404, detail="Package not found")
@@ -872,7 +872,7 @@ class BroadcastRequest(BaseModel):
 def broadcast_message(
     body: BroadcastRequest,
     db: Session = Depends(get_db),
-    admin=Depends(require_admin),
+    admin=Depends(require_platform_admin),
 ):
     """Send a broadcast to a user segment. Uses the modular NotificationService."""
     from app.services import NotificationService
@@ -903,7 +903,7 @@ def broadcast_message(
 @router.get("/settings", response_model=list[SettingsRead])
 def list_settings(
     db: Session = Depends(get_db),
-    admin=Depends(require_admin),
+    admin=Depends(require_platform_admin),
 ):
     platform_keys = {"ai_providers_config", "maintenance_mode", "allow_teacher_registration", "allow_new_signups"}
 
@@ -927,7 +927,7 @@ def list_settings(
 def update_setting(
     setting_in: SettingsUpdate,
     db: Session = Depends(get_db),
-    admin=Depends(require_admin),
+    admin=Depends(require_platform_admin),
 ):
     import logging
     logger = logging.getLogger(__name__)
@@ -1016,7 +1016,7 @@ def update_setting(
 def apply_settings(
     settings_list: list[SettingsUpdate],
     db: Session = Depends(get_db),
-    admin=Depends(require_admin),
+    admin=Depends(require_platform_admin),
 ):
     """Apply multiple settings at once and immediately invalidate cache."""
     import logging
@@ -1091,7 +1091,7 @@ def apply_settings(
 def test_ai_provider(
     payload: dict,
     db: Session = Depends(get_db),
-    admin=Depends(require_admin),
+    admin=Depends(require_platform_admin),
 ):
     """Test connection to a specific AI provider. Payload: {provider_id, key, model}."""
     if not _is_super(admin):
@@ -1117,7 +1117,7 @@ def test_ai_provider(
 def update_token_limits(
     limits: dict,
     db: Session = Depends(get_db),
-    admin=Depends(require_admin),
+    admin=Depends(require_platform_admin),
 ):
     """Update per-role token limits (JSON blob stored in PlatformSettings)."""
     from app.core.token_limits import update_token_limits as apply_limits
@@ -1139,7 +1139,7 @@ def get_token_limits(
 @router.post("/settings/refresh-cache")
 def refresh_settings_cache(
     db: Session = Depends(get_db),
-    admin=Depends(require_admin),
+    admin=Depends(require_platform_admin),
 ):
     """Force-invalidate the in-memory settings cache."""
     try:
@@ -1188,6 +1188,10 @@ def list_wallets(
     user_ids = [u.id for u in users]
     totals = {}
     if user_ids:
+        # SECURITY NOTE: This raw SQL is safe because `user_ids` comes from the ORM
+        # query above, which is already filtered by school_id via the TenantMixin
+        # event listener. If you modify this function, ensure the user_ids are still
+        # school-scoped before passing them to this raw SQL query.
         rows = db.execute(
             text("""
                 SELECT user_id,
@@ -1236,7 +1240,7 @@ def add_to_wallet(
     user_id: int,
     body: WalletAdjustRequest,
     db: Session = Depends(get_db),
-    admin=Depends(require_admin),
+    admin=Depends(require_platform_admin),
 ):
     """Add DT or tokens to user wallet"""
     import logging
@@ -1308,7 +1312,7 @@ def deduct_from_wallet(
     user_id: int,
     body: WalletAdjustRequest,
     db: Session = Depends(get_db),
-    admin=Depends(require_admin),
+    admin=Depends(require_platform_admin),
 ):
     """Deduct DT or tokens from user wallet"""
     import logging
@@ -1380,7 +1384,7 @@ def deduct_from_wallet(
 
 
 @router.get("/stats/global")
-def global_stats(db: Session = Depends(get_db), admin=Depends(require_admin)):
+def global_stats(db: Session = Depends(get_db), admin=Depends(require_platform_admin)):
     """Global platform statistics"""
     import logging
     from app.models import Transaction
@@ -1465,7 +1469,7 @@ def global_stats(db: Session = Depends(get_db), admin=Depends(require_admin)):
 # ---- DELETE User ----
 
 @router.delete("/users/{user_id}")
-def delete_user(user_id: int, db: Session = Depends(get_db), admin=Depends(require_admin)):
+def delete_user(user_id: int, db: Session = Depends(get_db), admin=Depends(require_platform_admin)):
     if _is_super(admin):
         user = db.query(User).filter(User.id == user_id).first()
     else:
@@ -1560,7 +1564,7 @@ def list_transactions(
 def revenue_analytics(
     period: str = "30d",
     db: Session = Depends(get_db),
-    admin=Depends(require_admin),
+    admin=Depends(require_platform_admin),
 ):
     from datetime import timedelta
     from dateutil.relativedelta import relativedelta
@@ -1764,7 +1768,7 @@ def list_teacher_registrations(
     skip: int = 0,
     limit: int = 20,
     db: Session = Depends(get_db),
-    admin=Depends(require_admin),
+    admin=Depends(require_platform_admin),
 ):
     query = db.query(TeacherRegistration)
     if not _is_super(admin):
@@ -1794,7 +1798,7 @@ def review_teacher_registration(
     status: str,
     rejection_reason: str | None = None,
     db: Session = Depends(get_db),
-    admin=Depends(require_admin),
+    admin=Depends(require_platform_admin),
 ):
     from app.models import TeacherRegistration, SubscriptionPlan
     reg = db.query(TeacherRegistration).filter(TeacherRegistration.id == reg_id).first()
@@ -1840,7 +1844,7 @@ def review_teacher_registration(
 @router.post("/teacher/duplicate-trial-content")
 def duplicate_trial_content(
     db: Session = Depends(get_db),
-    admin=Depends(require_admin),
+    admin=Depends(require_platform_admin),
 ):
     """Duplicate courses/chapters/lessons created during trial into the admin's real school.
 
@@ -1985,7 +1989,7 @@ def review_verification(
 # ---- Schools CRUD ----
 
 @router.delete("/schools/{school_id}")
-def delete_school(school_id: int, db: Session = Depends(get_db), admin=Depends(require_admin)):
+def delete_school(school_id: int, db: Session = Depends(get_db), admin=Depends(require_platform_admin)):
     if not _is_super(admin):
         raise HTTPException(status_code=403, detail="Only super admin can delete schools")
     school = db.query(School).filter(School.id == school_id).first()
@@ -2148,7 +2152,7 @@ def allocate_credits(
     amount: int,
     expires_days: int = 90,
     db: Session = Depends(get_db),
-    admin=Depends(require_admin),
+    admin=Depends(require_platform_admin),
 ):
     """Allocate school credits to users. Admin_school can only allocate to their own school."""
     from app.services.wallet import add_credits
@@ -2186,7 +2190,7 @@ def allocate_credits(
 def consumption_report(
     days: int = 30,
     db: Session = Depends(get_db),
-    admin=Depends(require_admin),
+    admin=Depends(require_platform_admin),
 ):
     """Credit consumption report for the admin's school."""
     from app.models import WalletTransaction, BillableFeature
@@ -2302,7 +2306,7 @@ def margin_report(
 def purchase_school_pack(
     body: dict,
     db: Session = Depends(get_db),
-    admin=Depends(require_admin),
+    admin=Depends(require_school_admin_strict),
 ):
     """
     Achat d'un pack pour l'école (admin_school ou super_admin).
@@ -2415,7 +2419,7 @@ def purchase_school_pack(
 @router.get("/school/packs/active")
 def list_active_school_packs(
     db: Session = Depends(get_db),
-    admin=Depends(require_admin),
+    admin=Depends(require_school_admin_strict),
 ):
     """
     Liste des packs actifs pour l'école de l'admin connecté.
@@ -2478,7 +2482,7 @@ def list_active_school_packs(
 def pack_revenue_report(
     days: int = Query(30, ge=1, le=365),
     db: Session = Depends(get_db),
-    admin=Depends(require_admin),
+    admin=Depends(require_platform_admin),
 ):
     """
     Rapport de revenus : packs vs cours à l'unité.
@@ -2566,7 +2570,7 @@ def pack_revenue_report(
 def import_students_from_csv(
     csv_content: str,
     db: Session = Depends(get_db),
-    admin=Depends(require_admin),
+    admin=Depends(require_school_admin_strict),
 ):
     """Import students from CSV text content.
     Expected CSV columns: email, full_name, password, niveau_scolaire (optional).
@@ -2650,7 +2654,7 @@ def import_students_from_csv(
 async def import_students_upload(
     file: UploadFile = FastAPIFile(...),
     db: Session = Depends(get_db),
-    admin=Depends(require_admin),
+    admin=Depends(require_school_admin_strict),
 ):
     """Import students from an uploaded CSV file."""
     content = await file.read()
