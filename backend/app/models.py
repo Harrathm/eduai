@@ -318,6 +318,10 @@ class User(Base):
     # Status
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     last_login: Mapped[Optional[datetime]] = mapped_column(DateTime)
+
+    # Account lockout (brute-force protection)
+    failed_login_attempts: Mapped[int] = mapped_column(Integer, default=0)
+    locked_until: Mapped[Optional[datetime]] = mapped_column(DateTime)
     
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)

@@ -226,15 +226,39 @@ def teacher_register(user_in: UserCreate, db: Session = Depends(get_db)):
 @router.post("/login", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     from app.models import User
-    from datetime import datetime
+    from datetime import datetime, timedelta
     import logging
     logger = logging.getLogger(__name__)
     logger.warning(f"LOGIN ATTEMPT: email={form_data.username}")
     user = db.query(User).filter(User.email == form_data.username).first()
     logger.info(f"USER FOUND: user_id={user.id if user else 'None'}")
-    if not user or not verify_password(form_data.password, user.hashed_password):
+
+    if not user:
         log_security_event("failed_login", {"email": form_data.username}, severity="WARNING")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
+
+    # Account lockout check (brute-force protection: 5 attempts → 15 min lockout)
+    if user.locked_until and user.locked_until > datetime.now(timezone.utc):
+        remaining = (user.locked_until - datetime.now(timezone.utc)).seconds // 60 + 1
+        raise HTTPException(
+            status_code=status.HTTP_423_LOCKED,
+            detail=f"Account locked due to too many failed attempts. Try again in {remaining} min.",
+        )
+
+    if not verify_password(form_data.password, user.hashed_password):
+        user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
+        if user.failed_login_attempts >= 5:
+            user.locked_until = datetime.now(timezone.utc) + timedelta(minutes=15)
+            user.failed_login_attempts = 0
+            log_security_event("account_locked", {"user_id": user.id, "email": user.email}, severity="WARNING")
+        db.commit()
+        log_security_event("failed_login", {"email": form_data.username}, severity="WARNING")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
+
+    # Successful login — reset lockout state
+    user.failed_login_attempts = 0
+    user.locked_until = None
+
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is deactivated. Contact your administrator.")
     user.last_login = datetime.now(timezone.utc)
