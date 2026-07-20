@@ -238,8 +238,9 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
 
     # Account lockout check (brute-force protection: 5 attempts → 15 min lockout)
-    if user.locked_until and user.locked_until > datetime.now(timezone.utc):
-        remaining = (user.locked_until - datetime.now(timezone.utc)).seconds // 60 + 1
+    now = datetime.now(timezone.utc).replace(tzinfo=None)  # naive for SQLite compat
+    if user.locked_until and user.locked_until > now:
+        remaining = (user.locked_until - now).seconds // 60 + 1
         raise HTTPException(
             status_code=status.HTTP_423_LOCKED,
             detail=f"Account locked due to too many failed attempts. Try again in {remaining} min.",
@@ -248,7 +249,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     if not verify_password(form_data.password, user.hashed_password):
         user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
         if user.failed_login_attempts >= 5:
-            user.locked_until = datetime.now(timezone.utc) + timedelta(minutes=15)
+            user.locked_until = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(minutes=15)
             user.failed_login_attempts = 0
             log_security_event("account_locked", {"user_id": user.id, "email": user.email}, severity="WARNING")
         db.commit()
