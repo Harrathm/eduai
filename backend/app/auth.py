@@ -235,6 +235,8 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     if not user or not verify_password(form_data.password, user.hashed_password):
         log_security_event("failed_login", {"email": form_data.username}, severity="WARNING")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is deactivated. Contact your administrator.")
     user.last_login = datetime.now(timezone.utc)
     db.commit()
     access_token = create_access_token({"sub": str(user.id), "school_id": user.school_id})
