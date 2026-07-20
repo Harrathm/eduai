@@ -44,6 +44,8 @@ from app.routers.wallet import router as wallet_router
 from app.routers.conversations import router as conversations_router
 from app.routers.pedagogical import router as pedagogical_router
 from app.routers.pedagogical_lead import router as pedagogical_lead_router
+from app.routers.packs import router as packs_router
+from app.routers.inbox import router as inbox_router
 
 # Import models_lms to register its models with Base metadata
 import app.models_lms
@@ -125,6 +127,10 @@ async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     LmsBase.metadata.create_all(bind=engine)
     logger.info("Database tables created")
+
+    # Démarrer le scheduler d'expiration des packs
+    from app.services.course_access import start_pack_expiration_scheduler
+    start_pack_expiration_scheduler()
 
     yield
     logger.info("Shutting down...")
@@ -274,6 +280,8 @@ app.include_router(wallet_router, prefix="/api/wallet")
 app.include_router(conversations_router)
 app.include_router(pedagogical_router, prefix="/api")
 app.include_router(pedagogical_lead_router, prefix="/api")
+app.include_router(packs_router, prefix="/api")
+app.include_router(inbox_router, prefix="/api")
 
 
 # Add file logging for error log viewer

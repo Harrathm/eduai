@@ -3,6 +3,34 @@ from typing import Optional
 from fastapi import Depends, HTTPException, status
 from app.auth import get_current_user
 from app.models import User
+from app.db import current_tenant_id, _tenant_filter_suppressed
+
+
+# ---------------------------------------------------------------------------
+# Tenant context setup
+# ---------------------------------------------------------------------------
+
+def set_tenant_context(current_user: User = Depends(get_current_user)) -> User:
+    """Populate the multi-tenant context for automatic DB-level filtering.
+
+    This dependency MUST be added (directly or via a wrapper like require_admin)
+    to every endpoint that queries school-scoped models. It sets:
+    - current_tenant_id = user's school_id (for scoped roles)
+    - suppresses filtering for global roles (super_admin, pedagogical_admin)
+
+    SECURITY: This is the second line of defense for school data isolation.
+    The first line is check_school_access(). Never remove this dependency.
+    """
+    role = get_user_role(current_user)
+    if role in ("super_admin", "pedagogical_admin"):
+        # Global roles legitimately access all schools — suppress tenant filter
+        _tenant_filter_suppressed.set(True)
+    else:
+        # Scoped roles: set tenant to their school
+        school_id = getattr(current_user, "school_id", None)
+        if school_id is not None:
+            current_tenant_id.set(school_id)
+    return current_user
 
 
 # ---------------------------------------------------------------------------
@@ -19,8 +47,11 @@ def get_user_role(user: User) -> str:
 # Permission dependencies — General
 # ---------------------------------------------------------------------------
 
-def require_admin(current_user: User = Depends(get_current_user)) -> User:
-    """Require SUPER_ADMIN, ADMIN_SCHOOL, PEDAGOGICAL_ADMIN or PEDAGOGICAL_LEAD role."""
+def require_admin(current_user: User = Depends(set_tenant_context)) -> User:
+    """Require SUPER_ADMIN, ADMIN_SCHOOL, PEDAGOGICAL_ADMIN or PEDAGOGICAL_LEAD role.
+
+    Also sets the multi-tenant context for automatic DB-level school filtering.
+    """
     role = get_user_role(current_user)
     if role not in ("super_admin", "admin_school", "pedagogical_admin", "pedagogical_lead"):
         raise HTTPException(status_code=403, detail=f"Admin access required. Role='{role}'")

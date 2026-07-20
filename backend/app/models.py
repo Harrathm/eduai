@@ -153,6 +153,43 @@ class PedagogicalStatus(str, Enum):
     APPROVED_FOR_B2B = "approved_for_b2b"       # validé par pedagogical_admin pour diffusion inter-écoles
     NEEDS_REVISION = "needs_revision"
 
+
+class NiveauScolaire(str, Enum):
+    """Niveaux scolaires tunisiens — primaire, préparatoire, secondaire."""
+    # Primaire
+    PREMIERE_ANNEE = "1ère année"
+    DEUXIEME_ANNEE = "2ème année"
+    TROISIEME_ANNEE = "3ème année"
+    QUATRIEME_ANNEE = "4ème année"
+    CINQUIEME_ANNEE = "5ème année"
+    SIXIEME_ANNEE = "6ème année"
+    # Préparatoire
+    SEPTIEME_BASE = "7ème de base"
+    HUITIEME_BASE = "8ème de base"
+    NEUVIEME_BASE = "9ème de base"
+    # Secondaire — 1ère année
+    PREMIERE_ANNEE_SECONDAIRE = "1ère année secondaire"
+    # Secondaire — 2ème année
+    DEUXIEME_SCIANCES = "2ème année sciences"
+    DEUXIEME_LETTRES = "2ème année lettres"
+    DEUXIEME_TECH_INFO = "2ème année technologie de l'informatique"
+    DEUXIEME_ECO_SERVICES = "2ème année économie et services"
+    # Secondaire — 3ème année
+    TROISIEME_LETTRES = "3ème année lettres"
+    TROISIEME_MATHS = "3ème année mathématiques"
+    TROISIEME_SC_EXP = "3ème année sciences expérimentales"
+    TROISIEME_ECO_GEST = "3ème année économie et gestion"
+    TROISIEME_SC_INFO = "3ème année sciences de l'informatique"
+    TROISIEME_SC_TECH = "3ème année sciences techniques"
+    # Secondaire — 4ème année (Baccalauréat)
+    QUATRIEME_LETTRES = "4ème année lettres"
+    QUATRIEME_MATHS = "4ème année mathématiques"
+    QUATRIEME_SC_EXP = "4ème année sciences expérimentales"
+    QUATRIEME_ECO_GEST = "4ème année économie et gestion"
+    QUATRIEME_SC_INFO = "4ème année sciences de l'informatique"
+    QUATRIEME_SC_TECH = "4ème année sciences techniques"
+
+
 class CourseOwnerType(str, Enum):
     SCHOOL = "school"                           # propriété d'une école
     INDEPENDENT_TEACHER = "independent_teacher" # enseignant indépendant
@@ -254,6 +291,9 @@ class User(Base):
     subscription_plan: Mapped[str] = mapped_column(String(30), default=SubscriptionPlan.TRIAL.value)
     subscription_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
     is_demo_account: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # Niveau scolaire (élèves uniquement)
+    niveau_scolaire: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)  # ex: "9ème de base", "2ème année sciences"
 
     # Identity verification (light, non-blocking)
     verification_status: Mapped[str] = mapped_column(SQLEnum(VerificationStatus), default=VerificationStatus.UNVERIFIED)
@@ -427,6 +467,7 @@ class Course(Base):
     # Metadata
     category: Mapped[Optional[str]] = mapped_column(String(100))
     level: Mapped[Optional[str]] = mapped_column(String(50))  # beginner, intermediate, advanced
+    niveau_scolaire: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)  # niveau scolaire tunisien (9ème de base, 2ème année sciences, etc.)
     tags: Mapped[Optional[str]] = mapped_column(JSON, nullable=True)  # List of tags
     
     # Status
@@ -655,6 +696,103 @@ class CoursePurchase(Base):
         Index("ix_purchases_student_id", "student_id"),
         Index("ix_purchases_course_id", "course_id"),
         Index("ix_purchases_student_course", "student_id", "course_id", unique=True),
+    )
+
+
+class PackStatus(str, Enum):
+    DRAFT = "draft"
+    PUBLISHED = "published"
+    ARCHIVED = "archived"
+
+
+class PackPurchaseStatus(str, Enum):
+    ACTIVE = "active"
+    EXPIRED = "expired"
+    CANCELLED = "cancelled"
+
+
+class PurchaserType(str, Enum):
+    STUDENT = "student"
+    SCHOOL = "school"
+
+
+class StudyPack(Base):
+    """Pack d'étude par niveau — donne accès à tous les cours d'un niveau scolaire."""
+    __tablename__ = "study_packs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)  # ex: "Pack 9ème de base — Toutes matières"
+    description: Mapped[Optional[str]] = mapped_column(Text)
+
+    # Critères d'accès
+    niveau_scolaire: Mapped[str] = mapped_column(String(50), nullable=False)  # doit correspondre aux valeurs NiveauScolaire
+    matieres: Mapped[Optional[str]] = mapped_column(JSON, nullable=True)  # null = toutes les matières, sinon liste ["Mathématiques","Sciences"]
+
+    # Prix
+    price: Mapped[float] = mapped_column(Float, nullable=False)
+    currency: Mapped[str] = mapped_column(String(10), default="TND")
+
+    # Validité
+    validity_duration_days: Mapped[int] = mapped_column(Integer, default=365)
+
+    # Statut
+    status: Mapped[str] = mapped_column(String(20), default=PackStatus.DRAFT.value)
+
+    # Métadonnées
+    created_by: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+    # Relationships
+    creator: Mapped[User] = relationship("User", foreign_keys=[created_by])
+    purchases: Mapped[List["PackPurchase"]] = relationship("PackPurchase", back_populates="pack")
+
+    __table_args__ = (
+        Index("ix_study_packs_niveau", "niveau_scolaire"),
+        Index("ix_study_packs_status", "status"),
+    )
+
+
+class PackPurchase(Base):
+    """Historique des achats de packs — individuel (student) ou école (school)."""
+    __tablename__ = "pack_purchases"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    pack_id: Mapped[int] = mapped_column(ForeignKey("study_packs.id", ondelete="CASCADE"), nullable=False)
+
+    # Acheteur polymorphe : student_id OU school_id selon purchaser_type
+    purchaser_type: Mapped[str] = mapped_column(String(20), nullable=False)  # "student" ou "school"
+    student_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
+    school_id: Mapped[Optional[int]] = mapped_column(ForeignKey("schools.id", ondelete="CASCADE"), nullable=True)
+
+    # Période de validité
+    valid_from: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    valid_until: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+
+    # Statut
+    status: Mapped[str] = mapped_column(String(20), default=PackPurchaseStatus.ACTIVE.value)
+
+    # Paiement
+    amount_paid: Mapped[float] = mapped_column(Float, nullable=False)
+    currency: Mapped[str] = mapped_column(String(10), default="TND")
+    transaction_id: Mapped[Optional[str]] = mapped_column(String(255))  # référence vers transaction de paiement
+
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+    # Relationships
+    pack: Mapped[StudyPack] = relationship("StudyPack", back_populates="purchases")
+    student: Mapped[Optional[User]] = relationship("User", foreign_keys=[student_id])
+    school: Mapped[Optional[School]] = relationship("School", foreign_keys=[school_id])
+
+    __table_args__ = (
+        Index("ix_pack_purchases_pack_id", "pack_id"),
+        Index("ix_pack_purchases_student_id", "student_id"),
+        Index("ix_pack_purchases_school_id", "school_id"),
+        Index("ix_pack_purchases_status", "status"),
+        Index("ix_pack_purchases_valid_until", "valid_until"),
     )
 
 
@@ -898,6 +1036,8 @@ __all__ = [
     "CourseEnrollment",
     "ClassroomEnrollment",
     "CoursePurchase",
+    "StudyPack",
+    "PackPurchase",
     "Assignment",
     "Submission",
     "Document",
@@ -912,6 +1052,10 @@ __all__ = [
     "Currency",
     "ContentType",
     "CourseStatus",
+    "NiveauScolaire",
+    "PackStatus",
+    "PackPurchaseStatus",
+    "PurchaserType",
     "DocumentStatus",
     "TeacherRegistrationStatus",
     "MessageType",

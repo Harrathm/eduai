@@ -142,15 +142,17 @@ export default function CourseEditorPage() {
       loadCourse();
     } catch (e: any) {
       const msg = e.message || "";
-      if (msg.includes("422") || msg.includes("Publication impossible")) {
-        try {
-          const errData = JSON.parse(msg.split(": ").slice(1).join(": "));
-          setPublishErrors(errData.errors || [msg]);
-        } catch {
+      try {
+        const errData = JSON.parse(msg);
+        if (errData.errors && errData.errors.length) {
+          setPublishErrors(errData.errors);
+        } else if (errData.message) {
+          setPublishErrors([errData.message]);
+        } else {
           setPublishErrors([msg]);
         }
-      } else {
-        showToast("Erreur: " + msg, "error");
+      } catch {
+        setPublishErrors([msg || "Erreur inconnue"]);
       }
     }
     finally { setSaving(false); }

@@ -20,9 +20,10 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 from app.models import (
     School, User, Course, Module, Lesson, Assignment, Submission,
     Transaction, TokenPackage, CourseEnrollment, ClassroomEnrollment,
-    CoursePurchase, Document, Message, PlatformSetting, TeacherRegistration,
+    CoursePurchase, StudyPack, PackPurchase, Document, Message, PlatformSetting, TeacherRegistration,
     UserRole, SubscriptionTier, EnrollmentStatus, TransactionType, Currency,
-    ContentType, CourseStatus, DocumentStatus, TeacherRegistrationStatus, MessageType,
+    ContentType, CourseStatus, NiveauScolaire, PackStatus, PackPurchaseStatus, PurchaserType,
+    DocumentStatus, TeacherRegistrationStatus, MessageType,
     Progress
 )
 

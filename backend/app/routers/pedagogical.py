@@ -278,3 +278,137 @@ def resolve_escalation(
     esc.resolution = body.resolution
     db.commit()
     return {"id": esc.id, "status": esc.status}
+
+
+# ============================================================
+# STUDY PACKS — CRUD (pedagogical_admin uniquement)
+# ============================================================
+
+@router.post("/packs")
+def create_pack(
+    body: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_pedagogical_admin),
+):
+    """Créer un nouveau pack d'étude. Réservé au pedagogical_admin (plateforme)."""
+    from app.models import StudyPack, PackStatus
+
+    name = body.get("name")
+    niveau_scolaire = body.get("niveau_scolaire")
+    price = body.get("price")
+
+    if not name or not niveau_scolaire or price is None:
+        raise HTTPException(status_code=400, detail="name, niveau_scolaire et price sont requis")
+
+    pack = StudyPack(
+        name=name,
+        description=body.get("description"),
+        niveau_scolaire=niveau_scolaire,
+        matieres=body.get("matieres"),
+        price=price,
+        currency=body.get("currency", "TND"),
+        validity_duration_days=body.get("validity_duration_days", 365),
+        status=PackStatus.DRAFT.value,
+        created_by=current_user.id,
+    )
+    db.add(pack)
+    db.commit()
+    db.refresh(pack)
+    return {"id": pack.id, "name": pack.name, "status": pack.status, "message": "Pack créé (draft)"}
+
+
+@router.put("/packs/{pack_id}")
+def update_pack(
+    pack_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_pedagogical_admin),
+):
+    """Modifier un pack. Réservé au pedagogical_admin."""
+    from app.models import StudyPack
+
+    pack = db.query(StudyPack).filter(StudyPack.id == pack_id).first()
+    if not pack:
+        raise HTTPException(status_code=404, detail="Pack not found")
+
+    for field in ["name", "description", "niveau_scolaire", "matieres", "price", "currency", "validity_duration_days"]:
+        if field in body:
+            setattr(pack, field, body[field])
+
+    db.commit()
+    db.refresh(pack)
+    return {"id": pack.id, "name": pack.name, "status": pack.status, "message": "Pack mis à jour"}
+
+
+@router.put("/packs/{pack_id}/publish")
+def publish_pack(
+    pack_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_pedagogical_admin),
+):
+    """Passer un pack de draft à published."""
+    from app.models import StudyPack, PackStatus
+
+    pack = db.query(StudyPack).filter(StudyPack.id == pack_id).first()
+    if not pack:
+        raise HTTPException(status_code=404, detail="Pack not found")
+
+    pack.status = PackStatus.PUBLISHED.value
+    db.commit()
+    return {"id": pack.id, "status": pack.status, "message": "Pack publié"}
+
+
+@router.put("/packs/{pack_id}/archive")
+def archive_pack(
+    pack_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_pedagogical_admin),
+):
+    """Archiver un pack."""
+    from app.models import StudyPack, PackStatus
+
+    pack = db.query(StudyPack).filter(StudyPack.id == pack_id).first()
+    if not pack:
+        raise HTTPException(status_code=404, detail="Pack not found")
+
+    pack.status = PackStatus.ARCHIVED.value
+    db.commit()
+    return {"id": pack.id, "status": pack.status, "message": "Pack archivé"}
+
+
+@router.get("/packs")
+def list_all_packs(
+    status: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_pedagogical_admin),
+):
+    """Liste tous les packs (tous statuts). Réservé au pedagogical_admin."""
+    from app.models import StudyPack
+
+    query = db.query(StudyPack)
+    if status:
+        query = query.filter(StudyPack.status == status)
+
+    total = query.count()
+    packs = query.order_by(StudyPack.created_at.desc()).offset(skip).limit(limit).all()
+
+    return {
+        "total": total,
+        "items": [
+            {
+                "id": p.id,
+                "name": p.name,
+                "niveau_scolaire": p.niveau_scolaire,
+                "matieres": p.matieres,
+                "price": p.price,
+                "currency": p.currency,
+                "validity_duration_days": p.validity_duration_days,
+                "status": p.status,
+                "created_by": p.created_by,
+                "created_at": p.created_at.isoformat() if p.created_at else None,
+            }
+            for p in packs
+        ],
+    }

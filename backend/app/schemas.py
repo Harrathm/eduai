@@ -18,6 +18,7 @@ class UserCreate(BaseModel):
     full_name: Optional[str] = None
     school_name: Optional[str] = None
     school_domain: Optional[str] = None
+    niveau_scolaire: Optional[str] = None
 
 
 class UserRead(BaseModel):
@@ -28,6 +29,8 @@ class UserRead(BaseModel):
     school_id: Optional[int] = None
     school_name: Optional[str] = None
     role: str
+    niveau_scolaire: Optional[str] = None
+    subscription_plan: Optional[str] = None
     token_balance: Optional[int] = 0
     dt_balance: Optional[float] = 0.0
     is_approved: Optional[bool] = True
@@ -44,6 +47,7 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     is_active: Optional[bool] = None
     role: Optional[str] = None
+    niveau_scolaire: Optional[str] = None
     token_balance: Optional[int] = None
     dt_balance: Optional[float] = None
     is_approved: Optional[bool] = None
@@ -761,5 +765,67 @@ class StudentEnrollmentRead(BaseModel):
     student_email: Optional[str] = None
     enrolled_at: Optional[datetime] = None
     is_active: bool
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ============================================================
+# STUDY PACKS
+# ============================================================
+
+class StudyPackCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    niveau_scolaire: str
+    matieres: Optional[list[str]] = None  # null = toutes les matières
+    price: float
+    currency: str = "TND"
+    validity_duration_days: int = 365
+
+
+class StudyPackUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    niveau_scolaire: Optional[str] = None
+    matieres: Optional[list[str]] = None
+    price: Optional[float] = None
+    currency: Optional[str] = None
+    validity_duration_days: Optional[int] = None
+
+
+class StudyPackRead(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    niveau_scolaire: str
+    matieres: Optional[list[str]] = None
+    price: float
+    currency: str
+    validity_duration_days: int
+    status: str
+    created_by: Optional[int] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PackPurchaseCreate(BaseModel):
+    pack_id: int
+
+
+class PackPurchaseRead(BaseModel):
+    id: int
+    pack_id: int
+    purchaser_type: str
+    student_id: Optional[int] = None
+    school_id: Optional[int] = None
+    valid_from: datetime
+    valid_until: datetime
+    status: str
+    amount_paid: float
+    currency: str
+    transaction_id: Optional[str] = None
+    created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)

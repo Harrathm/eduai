@@ -140,7 +140,13 @@ export default function LoginPage() {
               S'inscrire
             </Link>
           </p>
-          
+
+          <p className="text-center text-sm mt-4">
+            <Link to="/register" className="text-navy/60 hover:text-navy transition-colors">
+              Enseignant ? <span className="text-orange font-semibold">Essayez gratuitement</span>
+            </Link>
+          </p>
+
           <p className="text-center text-gray text-sm mt-4">
             © 2025 EDUAI Learning — Dossier de présentation confidentiel
           </p>

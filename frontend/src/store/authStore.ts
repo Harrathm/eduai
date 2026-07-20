@@ -17,15 +17,41 @@ async function authAPI_login(email, password) {
   return res.json();
 }
 
-async function authAPI_register(email, password, full_name, school_name) {
+async function authAPI_register(email, password, full_name, school_name, niveau_scolaire) {
   const res = await fetch(`${API_URL}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password, full_name, school_name, niveau_scolaire }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Registration failed");
+  }
+  return res.json();
+}
+
+async function authAPI_registerTrialTeacher(email, password, full_name) {
+  const res = await fetch(`${API_URL}/auth/register-trial-teacher`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password, full_name }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Trial registration failed");
+  }
+  return res.json();
+}
+
+async function authAPI_registerTeacher(email, password, full_name, school_name) {
+  const res = await fetch(`${API_URL}/auth/teacher-register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password, full_name, school_name }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || "Registration failed");
+    throw new Error(err.detail || "Teacher registration failed");
   }
   return res.json();
 }
@@ -67,15 +93,42 @@ export const useAuthStore = create((set, get) => ({
     set({ token: null, user: null });
   },
 
-  register: async (email, password, full_name, school_name) => {
+  register: async (email, password, full_name, school_name, niveau_scolaire) => {
     set({ isLoading: true, error: null });
     try {
-      const data = await authAPI_register(email, password, full_name, school_name);
+      const data = await authAPI_register(email, password, full_name, school_name, niveau_scolaire);
       localStorage.setItem("token", data.access_token);
       const user = await authAPI_me(data.access_token);
       localStorage.setItem("user", JSON.stringify(user));
       set({ token: data.access_token, user, isLoading: false });
       return true;
+    } catch (err) {
+      set({ error: err.message, isLoading: false });
+      return false;
+    }
+  },
+
+  registerTrialTeacher: async (email, password, full_name) => {
+    set({ isLoading: true, error: null });
+    try {
+      const data = await authAPI_registerTrialTeacher(email, password, full_name);
+      localStorage.setItem("token", data.access_token);
+      const user = await authAPI_me(data.access_token);
+      localStorage.setItem("user", JSON.stringify(user));
+      set({ token: data.access_token, user, isLoading: false });
+      return true;
+    } catch (err) {
+      set({ error: err.message, isLoading: false });
+      return false;
+    }
+  },
+
+  registerTeacher: async (email, password, full_name, school_name) => {
+    set({ isLoading: true, error: null });
+    try {
+      await authAPI_registerTeacher(email, password, full_name, school_name);
+      set({ isLoading: false });
+      return "pending";
     } catch (err) {
       set({ error: err.message, isLoading: false });
       return false;

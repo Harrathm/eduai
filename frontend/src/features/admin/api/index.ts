@@ -19,7 +19,8 @@ async function request<T>(
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(err.detail || `HTTP ${res.status}`);
+    const detail = typeof err.detail === "object" ? JSON.stringify(err.detail) : (err.detail || `HTTP ${res.status}`);
+    throw new Error(detail);
   }
 
   if (res.status === 204) return {} as T;

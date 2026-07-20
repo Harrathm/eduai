@@ -39,6 +39,7 @@ import TeacherWallet from "./features/teacher/pages/TeacherWallet";
 import TeacherSalesPage from "./features/teacher/pages/TeacherSalesPage";
 import StudentCourseCatalog from "./features/student/pages/CourseCatalog";
 import StudentWallet from "./features/student/pages/StudentWallet";
+import InboxPage from "./features/student/pages/InboxPage";
 import CourseBuilderPage from "./features/admin/pages/CourseBuilderPage";
 import CourseEditorPage from "./features/admin/pages/CourseEditorPage";
 import LearnerPlayerPage from "./features/learner/pages/PlayerPage";
@@ -176,6 +177,7 @@ function AppContent() {
           <Route path="teacher/ai-studio" element={<TeacherAIStudio />} />
           <Route path="teacher/wallet" element={<TeacherWallet />} />
           <Route path="teacher/sales" element={<TeacherSalesPage />} />
+          <Route path="inbox" element={<InboxPage />} />
           
           {/* Student Routes */}
           <Route path="courses" element={<CatalogPage />} />

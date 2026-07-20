@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File as FastAPIFile
 from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -6,6 +6,8 @@ from datetime import datetime, timezone
 from typing import Any
 import logging
 import json
+import csv
+import io
 
 from app.db import get_db
 from app.auth import get_current_user
@@ -2278,3 +2280,371 @@ def margin_report(
         "credits_sold": credits_sold,
         "credits_allocated": credits_allocated,
     }
+
+
+# ============================================================
+# SCHOOL PACK PURCHASE
+# ============================================================
+
+@router.post("/school/packs/purchase")
+def purchase_school_pack(
+    body: dict,
+    db: Session = Depends(get_db),
+    admin=Depends(require_admin),
+):
+    """
+    Achat d'un pack pour l'école (admin_school ou super_admin).
+    purchaser_type="school", couvre tous les élèves du niveau du pack.
+    """
+    from app.models import StudyPack, PackPurchase, PackStatus, PackPurchaseStatus, PurchaserType, User as UserModel
+    from datetime import timedelta
+
+    pack_id = body.get("pack_id")
+    if not pack_id:
+        raise HTTPException(status_code=400, detail="pack_id requis")
+
+    # Vérifier le pack
+    pack = db.query(StudyPack).filter(
+        StudyPack.id == pack_id,
+        StudyPack.status == PackStatus.PUBLISHED.value,
+    ).first()
+    if not pack:
+        raise HTTPException(status_code=404, detail="Pack not found or not published")
+
+    # Vérifier que l'admin gère bien une école
+    if not admin.school_id:
+        raise HTTPException(status_code=400, detail="Vous n'êtes pas associé à une école")
+
+    # Vérifier qu'un pack actif n'existe pas déjà pour ce niveau dans cette école
+    now = datetime.now(timezone.utc)
+    existing = db.query(PackPurchase).filter(
+        PackPurchase.school_id == admin.school_id,
+        PackPurchase.purchaser_type == PurchaserType.SCHOOL.value,
+        PackPurchase.status == PackPurchaseStatus.ACTIVE.value,
+        PackPurchase.valid_until > now,
+    ).join(StudyPack).filter(StudyPack.niveau_scolaire == pack.niveau_scolaire).first()
+
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Un pack actif pour le niveau '{pack.niveau_scolaire}' existe déjà pour votre école (expire le {existing.valid_until.strftime('%d/%m/%Y')})."
+        )
+
+    # Débiter le solde de l'école (via le compte de l'admin)
+    if admin.dt_balance < pack.price:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Solde insuffisant. Solde actuel: {admin.dt_balance} {pack.currency}, prix du pack: {pack.price} {pack.currency}"
+        )
+
+    admin.dt_balance -= pack.price
+
+    # Créer la transaction
+    transaction = Transaction(
+        school_id=admin.school_id,
+        user_id=admin.id,
+        type=TransactionType.COURSE_PURCHASE,
+        amount=pack.price,
+        currency=Currency.DT,
+        description=f"Achat pack école: {pack.name}",
+        reference_id=f"pack_{pack_id}",
+        status="completed",
+    )
+    db.add(transaction)
+
+    # Créer l'achat de pack
+    valid_from = now
+    valid_until = now + timedelta(days=pack.validity_duration_days)
+
+    purchase = PackPurchase(
+        pack_id=pack_id,
+        purchaser_type=PurchaserType.SCHOOL.value,
+        student_id=None,
+        school_id=admin.school_id,
+        valid_from=valid_from,
+        valid_until=valid_until,
+        status=PackPurchaseStatus.ACTIVE.value,
+        amount_paid=pack.price,
+        currency=pack.currency,
+        transaction_id=str(transaction.id),
+    )
+    db.add(purchase)
+
+    # Compter les élèves du niveau concerné
+    student_count = db.query(UserModel).filter(
+        UserModel.school_id == admin.school_id,
+        UserModel.role == "student",
+        UserModel.niveau_scolaire == pack.niveau_scolaire,
+        UserModel.is_active == True,
+    ).count()
+
+    db.commit()
+    db.refresh(purchase)
+
+    return {
+        "id": purchase.id,
+        "pack_id": purchase.pack_id,
+        "pack_name": pack.name,
+        "niveau_scolaire": pack.niveau_scolaire,
+        "valid_from": valid_from.isoformat(),
+        "valid_until": valid_until.isoformat(),
+        "amount_paid": purchase.amount_paid,
+        "currency": purchase.currency,
+        "students_covered": student_count,
+        "remaining_balance": admin.dt_balance,
+        "message": f"Pack '{pack.name}' acheté pour l'école. {student_count} élève(s) du niveau '{pack.niveau_scolaire}' couvert(s) automatiquement."
+    }
+
+
+# ============================================================
+# SCHOOL PACK DASHBOARD
+# ============================================================
+
+@router.get("/school/packs/active")
+def list_active_school_packs(
+    db: Session = Depends(get_db),
+    admin=Depends(require_admin),
+):
+    """
+    Liste des packs actifs pour l'école de l'admin connecté.
+    Inclut le nombre d'élèves du niveau concerné et une alerte d'expiration (J-30).
+    """
+    from app.models import StudyPack, PackPurchase, PackPurchaseStatus, PurchaserType, User as UserModel
+    from datetime import timedelta
+
+    if not admin.school_id:
+        raise HTTPException(status_code=400, detail="Pas d'école associée")
+
+    now = datetime.now(timezone.utc)
+    alert_threshold = now + timedelta(days=30)
+
+    active_purchases = db.query(PackPurchase).filter(
+        PackPurchase.school_id == admin.school_id,
+        PackPurchase.purchaser_type == PurchaserType.SCHOOL.value,
+        PackPurchase.status == PackPurchaseStatus.ACTIVE.value,
+    ).all()
+
+    result = []
+    for purchase in active_purchases:
+        pack = db.query(StudyPack).filter(StudyPack.id == purchase.pack_id).first()
+        if not pack:
+            continue
+
+        student_count = db.query(UserModel).filter(
+            UserModel.school_id == admin.school_id,
+            UserModel.role == "student",
+            UserModel.niveau_scolaire == pack.niveau_scolaire,
+            UserModel.is_active == True,
+        ).count()
+
+        expiring_soon = purchase.valid_until <= alert_threshold
+
+        result.append({
+            "purchase_id": purchase.id,
+            "pack_id": pack.id,
+            "pack_name": pack.name,
+            "niveau_scolaire": pack.niveau_scolaire,
+            "valid_from": purchase.valid_from.isoformat(),
+            "valid_until": purchase.valid_until.isoformat(),
+            "students_covered": student_count,
+            "days_remaining": max(0, (purchase.valid_until - now).days),
+            "expiring_soon": expiring_soon,
+        })
+
+    return {
+        "school_id": admin.school_id,
+        "total_active": len(result),
+        "packs": result,
+    }
+
+
+# ============================================================
+# SUPER ADMIN — REVENUE REPORT
+# ============================================================
+
+@router.get("/packs/revenue-report")
+def pack_revenue_report(
+    days: int = Query(30, ge=1, le=365),
+    db: Session = Depends(get_db),
+    admin=Depends(require_admin),
+):
+    """
+    Rapport de revenus : packs vs cours à l'unité.
+    Comparaison sur les N derniers jours.
+    """
+    from app.models import PackPurchase, CoursePurchase, StudyPack
+    from sqlalchemy import func
+
+    if not _is_super(admin):
+        raise HTTPException(status_code=403, detail="Réservé au super admin")
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+
+    # Revenus packs individuels
+    individual_pack_revenue = (
+        db.query(func.coalesce(func.sum(PackPurchase.amount_paid), 0))
+        .filter(
+            PackPurchase.purchaser_type == "student",
+            PackPurchase.created_at >= cutoff,
+        )
+        .scalar()
+    )
+
+    # Revenus packs école
+    school_pack_revenue = (
+        db.query(func.coalesce(func.sum(PackPurchase.amount_paid), 0))
+        .filter(
+            PackPurchase.purchaser_type == "school",
+            PackPurchase.created_at >= cutoff,
+        )
+        .scalar()
+    )
+
+    # Revenus cours à l'unité
+    course_unit_revenue = (
+        db.query(func.coalesce(func.sum(CoursePurchase.amount_paid), 0))
+        .filter(CoursePurchase.purchased_at >= cutoff)
+        .scalar()
+    )
+
+    # Nombre d'achats
+    individual_pack_count = db.query(PackPurchase).filter(
+        PackPurchase.purchaser_type == "student",
+        PackPurchase.created_at >= cutoff,
+    ).count()
+
+    school_pack_count = db.query(PackPurchase).filter(
+        PackPurchase.purchaser_type == "school",
+        PackPurchase.created_at >= cutoff,
+    ).count()
+
+    course_unit_count = db.query(CoursePurchase).filter(
+        CoursePurchase.purchased_at >= cutoff,
+    ).count()
+
+    total_pack = float(individual_pack_revenue) + float(school_pack_revenue)
+    total_all = total_pack + float(course_unit_revenue)
+
+    return {
+        "period_days": days,
+        "packs_individuels": {
+            "revenue": float(individual_pack_revenue),
+            "count": individual_pack_count,
+        },
+        "packs_ecole": {
+            "revenue": float(school_pack_revenue),
+            "count": school_pack_count,
+        },
+        "cours_unite": {
+            "revenue": float(course_unit_revenue),
+            "count": course_unit_count,
+        },
+        "totals": {
+            "packs": total_pack,
+            "cours_unite": float(course_unit_revenue),
+            "all": total_all,
+        },
+        "pack_vs_unit_ratio": round(total_pack / float(course_unit_revenue), 2) if course_unit_revenue else 0,
+    }
+
+
+# ── CSV Import ────────────────────────────────────────────────
+
+@router.post("/import-students")
+def import_students_from_csv(
+    csv_content: str,
+    db: Session = Depends(get_db),
+    admin=Depends(require_admin),
+):
+    """Import students from CSV text content.
+    Expected CSV columns: email, full_name, password, niveau_scolaire (optional).
+    First row is treated as header if it contains 'email'.
+    """
+    target_school_id = admin.school_id
+    if not target_school_id:
+        raise HTTPException(status_code=400, detail="No school associated with your account")
+
+    reader = csv.reader(io.StringIO(csv_content))
+    rows = list(reader)
+    if not rows:
+        raise HTTPException(status_code=400, detail="Empty CSV file")
+
+    # Detect header
+    start_idx = 0
+    if rows[0] and rows[0][0].strip().lower() == "email":
+        start_idx = 1
+
+    created = []
+    errors = []
+
+    for i, row in enumerate(rows[start_idx:], start=start_idx + 1):
+        if len(row) < 3 or not row[0].strip():
+            errors.append({"line": i, "error": "Missing required fields (email, full_name, password)"})
+            continue
+
+        email = row[0].strip()
+        full_name = row[1].strip() if len(row) > 1 else ""
+        password = row[2].strip() if len(row) > 2 else ""
+        niveau = row[3].strip() if len(row) > 3 else None
+
+        if not email or not password:
+            errors.append({"line": i, "error": "Email and password are required"})
+            continue
+
+        existing = db.query(User).filter(User.email == email).first()
+        if existing:
+            errors.append({"line": i, "error": f"Email '{email}' already registered"})
+            continue
+
+        ok, err = validate_password_strength(password)
+        if not ok:
+            errors.append({"line": i, "error": f"Weak password: {err}"})
+            continue
+
+        new_user = User(
+            email=email,
+            full_name=full_name,
+            hashed_password=get_password_hash(password),
+            role="student",
+            school_id=target_school_id,
+            niveau_scolaire=niveau if niveau else None,
+            is_active=True,
+            is_approved=True,
+        )
+        db.add(new_user)
+        db.flush()
+
+        # Grant trial credits
+        from app.services.wallet import add_credits
+        from datetime import timedelta
+        add_credits(
+            db, new_user.id, WalletPool.TRIAL, 100,
+            expires_at=datetime.now(timezone.utc) + timedelta(days=30),
+        )
+
+        created.append({"email": email, "full_name": full_name, "id": new_user.id})
+
+    db.commit()
+
+    return {
+        "created": len(created),
+        "errors": len(errors),
+        "items_created": created,
+        "items_errors": errors,
+    }
+
+
+@router.post("/import-students/upload")
+async def import_students_upload(
+    file: UploadFile = FastAPIFile(...),
+    db: Session = Depends(get_db),
+    admin=Depends(require_admin),
+):
+    """Import students from an uploaded CSV file."""
+    content = await file.read()
+    try:
+        csv_text = content.decode("utf-8")
+    except UnicodeDecodeError:
+        csv_text = content.decode("latin-1")
+
+    return import_students_from_csv(csv_text, db, admin)

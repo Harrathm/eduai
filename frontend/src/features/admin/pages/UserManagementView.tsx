@@ -15,8 +15,10 @@ import {
   Minus,
   Users,
   Plus,
-  BookOpen
+  BookOpen,
+  Upload
 } from "lucide-react";
+import CsvImportStudents from "./CsvImportStudents";
 
 const API_URL = "";
 
@@ -66,6 +68,7 @@ export default function UserManagementView() {
   const [editRoleModal, setEditRoleModal] = useState<User | null>(null);
   const [newRole, setNewRole] = useState<"student" | "teacher" | "admin_school" | "pedagogical_admin" | "pedagogical_lead">("student");
   const [notification, setNotification] = useState<Notification>({ show: false, message: "", type: "success" });
+  const [showCsvImport, setShowCsvImport] = useState(false);
 
   const showNotification = (message: string, type: "success" | "error" = "success") => {
     setNotification({ show: true, message, type });
@@ -383,8 +386,22 @@ const toggleUserStatus = async (userId: number, isActive: boolean) => {
             <option value="active">Actifs</option>
             <option value="inactive">Inactifs</option>
           </select>
+          <button
+            onClick={() => setShowCsvImport(!showCsvImport)}
+            className="flex items-center gap-2 px-4 py-3 bg-navy text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-all"
+          >
+            <Upload className="w-4 h-4" />
+            Import CSV
+          </button>
         </div>
       </div>
+
+      {/* CSV Import Panel */}
+      {showCsvImport && (
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
+          <CsvImportStudents />
+        </div>
+      )}
 
       {/* Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-black/5 overflow-hidden">

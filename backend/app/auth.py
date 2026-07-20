@@ -90,6 +90,7 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
         school_id=school.id,
         hashed_password=get_password_hash(user_in.password),
         role=role,
+        niveau_scolaire=user_in.niveau_scolaire,
     )
     db.add(new_user)
     db.commit()
@@ -165,6 +166,46 @@ def register_trial_teacher(user_in: UserCreate, db: Session = Depends(get_db)):
 
     access_token = create_access_token({"sub": str(new_user.id), "school_id": demo_school.id})
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.post("/teacher-register")
+def teacher_register(user_in: UserCreate, db: Session = Depends(get_db)):
+    """Public teacher registration — creates a pending TeacherRegistration request.
+    No user account is created yet; admin must approve first.
+    """
+    from app.models import User, School, TeacherRegistration, TeacherRegistrationStatus
+
+    existing = db.query(User).filter(User.email == user_in.email).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    ok, err = validate_password_strength(user_in.password)
+    if not ok:
+        raise HTTPException(status_code=422, detail=err)
+
+    domain = user_in.school_domain or (user_in.school_name.lower().replace(" ", "-") if user_in.school_name else None)
+    school = None
+    if domain:
+        school = db.query(School).filter(School.domain == domain).first()
+    if not school and user_in.school_name:
+        school = School(name=user_in.school_name, domain=domain, slug=domain)
+        db.add(school)
+        db.flush()
+    if not school:
+        school = db.query(School).first()
+        if not school:
+            raise HTTPException(status_code=400, detail="No school found. Provide school_name.")
+
+    reg = TeacherRegistration(
+        school_id=school.id,
+        email=user_in.email,
+        full_name=user_in.full_name,
+        status=TeacherRegistrationStatus.PENDING,
+    )
+    db.add(reg)
+    db.commit()
+
+    return {"message": "Registration request submitted. You will receive an email once reviewed.", "school_name": school.name}
 
 
 @router.post("/login", response_model=Token)
