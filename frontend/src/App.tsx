@@ -171,21 +171,52 @@ function AppContent() {
             <Navigate to="/login" replace />
           } />
           
-          {/* Teacher Routes */}
-          <Route path="teacher/learning" element={<MyLearning />} />
-          <Route path="teacher/classroom" element={<ClassroomManager />} />
-          <Route path="teacher/ai-studio" element={<TeacherAIStudio />} />
-          <Route path="teacher/wallet" element={<TeacherWallet />} />
-          <Route path="teacher/sales" element={<TeacherSalesPage />} />
+          {/* Teacher Routes — only teacher and admin_school */}
+          <Route path="teacher" element={
+            <RequireRole roles={["teacher", "admin_school"]}>
+              <>{null}</>
+            </RequireRole>
+          }>
+            <Route path="learning" element={<MyLearning />} />
+            <Route path="classroom" element={<ClassroomManager />} />
+            <Route path="ai-studio" element={<TeacherAIStudio />} />
+            <Route path="wallet" element={<TeacherWallet />} />
+            <Route path="sales" element={<TeacherSalesPage />} />
+          </Route>
+
           <Route path="inbox" element={<InboxPage />} />
           
-          {/* Student Routes */}
-          <Route path="courses" element={<CatalogPage />} />
-          <Route path="courses/:courseId" element={<CoursePlayerPage />} />
-          <Route path="courses/:courseId/lessons/:lessonId" element={<CoursePlayerPage />} />
-          <Route path="assignments" element={<StudentCourseCatalog />} />
-          <Route path="ai-tutor" element={<LearnerAIChatPage />} />
-          <Route path="wallet" element={<StudentWallet />} />
+          {/* Student Routes — only student and admin_school */}
+          <Route path="courses" element={
+            <RequireRole roles={["student", "admin_school"]}>
+              <CatalogPage />
+            </RequireRole>
+          } />
+          <Route path="courses/:courseId" element={
+            <RequireRole roles={["student", "admin_school"]}>
+              <CoursePlayerPage />
+            </RequireRole>
+          } />
+          <Route path="courses/:courseId/lessons/:lessonId" element={
+            <RequireRole roles={["student", "admin_school"]}>
+              <CoursePlayerPage />
+            </RequireRole>
+          } />
+          <Route path="assignments" element={
+            <RequireRole roles={["student", "admin_school"]}>
+              <StudentCourseCatalog />
+            </RequireRole>
+          } />
+          <Route path="ai-tutor" element={
+            <RequireRole roles={["student", "admin_school"]}>
+              <LearnerAIChatPage />
+            </RequireRole>
+          } />
+          <Route path="wallet" element={
+            <RequireRole roles={["student", "admin_school"]}>
+              <StudentWallet />
+            </RequireRole>
+          } />
         </Route>
 
         {/* Public learner routes - auth handled internally */}
