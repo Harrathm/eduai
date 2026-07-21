@@ -1,0 +1,213 @@
+"""
+Tests de restriction par palier (découverte/excellence/etablissement).
+Vérifie que les fonctionnalités IA sont correctement filtrées par palier.
+"""
+import os
+os.environ["TESTING"] = "true"
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+os.environ["ENVIRONMENT"] = "development"
+
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+from unittest.mock import patch, MagicMock
+
+from app.db import Base, get_db
+from app.main import app
+from app.models import User, School, Course, CourseStatus
+from app.core.security import get_password_hash
+from app.services.student_tier import get_student_tier, get_ai_feature_level
+
+TEST_PASSWORD = "password123"
+TEST_HASH = get_password_hash(TEST_PASSWORD)
+
+
+@pytest.fixture(scope="function")
+def test_db():
+    """Create a test database with tier-specific students."""
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    TestingSessionLocal = sessionmaker(bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    def override_get_db():
+        db = TestingSessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = override_get_db
+    db = TestingSessionLocal()
+
+    school = School(name="Test School", slug="test-school", subscription_tier="free")
+    db.add(school)
+    db.commit()
+
+    admin = User(
+        email="test_admin@test.com",
+        hashed_password=TEST_HASH,
+        full_name="Test Admin",
+        role="SUPER_ADMIN",
+        is_active=True,
+        is_approved=True,
+        school_id=school.id,
+    )
+    db.add(admin)
+
+    student = User(
+        email="test_student@test.com",
+        hashed_password=TEST_HASH,
+        full_name="Test Student",
+        role="STUDENT",
+        is_active=True,
+        is_approved=True,
+        school_id=school.id,
+    )
+    db.add(student)
+    db.commit()
+
+    yield db, school, admin, student
+    db.close()
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture(scope="function")
+def client(test_db):
+    return TestClient(app)
+
+
+@pytest.fixture(scope="function")
+def admin_token(client, test_db):
+    response = client.post("/auth/login", data={"username": "test_admin@test.com", "password": TEST_PASSWORD})
+    data = response.json()
+    if "access_token" not in data:
+        raise RuntimeError(f"Login failed: {response.status_code} {data}")
+    return data["access_token"]
+
+
+@pytest.fixture(scope="function")
+def student_token(client, test_db):
+    response = client.post("/auth/login", data={"username": "test_student@test.com", "password": TEST_PASSWORD})
+    data = response.json()
+    if "access_token" not in data:
+        raise RuntimeError(f"Login failed: {response.status_code} {data}")
+    return data["access_token"]
+
+
+def _auth_header(token: str) -> dict:
+    return {"Authorization": f"Bearer {token}"}
+
+
+# ── Tests fonctions utilitaires ──────────────────────────────
+
+def test_student_tier_function(test_db):
+    db, school, admin, student = test_db
+    tier = get_student_tier(student, db)
+    assert tier in ("decouverte", "excellence", "etablissement")
+
+
+def test_ai_feature_level_function(test_db):
+    db, school, admin, student = test_db
+    level = get_ai_feature_level(student, db)
+    assert level in ("basic", "adaptive", "curriculum_aligned")
+
+
+# ── Tests dashboard ──────────────────────────────────────────
+
+def test_dashboard_endpoint(client, test_db, student_token):
+    resp = client.get("/api/learner/dashboard", headers=_auth_header(student_token))
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "tier" in data
+    assert data["tier"] in ("decouverte", "excellence", "etablissement")
+    assert "courses" in data
+    assert "daily_objective" in data
+    assert "features" in data
+
+
+def test_daily_objective_endpoint(client, test_db, student_token):
+    resp = client.get("/api/learner/daily-objective", headers=_auth_header(student_token))
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "tier" in data
+    assert "message" in data
+    assert "type" in data
+
+
+def test_recommended_path_endpoint(client, test_db, student_token):
+    resp = client.get("/api/learner/recommended-path", headers=_auth_header(student_token))
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "tier" in data
+    assert "description" in data
+    assert "courses" in data
+    assert "next_step" in data
+
+
+# ── Tests placement ──────────────────────────────────────────
+
+def test_placement_tests_list(client, test_db):
+    resp = client.get("/api/placement/tests")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert isinstance(data, list)
+
+
+# ── Tests restrictions IA ────────────────────────────────────
+
+def test_student_ai_ask_allowed(client, test_db, student_token):
+    """Student peut utiliser /ai/ask (questions simples) — pas de 403."""
+    with patch("app.ai.RAGService") as MockRAG:
+        mock_rag = MagicMock()
+        mock_rag.ask.return_value = {"answer": "test", "sources": []}
+        MockRAG.return_value = mock_rag
+
+        resp = client.post(
+            "/api/ai/ask",
+            json={"question": "Qu'est-ce que la photosynthèse ?"},
+            headers=_auth_header(student_token),
+        )
+        assert resp.status_code in (200, 402), f"Expected 200/402, got {resp.status_code}: {resp.text}"
+
+
+def test_student_ai_explain_allowed(client, test_db, student_token):
+    """Student peut utiliser /ai/explic — pas de 403."""
+    with patch("app.ai.RAGService") as MockRAG:
+        mock_rag = MagicMock()
+        mock_rag.explain.return_value = {"answer": "explication test", "sources": []}
+        MockRAG.return_value = mock_rag
+
+        resp = client.post(
+            "/api/ai/explain",
+            json={"question": "Explique la photosynthèse"},
+            headers=_auth_header(student_token),
+        )
+        assert resp.status_code in (200, 402), f"Expected 200/402, got {resp.status_code}: {resp.text}"
+
+
+def test_student_ai_exercises_blocked(client, test_db, student_token):
+    """Découverte ne peut PAS utiliser /ai/exercises (excellence+)."""
+    resp = client.post(
+        "/api/ai/exercises",
+        params={"topic": "Mathématiques", "num_exercises": 3},
+        headers=_auth_header(student_token),
+    )
+    assert resp.status_code == 403, f"Expected 403, got {resp.status_code}: {resp.text}"
+    assert "paliers" in resp.json()["detail"].lower() or "excellence" in resp.json()["detail"].lower()
+
+
+def test_student_ai_generate_blocked(client, test_db, student_token):
+    """Découverte ne peut PAS utiliser /ai/generate (établissement)."""
+    resp = client.post(
+        "/api/ai/generate",
+        json={"type": "homework", "subject": "Maths", "level": "2ème année", "trimester": "T1", "prompt": "Génère un devoir"},
+        headers=_auth_header(student_token),
+    )
+    assert resp.status_code == 403, f"Expected 403, got {resp.status_code}: {resp.text}"
+    assert "établissement" in resp.json()["detail"].lower()

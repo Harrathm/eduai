@@ -46,6 +46,7 @@ from app.routers.pedagogical import router as pedagogical_router
 from app.routers.pedagogical_lead import router as pedagogical_lead_router
 from app.routers.packs import router as packs_router
 from app.routers.inbox import router as inbox_router
+from app.routers.placement import router as placement_router
 
 # Import models_lms to register its models with Base metadata
 import app.models_lms
@@ -282,6 +283,7 @@ app.include_router(pedagogical_router, prefix="/api")
 app.include_router(pedagogical_lead_router, prefix="/api")
 app.include_router(packs_router, prefix="/api")
 app.include_router(inbox_router, prefix="/api")
+app.include_router(placement_router, prefix="/api")
 
 
 # Add file logging for error log viewer

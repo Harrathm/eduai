@@ -1011,6 +1011,7 @@ class TeacherRegistration(Base):
     
     email: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    hashed_password: Mapped[Optional[str]] = mapped_column(String(500))
     
     status: Mapped[str] = mapped_column(SQLEnum(TeacherRegistrationStatus), default=TeacherRegistrationStatus.PENDING)
     rejection_reason: Mapped[Optional[str]] = mapped_column(Text)
@@ -1052,6 +1053,8 @@ __all__ = [
     "Message",
     "PlatformSetting",
     "TeacherRegistration",
+    "PlacementTest",
+    "PlacementTestResult",
     # Enums
     "UserRole",
     "SubscriptionTier",
@@ -1622,6 +1625,38 @@ class Subscription(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     school: Mapped[School] = relationship("School")
+
+
+class PlacementTest(Base):
+    """Test de positionnement adaptatif — questions à difficulté croissante par matière/niveau."""
+    __tablename__ = "placement_tests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    matiere: Mapped[str] = mapped_column(String(100), nullable=False)
+    niveau: Mapped[str] = mapped_column(String(50), nullable=False)
+    title: Mapped[Optional[str]] = mapped_column(String(255))
+    questions: Mapped[dict] = mapped_column(JSON, nullable=False)
+    # Format questions: [{"text": "...", "options": ["A","B","C","D"], "correct": 0, "difficulty": 1}, ...]
+    created_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class PlacementTestResult(Base):
+    """Résultat d'un test de positionnement — compétence évaluée."""
+    __tablename__ = "placement_test_results"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    placement_test_id: Mapped[int] = mapped_column(ForeignKey("placement_tests.id", ondelete="CASCADE"), nullable=False)
+    competency_level: Mapped[str] = mapped_column(String(30), nullable=False)  # debutant, intermediaire, avance
+    answers: Mapped[Optional[dict]] = mapped_column(JSON)  # détail des réponses
+    score: Mapped[Optional[float]] = mapped_column(Float)
+    completed_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+    user: Mapped[User] = relationship("User", foreign_keys=[user_id])
+    test: Mapped[PlacementTest] = relationship("PlacementTest", foreign_keys=[placement_test_id])
 
 
 # Backward compatibility aliases

@@ -14,6 +14,7 @@ from app.services.wallet import (
     check_low_balance_alert,
     InsufficientCreditsError,
 )
+from app.services.student_tier import get_ai_feature_level
 from app.core.rate_limiter import check_ai_rate_limit
 import os
 import logging
@@ -314,6 +315,14 @@ def generate_exercises(
 ):
     from app.ai import RAGService
 
+    # Tier check: exercises require adaptive+ (excellence/etablissement)
+    ai_level = get_ai_feature_level(current_user, db)
+    if ai_level == "basic":
+        raise HTTPException(
+            status_code=403,
+            detail="Génération d'exercices réservée aux paliers Excellence et Établissement. Passez à un pack supérieur.",
+        )
+
     # Rate limit check
     check_ai_rate_limit(current_user.id, "ai_generate")
 
@@ -533,6 +542,14 @@ def generate_content(
     db: Session = Depends(get_db),
 ):
     from app.ai import RAGService
+
+    # Tier check: generate requires curriculum_aligned (etablissement only)
+    ai_level = get_ai_feature_level(current_user, db)
+    if ai_level != "curriculum_aligned":
+        raise HTTPException(
+            status_code=403,
+            detail="Génération de contenu personnalisé réservée au palier Établissement. Contactez votre admin d'école.",
+        )
 
     # Rate limit check
     check_ai_rate_limit(current_user.id, "ai_generate")

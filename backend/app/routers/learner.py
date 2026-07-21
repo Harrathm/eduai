@@ -997,3 +997,179 @@ def get_my_subscription_status(
     """Return subscription status and expiration info."""
     from app.tasks.subscription_expiration import get_subscription_status
     return get_subscription_status(current_user)
+
+
+# ============================================================
+# TIER RECOMMENDATIONS
+# ============================================================
+
+from app.services.recommendation import get_recommended_path, get_daily_objective
+from app.services.student_tier import get_student_tier
+from app.services.course_access import has_course_access
+
+
+# ============================================================
+# TIER-DIFFERENTIATED DASHBOARD
+# ============================================================
+
+@router.get("/dashboard")
+def learner_dashboard(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Tableau de bord différencié selon le palier de l'élève.
+    - Découverte  : progression simple, objectif quotidien, accès de base
+    - Excellence  : analytics détaillés, objectifs ciblés, recommandations IA
+    - Établissement : parcours complet, analytics école, objectifs programme
+    """
+    tier = get_student_tier(current_user, db)
+    today = datetime.now(timezone.utc).date()
+
+    # Données communes
+    enrollments = db.query(CourseEnrollment).filter(
+        CourseEnrollment.student_id == current_user.id
+    ).all()
+
+    courses = []
+    total_progress = 0.0
+    total_lessons_completed = 0
+    total_lessons = 0
+
+    for e in enrollments:
+        course = db.query(Course).filter(Course.id == e.course_id).first()
+        if not course or course.status != "published":
+            continue
+
+        course_lessons = db.query(Lesson).join(Module).filter(
+            Module.course_id == course.id
+        ).count()
+        completed = db.query(LessonProgress).filter(
+            LessonProgress.enrollment_id == e.id,
+            LessonProgress.status == "completed",
+        ).count()
+
+        progress = round((completed / course_lessons) * 100, 1) if course_lessons > 0 else 0.0
+        total_lessons_completed += completed
+        total_lessons += course_lessons
+
+        course_data = {
+            "id": course.id,
+            "title": course.title,
+            "niveau_scolaire": course.niveau_scolaire,
+            "progress_pct": progress,
+            "lessons_completed": completed,
+            "total_lessons": course_lessons,
+        }
+
+        # Excellence/etablissement : ajouter la matière pour analytics
+        if tier in ("excellence", "etablissement"):
+            course_data["matiere"] = course.matiere or ""
+
+        courses.append(course_data)
+
+    total_progress = round((total_lessons_completed / total_lessons) * 100, 1) if total_lessons > 0 else 0.0
+
+    # Objectif quotidien
+    daily = get_daily_objective(current_user, db)
+
+    # Dashboard selon palier
+    dashboard = {
+        "tier": tier,
+        "user_id": current_user.id,
+        "total_enrolled_courses": len(enrollments),
+        "overall_progress_pct": total_progress,
+        "lessons_completed": total_lessons_completed,
+        "total_lessons": total_lessons,
+        "courses": courses,
+        "daily_objective": daily,
+    }
+
+    if tier == "decouverte":
+        dashboard["features"] = {
+            "ai_access": "questions simples (ask/explain)",
+            "placement_test": False,
+            "recommendations": "parcours guidé",
+            "analytics": False,
+        }
+        dashboard["encouragement"] = _get_encouragement_message(total_progress)
+
+    elif tier == "excellence":
+        dashboard["features"] = {
+            "ai_access": "exercices ciblés + questions",
+            "placement_test": True,
+            "recommendations": "adaptatives",
+            "analytics": True,
+        }
+        # Ajouter les stats matière
+        dashboard["matiere_stats"] = _get_matiere_stats(courses)
+
+    else:  # etablissement
+        dashboard["features"] = {
+            "ai_access": "tout (contenu personnalisé)",
+            "placement_test": True,
+            "recommendations": "programme national",
+            "analytics": True,
+            "school_content": True,
+        }
+        dashboard["matiere_stats"] = _get_matiere_stats(courses)
+        # Cours de l'école disponibles
+        if current_user.school_id:
+            school_courses = db.query(Course).filter(
+                Course.school_id == current_user.school_id,
+                Course.status == "published",
+                ~Course.id.in_([e.course_id for e in enrollments]),
+            ).limit(5).all()
+            dashboard["suggested_school_courses"] = [
+                {"id": c.id, "title": c.title, "niveau_scolaire": c.niveau_scolaire}
+                for c in school_courses
+            ]
+
+    return dashboard
+
+
+def _get_encouragement_message(progress_pct: float) -> str:
+    """Retourne un message d'encouragement pour le palier découverte."""
+    if progress_pct < 25:
+        return "Bien démarré ! Continuez comme ça"
+    elif progress_pct < 50:
+        return "Vous avancez bien !"
+    elif progress_pct < 75:
+        return "Excellent progrès !"
+    else:
+        return "Formidable ! Vous maîtrisez presque tout"
+
+
+def _get_matiere_stats(courses: list) -> dict:
+    """Calcule les stats par matière pour excellence/etablissement."""
+    stats = {}
+    for c in courses:
+        matiere = c.get("matiere", "général")
+        if matiere not in stats:
+            stats[matiere] = {"total": 0, "completed": 0, "progress_pct": 0.0}
+        stats[matiere]["total"] += c.get("total_lessons", 0)
+        stats[matiere]["completed"] += c.get("lessons_completed", 0)
+
+    for m in stats.values():
+        if m["total"] > 0:
+            m["progress_pct"] = round((m["completed"] / m["total"]) * 100, 1)
+
+    return stats
+
+
+@router.get("/recommended-path")
+def recommended_learning_path(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Retourne le parcours d'apprentissage recommandé selon le palier de l'élève."""
+    return get_recommended_path(current_user, db)
+
+
+@router.get("/daily-objective")
+def daily_objective(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Retourne l'objectif quotidien de l'élève selon son palier."""
+    return get_daily_objective(current_user, db)
