@@ -1768,7 +1768,7 @@ def list_teacher_registrations(
     skip: int = 0,
     limit: int = 20,
     db: Session = Depends(get_db),
-    admin=Depends(require_platform_admin),
+    admin=Depends(require_admin),
 ):
     query = db.query(TeacherRegistration)
     if not _is_super(admin):
@@ -1798,7 +1798,7 @@ def review_teacher_registration(
     status: str,
     rejection_reason: str | None = None,
     db: Session = Depends(get_db),
-    admin=Depends(require_platform_admin),
+    admin=Depends(require_admin),
 ):
     from app.models import TeacherRegistration, SubscriptionPlan
     reg = db.query(TeacherRegistration).filter(TeacherRegistration.id == reg_id).first()
