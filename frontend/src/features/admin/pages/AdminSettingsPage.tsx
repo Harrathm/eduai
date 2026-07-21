@@ -190,7 +190,7 @@ export default function AdminSettingsPage() {
   }, [tab, loadErrorLogs]);
 
   const getActiveProvider = () => {
-    const order = ["openai", "groq", "openrouter", "minimax", "anthropic", "azure", "google"];
+    const order = ["nvidia", "freetokenfaucet", "openai", "groq", "openrouter", "minimax", "anthropic", "azure", "google"];
     for (const pid of order) {
       if (apiConfig[pid]?.enabled && apiConfig[pid]?.key) return pid;
     }

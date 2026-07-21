@@ -12,6 +12,7 @@ from app.auth import get_current_user
 from app.models import (
     User, StudyPack, PackPurchase, PackStatus, PackPurchaseStatus,
     PurchaserType, Course, Transaction, TransactionType, Currency,
+    School,
 )
 from app.schemas import StudyPackRead, PackPurchaseRead
 
@@ -32,8 +33,10 @@ def list_published_packs(
     skip: int = 0,
     limit: int = 50,
     db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user),
 ):
-    """Catalogue public des packs publiés, filtrable par niveau scolaire."""
+    """Catalogue public des packs publiés, filtrable par niveau scolaire.
+    Si authentifié, ajoute already_included_by_school pour chaque pack."""
     query = db.query(StudyPack).filter(StudyPack.status == PackStatus.PUBLISHED.value)
 
     if niveau_scolaire:
@@ -41,6 +44,18 @@ def list_published_packs(
 
     total = query.count()
     packs = query.order_by(StudyPack.created_at.desc()).offset(skip).limit(limit).all()
+
+    # Step 6: Vérifier quels packs sont déjà couverts par l'école de l'utilisateur
+    school_pack_niveaux = set()
+    if current_user and current_user.school_id:
+        now = datetime.now(timezone.utc)
+        active_school_packs = db.query(PackPurchase).filter(
+            PackPurchase.school_id == current_user.school_id,
+            PackPurchase.purchaser_type == PurchaserType.SCHOOL.value,
+            PackPurchase.status == PackPurchaseStatus.ACTIVE.value,
+            PackPurchase.valid_until > now,
+        ).join(StudyPack).all()
+        school_pack_niveaux = {sp.niveau_scolaire for sp in active_school_packs}
 
     return {
         "total": total,
@@ -54,6 +69,8 @@ def list_published_packs(
                 "price": p.price,
                 "currency": p.currency,
                 "validity_duration_days": p.validity_duration_days,
+                "owner_type": p.owner_type or "eduai_catalog",
+                "already_included_by_school": p.niveau_scolaire in school_pack_niveaux if school_pack_niveaux else False,
                 "created_at": p.created_at.isoformat() if p.created_at else None,
             }
             for p in packs
@@ -147,6 +164,21 @@ def purchase_pack(
             status_code=400,
             detail=f"Vous avez déjà un pack actif pour le niveau '{pack.niveau_scolaire}' (expire le {existing.valid_until.strftime('%d/%m/%Y')})."
         )
+
+    # Step 5: Bloquer l'achat individuel si l'école a déjà un pack actif pour ce niveau
+    if user.school_id:
+        school_has_pack = db.query(PackPurchase).filter(
+            PackPurchase.school_id == user.school_id,
+            PackPurchase.purchaser_type == PurchaserType.SCHOOL.value,
+            PackPurchase.status == PackPurchaseStatus.ACTIVE.value,
+            PackPurchase.valid_until > now,
+        ).join(StudyPack).filter(StudyPack.niveau_scolaire == pack.niveau_scolaire).first()
+
+        if school_has_pack:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Votre école dispose déjà d'un pack actif pour le niveau '{pack.niveau_scolaire}' (expire le {school_has_pack.valid_until.strftime('%d/%m/%Y')}). Vous n'avez pas besoin de l'acheter individuellement."
+            )
 
     # Vérifier le solde
     if user.dt_balance < pack.price:

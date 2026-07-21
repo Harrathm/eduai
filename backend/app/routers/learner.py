@@ -18,6 +18,7 @@ from app.models import (
     Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer,
     Note, Bookmark, LessonProgress
 )
+from app.services.course_access import has_course_access
 
 router = APIRouter(tags=["Learner"])
 
@@ -202,7 +203,8 @@ def get_course_detail(course_id: int, db: Session = Depends(get_db)):
     from app.models import Course, CourseStatus
     course = db.query(Course).filter(
         Course.id == course_id,
-        Course.is_published == True
+        Course.is_published == True,
+        Course.visibility != "school_only"
     ).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -243,6 +245,12 @@ def get_course_syllabus(course_id: int, db: Session = Depends(get_db), current_u
     course = course_query.first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
+
+    if not is_super and not has_course_access(current_user, course, db):
+        raise HTTPException(
+            status_code=403,
+            detail="Accès non autorisé — achetez ce cours ou le pack correspondant"
+        )
 
     modules = db.query(Module).filter(Module.course_id == course_id).order_by(Module.order).all()
     result = []
@@ -347,9 +355,12 @@ def get_lesson_content(
     course = db.query(Course).filter(Course.id == module.course_id).first()
 
     if not is_super:
-        course_status = str(course.status).split(".")[-1] if hasattr(course.status, 'value') else str(course.status)
-        if course_status != "PUBLISHED" and not lesson.is_free:
-            raise HTTPException(status_code=403, detail="Course not published")
+        # Free lessons are always accessible; paid lessons require course access
+        if not lesson.is_free and not has_course_access(user, course, db):
+            raise HTTPException(
+                status_code=403,
+                detail="Accès non autorisé — achetez ce cours ou le pack correspondant"
+            )
 
     quiz_data = None
     if lesson.quiz_id:
@@ -502,6 +513,20 @@ def start_quiz_attempt(
     if not quiz:
         raise HTTPException(status_code=404, detail="Quiz not found")
 
+    # Check course access via the lesson's parent course
+    from app.deps import get_user_role
+    is_super = get_user_role(user) == "super_admin"
+    if not is_super:
+        lesson = db.query(Lesson).filter(Lesson.quiz_id == quiz_id).first()
+        if lesson:
+            module = db.query(Module).filter(Module.id == lesson.module_id).first()
+            course = db.query(Course).filter(Course.id == module.course_id).first()
+            if not has_course_access(user, course, db):
+                raise HTTPException(
+                    status_code=403,
+                    detail="Accès non autorisé — achetez ce cours ou le pack correspondant"
+                )
+
     if quiz.max_attempts:
         existing = db.query(QuizAttempt).filter(
             QuizAttempt.quiz_id == quiz_id,
@@ -532,6 +557,20 @@ def get_quiz(
     quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
     if not quiz:
         raise HTTPException(status_code=404, detail="Quiz not found")
+
+    # Check course access
+    from app.deps import get_user_role
+    is_super = get_user_role(user) == "super_admin"
+    if not is_super:
+        lesson = db.query(Lesson).filter(Lesson.quiz_id == quiz_id).first()
+        if lesson:
+            module = db.query(Module).filter(Module.id == lesson.module_id).first()
+            course = db.query(Course).filter(Course.id == module.course_id).first()
+            if not has_course_access(user, course, db):
+                raise HTTPException(
+                    status_code=403,
+                    detail="Accès non autorisé — achetez ce cours ou le pack correspondant"
+                )
 
     questions = db.query(QuizQuestion).filter(QuizQuestion.quiz_id == quiz_id).order_by(QuizQuestion.order_index).all()
     return {

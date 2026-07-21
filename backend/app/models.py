@@ -742,6 +742,10 @@ class StudyPack(Base):
     # Statut
     status: Mapped[str] = mapped_column(String(20), default=PackStatus.DRAFT.value)
 
+    # Propriétaire
+    owner_type: Mapped[str] = mapped_column(String(30), default="eduai_catalog")  # school, eduai_catalog
+    school_id: Mapped[Optional[int]] = mapped_column(ForeignKey("schools.id", ondelete="SET NULL"), nullable=True)
+
     # Métadonnées
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 

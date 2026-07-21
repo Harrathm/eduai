@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from app.db import get_db
 from app.auth import get_current_user
 from app.models import User, Course, Module, Lesson, CourseEnrollment
-from app.models import UserRole, CourseStatus
+from app.models import UserRole, CourseStatus, Transaction, TransactionType, Currency
 from app.schemas import (
     CourseRead,
     CourseCreate,
@@ -312,7 +312,7 @@ def purchase_course(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Achète un cours payant. Réservé aux students (et teachers en tant qu'élèves)."""
+    """Achète un cours payant avec débit réel du solde DT."""
     from app.models import CoursePurchase
 
     course = db.query(Course).filter(Course.id == course_id).first()
@@ -330,6 +330,29 @@ def purchase_course(
     if existing:
         raise HTTPException(status_code=400, detail="Vous avez déjà acheté ce cours")
 
+    # Vérifier le solde DT
+    if current_user.dt_balance < course.price:
+        raise HTTPException(
+            status_code=402,
+            detail=f"Solde insuffisant. Solde actuel: {current_user.dt_balance} {course.currency or 'TND'}, prix du cours: {course.price} {course.currency or 'TND'}"
+        )
+
+    # Débiter le solde DT
+    current_user.dt_balance -= course.price
+
+    # Créer la transaction financière
+    transaction = Transaction(
+        school_id=current_user.school_id or course.school_id or 1,
+        user_id=current_user.id,
+        type=TransactionType.COURSE_PURCHASE,
+        amount=course.price,
+        currency=Currency.DT,
+        description=f"Achat cours: {course.title}",
+        reference_id=f"course_{course_id}",
+        status="completed",
+    )
+    db.add(transaction)
+
     # Calculer la répartition
     commission_rate = course.commission_rate or 0
     platform_fee = course.price * (commission_rate / 100)
@@ -343,16 +366,14 @@ def purchase_course(
         platform_fee=platform_fee,
         teacher_revenue=teacher_revenue,
         commission_rate_applied=commission_rate,
-        transaction_id=f"course_{course_id}_{current_user.id}_{int(datetime.now(timezone.utc).timestamp())}",
+        transaction_id=str(transaction.id),
     )
     db.add(purchase)
 
     # Auto-inscription
-    from app.models import CourseEnrollment
     enrollment = CourseEnrollment(
         student_id=current_user.id,
         course_id=course_id,
-        school_id=course.school_id,
     )
     db.add(enrollment)
     db.commit()
@@ -363,6 +384,7 @@ def purchase_course(
         "currency": purchase.currency,
         "platform_fee": purchase.platform_fee,
         "teacher_revenue": purchase.teacher_revenue,
+        "remaining_balance": current_user.dt_balance,
     }
 
 

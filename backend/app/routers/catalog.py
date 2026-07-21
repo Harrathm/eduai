@@ -74,7 +74,8 @@ def get_course_detail(slug: str, db: Session = Depends(get_db)):
     """Get published course detail by slug"""
     course = db.query(Course).filter(
         Course.slug == slug,
-        Course.status == CourseStatus.PUBLISHED
+        Course.status == CourseStatus.PUBLISHED,
+        Course.visibility != "school_only"
     ).first()
 
     if not course:

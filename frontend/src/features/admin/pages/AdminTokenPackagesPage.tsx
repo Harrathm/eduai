@@ -7,7 +7,7 @@ const API_URL = "";
 interface TokenPackage {
   id: number;
   name: string;
-  tokens_amount: number;
+  tokens: number;
   price_dt: number;
   bonus_tokens: number;
   is_active: boolean;
@@ -106,7 +106,7 @@ export default function AdminTokenPackagesPage() {
       </div>
     )},
     { key: "tokens", header: "Tokens", render: (p: TokenPackage) => (
-      <span className="font-semibold text-navy">{p.tokens_amount.toLocaleString("fr-TN")}</span>
+      <span className="font-semibold text-navy">{p.tokens.toLocaleString("fr-TN")}</span>
     )},
     { key: "bonus", header: "Bonus", render: (p: TokenPackage) => (
       <span className="text-green-600 text-sm">{p.bonus_tokens > 0 ? `+${p.bonus_tokens}` : "—"}</span>
@@ -175,7 +175,7 @@ function PackageFormModal({ open, package: pkg, onClose, onSubmit, loading }: {
   open: boolean; package?: TokenPackage; onClose: () => void; onSubmit: (d: Partial<TokenPackage>) => void; loading: boolean;
 }) {
   const [name, setName] = useState(pkg?.name || "");
-  const [tokens, setTokens] = useState(pkg?.tokens_amount?.toString() || "");
+  const [tokens, setTokens] = useState(pkg?.tokens?.toString() || "");
   const [bonus, setBonus] = useState(pkg?.bonus_tokens?.toString() || "0");
   const [price, setPrice] = useState(pkg?.price_dt?.toString() || "");
   const [active, setActive] = useState(pkg?.is_active ?? true);
@@ -187,7 +187,7 @@ function PackageFormModal({ open, package: pkg, onClose, onSubmit, loading }: {
       footer={
         <>
           <button onClick={onClose} className="flex-1 py-3 bg-cream-m rounded-xl font-medium">Cancel</button>
-          <button onClick={() => onSubmit({ name, tokens_amount: Number(tokens), bonus_tokens: Number(bonus), price_dt: Number(price), is_active: active })}
+          <button onClick={() => onSubmit({ name, tokens: Number(tokens), bonus_tokens: Number(bonus), price_dt: Number(price), is_active: active })}
             disabled={loading || !name || !tokens || !price} className="flex-1 py-3 bg-orange text-white rounded-xl font-medium disabled:opacity-50">
             {loading ? "..." : pkg ? "Save" : "Create"}
           </button>
