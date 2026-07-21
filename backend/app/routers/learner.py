@@ -16,7 +16,7 @@ from app.models import User, UserRole, VerificationStatus
 from app.models import (
     Course, Module, Lesson, CourseEnrollment, Certificate,
     Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer,
-    Note, Bookmark, LessonProgress
+    Note, Bookmark, LessonProgress, CourseOwnerType
 )
 from app.services.course_access import has_course_access
 
@@ -182,6 +182,58 @@ def list_published_courses(
                 "thumbnail_url": c.thumbnail_url,
                 "category": c.category,
                 "level": c.level or "beginner",
+                "tags": c.tags,
+                "price_tokens": c.price_tokens or 0,
+                "price_dt": float(c.price_dt or 0),
+                "is_free": (c.price_tokens or 0) == 0 and float(c.price_dt or 0) == 0,
+                "total_modules": c.total_modules or 0,
+                "total_lessons": c.total_lessons or 0,
+                "total_duration_minutes": c.total_duration_minutes or 0,
+                "author_id": c.author_id,
+                "created_at": c.created_at.isoformat() if c.created_at else None,
+            }
+            for c in courses
+        ],
+    }
+
+
+@router.get("/catalog")
+def list_catalog(
+    skip: int = 0,
+    limit: int = 20,
+    category: str = None,
+    niveau_scolaire: str = None,
+    search: str = None,
+    db: Session = Depends(get_db),
+):
+    """Platform catalog — eduai_catalog courses only (formations pour enseignants/élèves)."""
+    query = db.query(Course).filter(
+        Course.is_published == True,
+        Course.owner_type == CourseOwnerType.EDUAI_CATALOG.value,
+    )
+
+    if category:
+        query = query.filter(Course.category == category)
+    if niveau_scolaire:
+        query = query.filter(Course.niveau_scolaire == niveau_scolaire)
+    if search:
+        query = query.filter(Course.title.ilike(f"%{search}%"))
+
+    total = query.count()
+    courses = query.order_by(Course.created_at.desc()).offset(skip).limit(limit).all()
+    return {
+        "total": total,
+        "items": [
+            {
+                "id": c.id,
+                "title": c.title,
+                "short_description": c.short_description or "",
+                "description": c.description,
+                "cover_url": c.cover_url,
+                "thumbnail_url": c.thumbnail_url,
+                "category": c.category,
+                "level": c.level or "beginner",
+                "niveau_scolaire": c.niveau_scolaire,
                 "tags": c.tags,
                 "price_tokens": c.price_tokens or 0,
                 "price_dt": float(c.price_dt or 0),

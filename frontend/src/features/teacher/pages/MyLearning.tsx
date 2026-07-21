@@ -7,19 +7,37 @@ const API_URL = "";
 interface Training {
   id: number;
   title: string;
+  short_description: string;
   description: string;
-  teacher_name: string;
-  duration_hours: number;
+  category: string;
+  level: string;
+  niveau_scolaire: string;
+  cover_url: string;
+  thumbnail_url: string;
   price_tokens: number;
   price_dt: number;
-  enrolled_count: number;
-  category: string;
+  is_free: boolean;
+  total_modules: number;
+  total_lessons: number;
+  total_duration_minutes: number;
+  author_id: number;
+}
+
+interface Enrollment {
+  enrollment_id: number;
+  course_id: number;
+  title: string;
+  thumbnail_url: string;
+  cover_url: string;
+  progress_percent: number;
+  status: string;
 }
 
 export default function MyLearning() {
   const { token } = useAuthStore();
   const [trainings, setTrainings] = useState<Training[]>([]);
-  const [myEnrollments, setMyEnrollments] = useState<number[]>([]);
+  const [myEnrollments, setMyEnrollments] = useState<Enrollment[]>([]);
+  const [enrolledIds, setEnrolledIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
@@ -33,12 +51,12 @@ export default function MyLearning() {
     if (!token) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/catalog`, {
+      const res = await fetch(`${API_URL}/api/learner/catalog`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
         const data = await res.json();
-        setTrainings(Array.isArray(data) ? data : data.items || []);
+        setTrainings(data.items || []);
       }
     } catch (err) {
       console.error(err);
@@ -49,29 +67,29 @@ export default function MyLearning() {
   const fetchMyEnrollments = async () => {
     if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/api/lms/enrollments`, {
+      const res = await fetch(`${API_URL}/api/learner/my-courses`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
         const data = await res.json();
-        const items = Array.isArray(data) ? data : (data.items || data.enrollments || []);
-        setMyEnrollments(items.map((t: any) => t.course_id || t.id));
+        const items = data.items || [];
+        setMyEnrollments(items);
+        setEnrolledIds(items.map((e: Enrollment) => e.course_id));
       }
     } catch (err) {
       console.error(err);
     }
   };
 
-  const enroll = async (trainingId: number) => {
+  const enroll = async (courseId: number) => {
     if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/api/academy/trainings/${trainingId}/enroll`, {
+      const res = await fetch(`${API_URL}/api/learner/courses/${courseId}/enroll`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
         fetchMyEnrollments();
-        fetchTrainings();
       }
     } catch (err) {
       console.error(err);
@@ -105,16 +123,17 @@ export default function MyLearning() {
           <p className="text-white/50">Aucune inscription</p>
         ) : (
           <div className="flex gap-3 flex-wrap">
-            {trainings
-              .filter((t) => myEnrollments.includes(t.id))
-              .map((t) => (
-                <div
-                  key={t.id}
-                  className="bg-white/10 text-white px-4 py-2 rounded-xl text-sm"
-                >
-                  {t.title}
-                </div>
-              ))}
+            {myEnrollments.map((e) => (
+              <div
+                key={e.course_id}
+                className="bg-white/10 text-white px-4 py-2 rounded-xl text-sm"
+              >
+                {e.title}
+                {e.progress_percent > 0 && (
+                  <span className="ml-2 text-white/60">({e.progress_percent}%)</span>
+                )}
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -169,36 +188,39 @@ export default function MyLearning() {
                     <h3 className="text-lg font-semibold text-navy">
                       {training.title}
                     </h3>
-                    {myEnrollments.includes(training.id) && (
+                    {enrolledIds.includes(training.id) && (
                       <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">
                         Inscrit
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-gray mb-3">{training.description}</p>
+                  <p className="text-sm text-gray mb-3">{training.short_description || training.description}</p>
                   <div className="flex items-center gap-6 text-sm text-gray">
                     <span className="flex items-center gap-1">
-                      <User className="w-4 h-4" />
-                      {training.teacher_name}
+                      <BookOpen className="w-4 h-4" />
+                      {training.total_modules} modules
                     </span>
                     <span className="flex items-center gap-1">
                       <Clock className="w-4 h-4" />
-                      {training.duration_hours}h
+                      {training.total_duration_minutes} min
                     </span>
-                    <span className="flex items-center gap-1">
-                      <BookOpen className="w-4 h-4" />
-                      {training.enrolled_count} inscrits
-                    </span>
+                    {training.niveau_scolaire && (
+                      <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full">
+                        {training.niveau_scolaire}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="text-lg font-semibold text-navy mb-1">
-                    {training.price_tokens} tokens
+                    {training.is_free ? "Gratuit" : `${training.price_tokens} tokens`}
                   </div>
-                  <div className="text-sm text-gray mb-3">
-                    {training.price_dt} DT
-                  </div>
-                  {myEnrollments.includes(training.id) ? (
+                  {!training.is_free && (
+                    <div className="text-sm text-gray mb-3">
+                      {training.price_dt} DT
+                    </div>
+                  )}
+                  {enrolledIds.includes(training.id) ? (
                     <button className="px-4 py-2 bg-green-100 text-green-700 rounded-xl text-sm font-medium">
                       Commencer
                     </button>

@@ -304,3 +304,145 @@ class TestPurchaseCourse:
             headers={"Authorization": f"Bearer {tokens['student_no']}"},
         )
         assert resp2.status_code == 400, f"Duplicate purchase should fail, got {resp2.status_code}"
+
+
+# ============================================================
+# CATALOG — eduai_catalog courses
+# ============================================================
+
+class TestCatalog:
+    """Tests for the /api/lms/catalog endpoint."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        engine = create_engine(
+            "sqlite:///:memory:",
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+        Base.metadata.drop_all(engine)
+        Base.metadata.create_all(engine)
+        TestSession = sessionmaker(bind=engine)
+        db = TestSession()
+
+        def override_get_db():
+            try:
+                yield db
+            finally:
+                pass
+
+        app.dependency_overrides[get_db] = override_get_db
+
+        school = School(name="School A", slug="school-a", school_type="real")
+        db.add(school)
+        db.commit()
+        db.refresh(school)
+
+        teacher = _create_user(db, "teacher@eduai.tn", "teacher", school.id)
+
+        # Create eduai_catalog course (published)
+        catalog_course = Course(
+            title="Formation Pédagogie Active", slug="formation-pedago-active",
+            school_id=school.id, author_id=teacher.id,
+            owner_type="eduai_catalog", visibility="public_catalog",
+            is_published=True, status=CourseStatus.PUBLISHED,
+            niveau_scolaire="9eme de base", category="pedagogy",
+            price=0, price_dt=0, price_tokens=0,
+        )
+        db.add(catalog_course)
+
+        # Create school-only course (should NOT appear in catalog)
+        school_course = Course(
+            title="Cours Interne", slug="cours-interne",
+            school_id=school.id, author_id=teacher.id,
+            owner_type="school", visibility="school_only",
+            is_published=True, status=CourseStatus.PUBLISHED,
+            niveau_scolaire="9eme de base",
+        )
+        db.add(school_course)
+
+        # Create draft course (should NOT appear)
+        draft_course = Course(
+            title="Draft Course", slug="draft-course",
+            school_id=school.id, author_id=teacher.id,
+            owner_type="eduai_catalog", visibility="private",
+            is_published=False, status=CourseStatus.DRAFT,
+        )
+        db.add(draft_course)
+
+        db.commit()
+
+        student = _create_user(db, "student_catalog@eduai.tn", "student", school.id, niveau_scolaire="9eme de base")
+
+        client = TestClient(app)
+        token = _login(client, student.email)
+        client.headers["Authorization"] = f"Bearer {token}"
+
+        self.client = client
+        self.db = db
+        self.catalog_course = catalog_course
+        self.school_course = school_course
+        self.student = student
+
+        yield
+
+        app.dependency_overrides.clear()
+        db.close()
+
+    def test_catalog_returns_only_eduai_catalog_courses(self):
+        """Catalog should only return eduai_catalog published courses."""
+        resp = self.client.get("/api/learner/catalog")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 1
+        assert data["items"][0]["id"] == self.catalog_course.id
+        assert data["items"][0]["title"] == "Formation Pédagogie Active"
+
+    def test_catalog_excludes_school_only_courses(self):
+        """Catalog should NOT include school_only courses."""
+        resp = self.client.get("/api/learner/catalog")
+        data = resp.json()
+        titles = [item["title"] for item in data["items"]]
+        assert "Cours Interne" not in titles
+
+    def test_catalog_excludes_draft_courses(self):
+        """Catalog should NOT include unpublished courses."""
+        resp = self.client.get("/api/learner/catalog")
+        data = resp.json()
+        titles = [item["title"] for item in data["items"]]
+        assert "Draft Course" not in titles
+
+    def test_catalog_filter_by_category(self):
+        """Catalog should filter by category."""
+        resp = self.client.get("/api/learner/catalog?category=pedagogy")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 1
+
+    def test_catalog_filter_by_niveau(self):
+        """Catalog should filter by niveau_scolaire."""
+        resp = self.client.get("/api/learner/catalog?niveau_scolaire=9eme+de+base")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 1
+
+    def test_catalog_empty_when_no_match(self):
+        """Catalog returns empty when no courses match."""
+        resp = self.client.get("/api/learner/catalog?category=nonexistent")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 0
+        assert data["items"] == []
+
+    def test_enroll_in_catalog_course(self):
+        """Student can enroll in a catalog course."""
+        resp = self.client.post(f"/api/learner/courses/{self.catalog_course.id}/enroll")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "active"
+
+    def test_enroll_duplicate_fails(self):
+        """Cannot enroll twice in the same course."""
+        self.client.post(f"/api/learner/courses/{self.catalog_course.id}/enroll")
+        resp = self.client.post(f"/api/learner/courses/{self.catalog_course.id}/enroll")
+        assert resp.status_code == 400
