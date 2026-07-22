@@ -18,7 +18,7 @@ def utcnow() -> datetime:
 
 
 from sqlalchemy import (
-    Column, Integer, String, Boolean, DateTime, Text, Float, 
+    Column, Integer, String, Boolean, DateTime, Text, Float, Numeric,
     ForeignKey, Enum as SQLEnum, UniqueConstraint, Index, 
     CheckConstraint, JSON
 )
@@ -1055,6 +1055,7 @@ __all__ = [
     "TeacherRegistration",
     "PlacementTest",
     "PlacementTestResult",
+    "LearningGoal",
     # Enums
     "UserRole",
     "SubscriptionTier",
@@ -1070,6 +1071,10 @@ __all__ = [
     "DocumentStatus",
     "TeacherRegistrationStatus",
     "MessageType",
+    "GoalHorizon",
+    "GoalStatus",
+    "GoalMetricType",
+    "GoalSource",
     # Backward compatibility aliases
     "CourseState",
     "EnrollStatus",
@@ -1655,8 +1660,68 @@ class PlacementTestResult(Base):
     score: Mapped[Optional[float]] = mapped_column(Float)
     completed_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
-    user: Mapped[User] = relationship("User", foreign_keys=[user_id])
-    test: Mapped[PlacementTest] = relationship("PlacementTest", foreign_keys=[placement_test_id])
+
+# ============================================================
+# LEARNING GOALS — Suivi d'objectifs pédagogiques
+# ============================================================
+
+class GoalHorizon(str, Enum):
+    DAILY = "daily"
+    WEEKLY = "weekly"
+    MONTHLY = "monthly"
+    QUARTERLY = "quarterly"
+    ANNUAL = "annual"
+
+
+class GoalStatus(str, Enum):
+    ON_TRACK = "on_track"
+    BEHIND = "behind"
+    COMPLETED = "completed"
+    MISSED = "missed"
+
+
+class GoalMetricType(str, Enum):
+    LESSONS_COMPLETED = "lessons_completed"
+    QUIZ_AVERAGE_SCORE = "quiz_average_score"
+    STUDY_TIME_MINUTES = "study_time_minutes"
+    CHAPTER_COMPLETION = "chapter_completion"
+    CURRICULUM_COVERAGE_PERCENT = "curriculum_coverage_percent"
+
+
+class GoalSource(str, Enum):
+    AUTO_GENERATED = "auto_generated"
+    TEACHER_ASSIGNED = "teacher_assigned"
+    PEDAGOGICAL_LEAD_ASSIGNED = "pedagogical_lead_assigned"
+    STUDENT_SELF = "student_self"
+
+
+class LearningGoal(Base):
+    """
+    Objectif pédagogique — le statut est TOUJOURS calculé à la volée par
+    goal_tracking.compute_goal_status(), jamais stocké sur ce modèle.
+    """
+    __tablename__ = "learning_goals"
+    __table_args__ = (
+        Index("ix_learning_goals_user_id", "user_id"),
+        Index("ix_learning_goals_horizon", "horizon"),
+        Index("ix_learning_goals_period", "period_start", "period_end"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    matiere: Mapped[Optional[str]] = mapped_column(String(100))  # null = objectif transversal (temps d'étude)
+    horizon: Mapped[str] = mapped_column(String(20), nullable=False)  # GoalHorizon
+    metric_type: Mapped[str] = mapped_column(String(50), nullable=False)  # GoalMetricType
+    target_value: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    period_start: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    period_end: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    source: Mapped[str] = mapped_column(String(30), nullable=False, default=GoalSource.AUTO_GENERATED.value)
+    created_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
+    creator: Mapped[Optional["User"]] = relationship("User", foreign_keys=[created_by])
 
 
 # Backward compatibility aliases
