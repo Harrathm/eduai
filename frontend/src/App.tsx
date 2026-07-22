@@ -39,6 +39,7 @@ import TeacherWallet from "./features/teacher/pages/TeacherWallet";
 import TeacherSalesPage from "./features/teacher/pages/TeacherSalesPage";
 import StudentCourseCatalog from "./features/student/pages/CourseCatalog";
 import StudentWallet from "./features/student/pages/StudentWallet";
+import StudentTierPage from "./features/student/pages/StudentTierPage";
 import InboxPage from "./features/student/pages/InboxPage";
 import CourseBuilderPage from "./features/admin/pages/CourseBuilderPage";
 import CourseEditorPage from "./features/admin/pages/CourseEditorPage";
@@ -215,6 +216,11 @@ function AppContent() {
           <Route path="wallet" element={
             <RequireRole roles={["student", "admin_school"]}>
               <StudentWallet />
+            </RequireRole>
+          } />
+          <Route path="tier" element={
+            <RequireRole roles={["student", "admin_school"]}>
+              <StudentTierPage />
             </RequireRole>
           } />
         </Route>

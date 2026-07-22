@@ -49,6 +49,10 @@ export default function StudentDashboard() {
             <div className="text-3xl mb-2">💳</div>
             <div className="font-medium text-navy">Portefeuille</div>
           </a>
+          <a href="/dashboard/tier" className="block p-6 bg-gradient-to-br from-purple-50 to-cream rounded-2xl text-center hover:shadow-md transition-shadow cursor-pointer">
+            <div className="text-3xl mb-2">🎯</div>
+            <div className="font-medium text-navy">Mon Palier</div>
+          </a>
         </div>
       </div>
     </div>
