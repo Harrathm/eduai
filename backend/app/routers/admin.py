@@ -138,6 +138,18 @@ def update_school(school_id: int, school_in: SchoolCreate, db: Session = Depends
     return school
 
 
+@router.post("/schools/{school_id}/regenerate-invite-code")
+def regenerate_invite_code(school_id: int, db: Session = Depends(get_db), admin=Depends(require_admin)):
+    import secrets
+    school = db.query(School).filter(School.id == school_id).first()
+    if not school:
+        raise HTTPException(status_code=404, detail="School not found")
+    check_school_access(admin, school_id)
+    school.invite_code = secrets.token_urlsafe(8)
+    db.commit()
+    return {"invite_code": school.invite_code}
+
+
 # ---- Users ----
 
 @router.get("/users", response_model=PaginatedResponse)

@@ -135,6 +135,10 @@ async def lifespan(app: FastAPI):
     from app.services.course_access import start_pack_expiration_scheduler
     start_pack_expiration_scheduler()
 
+    # Démarrer le scheduler de génération d'objectifs
+    from app.services.goal_scheduler import start_goal_scheduler
+    start_goal_scheduler()
+
     yield
     logger.info("Shutting down...")
 

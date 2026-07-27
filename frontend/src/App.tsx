@@ -15,6 +15,7 @@ import AdminFinancePage from "./features/admin/pages/AdminFinancePage";
 import BroadcastCenter from "./features/admin/pages/BroadcastCenter";
 import ContentCreatorAI from "./features/admin/pages/ContentCreatorAI";
 import AdminTokenPackagesPage from "./features/admin/pages/AdminTokenPackagesPage";
+import AdminInviteCodesPage from "./features/admin/pages/AdminInviteCodesPage";
 import AdminAuditLogPage from "./features/admin/pages/AdminAuditLogPage";
 import SchoolAdminLayout from "./features/admin/pages/SchoolAdminLayout";
 import SchoolAdminDashboard from "./features/admin/pages/SchoolAdminDashboard";
@@ -31,6 +32,7 @@ import SchoolCourseDistribution from "./features/admin/pages/SchoolCourseDistrib
 import SuperAdminCourseFactory from "./features/admin/pages/SuperAdminCourseFactory";
 import TeacherDashboard from "./features/teacher/pages/TeacherDashboard";
 import StudentDashboard from "./features/student/pages/StudentDashboard";
+import ProfilePage from "./features/student/pages/ProfilePage";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import MyLearning from "./features/teacher/pages/MyLearning";
 import ClassroomManager from "./features/teacher/pages/ClassroomManager";
@@ -142,6 +144,7 @@ function AppContent() {
           <Route path="broadcast" element={<BroadcastCenter />} />
           <Route path="settings" element={<AdminSettingsPage />} />
           <Route path="packages" element={<AdminTokenPackagesPage />} />
+          <Route path="invite-codes" element={<AdminInviteCodesPage />} />
           <Route path="audit" element={<AdminAuditLogPage />} />
           <Route path="pedagogical-review" element={<PedagogicalAdminPage />} />
         </Route>
@@ -240,6 +243,11 @@ function AppContent() {
           <Route path="placement/:testId" element={
             <RequireRole roles={["student", "admin_school"]}>
               <PlacementTestPage />
+            </RequireRole>
+          } />
+          <Route path="profile" element={
+            <RequireRole roles={["student", "teacher", "admin_school"]}>
+              <ProfilePage />
             </RequireRole>
           } />
         </Route>

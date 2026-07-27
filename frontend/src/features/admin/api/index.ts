@@ -53,6 +53,7 @@ export interface AdminSchool {
   is_active: boolean;
   subscription_tier: string;
   max_users: number | null;
+  invite_code: string | null;
   created_at: string;
 }
 
@@ -393,6 +394,9 @@ export const adminSchools = {
 
   delete: (id: number) =>
     request<{ ok: boolean; deleted: number }>(`/api/admin/schools/${id}`, { method: "DELETE" }),
+
+  regenerateInviteCode: (id: number) =>
+    request<{ invite_code: string }>(`/api/admin/schools/${id}/regenerate-invite-code`, { method: "POST" }),
 };
 
 // ─── Courses ─────────────────────────────────────────────────────────────────

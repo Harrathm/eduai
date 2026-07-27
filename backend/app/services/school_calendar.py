@@ -25,23 +25,23 @@ class TrimesterInfo:
 
 # ============================================================
 # DATES PAR DÉFAUT — Calendrier scolaire tunisien 2025-2026
-# À metttre à jour chaque année avant la rentrée
+# Source : bulletin officiel Ministère de l'Éducation nationale
 # ============================================================
 
 SCHOOL_YEAR_START = date(2025, 9, 15)
-SCHOOL_YEAR_END = date(2026, 6, 15)
+SCHOOL_YEAR_END = date(2026, 6, 19)
 
-# Trimestre 1 : 15 septembre – 15 décembre
+# Trimestre 1 : 15 septembre – 19 décembre
 TRIMESTER_1_START = date(2025, 9, 15)
-TRIMESTER_1_END = date(2025, 12, 15)
+TRIMESTER_1_END = date(2025, 12, 19)
 
-# Trimestre 2 : 5 janvier – 31 mars
+# Trimestre 2 : 5 janvier – 27 mars
 TRIMESTER_2_START = date(2026, 1, 5)
-TRIMESTER_2_END = date(2026, 3, 31)
+TRIMESTER_2_END = date(2026, 3, 27)
 
-# Trimestre 3 : 1 avril – 15 juin
-TRIMESTER_3_START = date(2026, 4, 1)
-TRIMESTER_3_END = date(2026, 6, 15)
+# Trimestre 3 : 6 avril – 19 juin
+TRIMESTER_3_START = date(2026, 4, 6)
+TRIMESTER_3_END = date(2026, 6, 19)
 
 TRIMESTERS = [
     (1, TRIMESTER_1_START, TRIMESTER_1_END),
