@@ -306,6 +306,37 @@ def create_niveau_etude(
     return niveau
 
 
+@router.put("/niveaux-etude/{niveau_id}", response_model=NiveauEtudeRead)
+def update_niveau_etude(
+    niveau_id: int,
+    niveau_in: NiveauEtudeCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_platform_admin),
+):
+    niveau = db.query(NiveauEtude).filter(NiveauEtude.id == niveau_id).first()
+    if not niveau:
+        raise HTTPException(status_code=404, detail="Niveau d'étude non trouvé")
+    niveau.nom = niveau_in.nom
+    niveau.ordre = niveau_in.ordre
+    db.commit()
+    db.refresh(niveau)
+    return niveau
+
+
+@router.delete("/niveaux-etude/{niveau_id}")
+def delete_niveau_etude(
+    niveau_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_platform_admin),
+):
+    niveau = db.query(NiveauEtude).filter(NiveauEtude.id == niveau_id).first()
+    if not niveau:
+        raise HTTPException(status_code=404, detail="Niveau d'étude non trouvé")
+    db.delete(niveau)
+    db.commit()
+    return {"message": "Niveau d'étude supprimé"}
+
+
 # -------------------------------------------------------------------
 # Admin CRUD: Matieres
 # -------------------------------------------------------------------
@@ -334,6 +365,37 @@ def create_matiere(
     db.commit()
     db.refresh(matiere)
     return matiere
+
+
+@router.put("/matieres/{matiere_id}", response_model=MatiereRead)
+def update_matiere(
+    matiere_id: int,
+    matiere_in: MatiereCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_platform_admin),
+):
+    matiere = db.query(Matiere).filter(Matiere.id == matiere_id).first()
+    if not matiere:
+        raise HTTPException(status_code=404, detail="Matière non trouvée")
+    matiere.niveau_etude_id = matiere_in.niveau_etude_id
+    matiere.nom = matiere_in.nom
+    db.commit()
+    db.refresh(matiere)
+    return matiere
+
+
+@router.delete("/matieres/{matiere_id}")
+def delete_matiere(
+    matiere_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_platform_admin),
+):
+    matiere = db.query(Matiere).filter(Matiere.id == matiere_id).first()
+    if not matiere:
+        raise HTTPException(status_code=404, detail="Matière non trouvée")
+    db.delete(matiere)
+    db.commit()
+    return {"message": "Matière supprimée"}
 
 
 # -------------------------------------------------------------------
@@ -370,6 +432,38 @@ def create_chapter(
     return chapter
 
 
+@router.put("/chapter-pathways/{chapter_id}", response_model=ChapterPathwayRead)
+def update_chapter(
+    chapter_id: int,
+    chapter_in: ChapterPathwayCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_platform_admin),
+):
+    chapter = db.query(ChapterPathway).filter(ChapterPathway.id == chapter_id).first()
+    if not chapter:
+        raise HTTPException(status_code=404, detail="Chapitre non trouvé")
+    chapter.matiere_id = chapter_in.matiere_id
+    chapter.nom = chapter_in.nom
+    chapter.ordre = chapter_in.ordre
+    db.commit()
+    db.refresh(chapter)
+    return chapter
+
+
+@router.delete("/chapter-pathways/{chapter_id}")
+def delete_chapter(
+    chapter_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_platform_admin),
+):
+    chapter = db.query(ChapterPathway).filter(ChapterPathway.id == chapter_id).first()
+    if not chapter:
+        raise HTTPException(status_code=404, detail="Chapitre non trouvé")
+    db.delete(chapter)
+    db.commit()
+    return {"message": "Chapitre supprimé"}
+
+
 # -------------------------------------------------------------------
 # Admin CRUD: Notions
 # -------------------------------------------------------------------
@@ -402,6 +496,38 @@ def create_notion(
     db.commit()
     db.refresh(notion)
     return notion
+
+
+@router.put("/notions-list/{notion_id}", response_model=NotionRead)
+def update_notion(
+    notion_id: int,
+    notion_in: NotionCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_platform_admin),
+):
+    notion = db.query(Notion).filter(Notion.id == notion_id).first()
+    if not notion:
+        raise HTTPException(status_code=404, detail="Notion non trouvée")
+    notion.chapitre_id = notion_in.chapitre_id
+    notion.nom = notion_in.nom
+    notion.ordre = notion_in.ordre
+    db.commit()
+    db.refresh(notion)
+    return notion
+
+
+@router.delete("/notions-list/{notion_id}")
+def delete_notion(
+    notion_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_platform_admin),
+):
+    notion = db.query(Notion).filter(Notion.id == notion_id).first()
+    if not notion:
+        raise HTTPException(status_code=404, detail="Notion non trouvée")
+    db.delete(notion)
+    db.commit()
+    return {"message": "Notion supprimée"}
 
 
 # -------------------------------------------------------------------
@@ -439,3 +565,38 @@ def create_contenu(
     db.commit()
     db.refresh(contenu)
     return contenu
+
+
+@router.put("/contenus/{contenu_id}", response_model=ContenuNotionRead)
+def update_contenu(
+    contenu_id: int,
+    contenu_in: ContenuNotionCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_platform_admin),
+):
+    contenu = db.query(ContenuNotion).filter(ContenuNotion.id == contenu_id).first()
+    if not contenu:
+        raise HTTPException(status_code=404, detail="Contenu non trouvé")
+    contenu.notion_id = contenu_in.notion_id
+    contenu.niveau_assimilation = contenu_in.niveau_assimilation
+    contenu.type_ressource = contenu_in.type_ressource
+    contenu.contenu = contenu_in.contenu
+    contenu.enseignant_id = contenu_in.enseignant_id
+    contenu.statut_pedagogique = contenu_in.statut_pedagogique
+    db.commit()
+    db.refresh(contenu)
+    return contenu
+
+
+@router.delete("/contenus/{contenu_id}")
+def delete_contenu(
+    contenu_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_platform_admin),
+):
+    contenu = db.query(ContenuNotion).filter(ContenuNotion.id == contenu_id).first()
+    if not contenu:
+        raise HTTPException(status_code=404, detail="Contenu non trouvé")
+    db.delete(contenu)
+    db.commit()
+    return {"message": "Contenu supprimé"}

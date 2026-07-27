@@ -17,6 +17,10 @@ import ContentCreatorAI from "./features/admin/pages/ContentCreatorAI";
 import AdminTokenPackagesPage from "./features/admin/pages/AdminTokenPackagesPage";
 import AdminInviteCodesPage from "./features/admin/pages/AdminInviteCodesPage";
 import AdminAuditLogPage from "./features/admin/pages/AdminAuditLogPage";
+import AdminArborescencePage from "./features/admin/pages/AdminArborescencePage";
+import AdminPublicationStatusPage from "./features/admin/pages/AdminPublicationStatusPage";
+import TeacherReorientationPage from "./features/teacher/pages/TeacherReorientationPage";
+import StudentAssimilationProfilePage from "./features/student/pages/StudentAssimilationProfilePage";
 import SchoolAdminLayout from "./features/admin/pages/SchoolAdminLayout";
 import SchoolAdminDashboard from "./features/admin/pages/SchoolAdminDashboard";
 import UserManagementView from "./features/admin/pages/UserManagementView";
@@ -147,6 +151,8 @@ function AppContent() {
           <Route path="invite-codes" element={<AdminInviteCodesPage />} />
           <Route path="audit" element={<AdminAuditLogPage />} />
           <Route path="pedagogical-review" element={<PedagogicalAdminPage />} />
+          <Route path="arborescence" element={<AdminArborescencePage />} />
+          <Route path="publication-status" element={<AdminPublicationStatusPage />} />
         </Route>
 
         {/* ADMIN_SCHOOL - Uses SchoolAdminLayout */}
@@ -195,6 +201,7 @@ function AppContent() {
             <Route path="ai-studio" element={<TeacherAIStudio />} />
             <Route path="wallet" element={<TeacherWallet />} />
             <Route path="sales" element={<TeacherSalesPage />} />
+            <Route path="reorientations" element={<TeacherReorientationPage />} />
           </Route>
 
           <Route path="inbox" element={<InboxPage />} />
@@ -248,6 +255,11 @@ function AppContent() {
           <Route path="profile" element={
             <RequireRole roles={["student", "teacher", "admin_school"]}>
               <ProfilePage />
+            </RequireRole>
+          } />
+          <Route path="assimilation" element={
+            <RequireRole roles={["student", "admin_school"]}>
+              <StudentAssimilationProfilePage />
             </RequireRole>
           } />
         </Route>

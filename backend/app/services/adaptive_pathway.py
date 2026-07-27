@@ -95,15 +95,36 @@ def _get_matiere_of_chapitre(chapitre_id: int, db: Session) -> Optional[Matiere]
     return None
 
 
-def _get_niveau_defaut_matiere(eleve_id: int, matiere: Optional[Matiere]) -> str:
-    """Determine default assimilation level from student's niveau_scolaire + matiere.
+def _get_niveau_defaut_matiere(eleve_id: int, matiere: Optional[Matiere], db: Session) -> str:
+    """Determine default assimilation level from student's niveau_scolaire.
 
-    If the student's niveau_scolaire is primary -> REMEDIATION
-    If preparatory or first years of secondary -> STANDARD
-    Otherwise -> AVANCE
+    Tunisian levels mapping:
+    - Primaire (1ère-6ème année) -> REMEDIATION
+    - Préparatoire (7ème-9ème de base) -> STANDARD
+    - Secondaire (1ère-4ème année) -> AVANCE
     """
-    # For now, return STANDARD as the universal default.
-    # This is configurable per-matière in a future pass.
+    student = db.query(User).filter(User.id == eleve_id).first()
+    if not student or not student.niveau_scolaire:
+        return NiveauAssimilation.STANDARD.value
+
+    niveau = student.niveau_scolaire.lower()
+
+    # Primaire
+    if any(f"{i}ere annee" in niveau or f"{i}ème année" in niveau for i in range(1, 7)):
+        return NiveauAssimilation.REMEDIATION.value
+    if "primaire" in niveau:
+        return NiveauAssimilation.REMEDIATION.value
+
+    # Préparatoire / collège
+    if any(f"{i}eme de base" in niveau or f"{i}ème de base" in niveau for i in range(7, 10)):
+        return NiveauAssimilation.STANDARD.value
+    if "preparatoire" in niveau or "préparatoire" in niveau or "college" in niveau:
+        return NiveauAssimilation.STANDARD.value
+
+    # Secondaire
+    if "secondaire" in niveau or any(f"{i}eme annee" in niveau or f"{i}ème année" in niveau for i in range(1, 5)):
+        return NiveauAssimilation.AVANCE.value
+
     return NiveauAssimilation.STANDARD.value
 
 
@@ -123,7 +144,7 @@ def niveau_effectif(eleve_id: int, chapitre_id: int, db: Session) -> dict:
         }
 
     matiere = _get_matiere_of_chapitre(chapitre_id, db)
-    defaut = _get_niveau_defaut_matiere(eleve_id, matiere)
+    defaut = _get_niveau_defaut_matiere(eleve_id, matiere, db)
     return {
         "eleve_id": eleve_id,
         "chapitre_id": chapitre_id,

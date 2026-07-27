@@ -6,10 +6,15 @@ Router pour les tests de positionnement adaptatifs.
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional
+from datetime import datetime, timezone
 
 from app.db import get_db
 from app.auth import get_current_user
-from app.models import User, PlacementTest, PlacementTestResult
+from app.models import (
+    User, PlacementTest, PlacementTestResult,
+    NiveauEtude, Matiere, ChapterPathway, ProfilAssimilationEleve,
+    SourceChangement, StatutValidationProfil,
+)
 
 router = APIRouter(prefix="/placement", tags=["Placement"])
 
@@ -134,6 +139,48 @@ def submit_placement_test(
 
     db.commit()
     db.refresh(result)
+
+    # --- Bridge: create ProfilAssimilationEleve for each chapter ---
+    # Map placement competency_level to NiveauAssimilation
+    level_map = {
+        "debutant": "remediation",
+        "intermediaire": "standard",
+        "intermédiaire": "standard",
+        "avance": "avance",
+    }
+    niveau_assim = level_map.get(competency_level, "standard")
+
+    # Find matching NiveauEtude + Matiere + chapters
+    niveau_etude = db.query(NiveauEtude).filter(
+        NiveauEtude.nom.ilike(f"%{test.niveau}%")
+    ).first()
+    if niveau_etude:
+        matiere = db.query(Matiere).filter(
+            Matiere.niveau_etude_id == niveau_etude.id,
+            Matiere.nom.ilike(f"%{test.matiere}%"),
+        ).first()
+        if matiere:
+            chapters = db.query(ChapterPathway).filter(
+                ChapterPathway.matiere_id == matiere.id,
+            ).all()
+            for chapter in chapters:
+                # Only create if no profile exists yet
+                existing_profile = db.query(ProfilAssimilationEleve).filter(
+                    ProfilAssimilationEleve.eleve_id == current_user.id,
+                    ProfilAssimilationEleve.chapitre_id == chapter.id,
+                ).first()
+                if not existing_profile:
+                    profil = ProfilAssimilationEleve(
+                        eleve_id=current_user.id,
+                        chapitre_id=chapter.id,
+                        niveau_assimilation_courant=niveau_assim,
+                        source_changement=SourceChangement.TEST_INITIAL.value,
+                        score_declencheur=score,
+                        date=datetime.now(timezone.utc),
+                        statut_validation=StatutValidationProfil.AUTO_APPLIQUE.value,
+                    )
+                    db.add(profil)
+            db.commit()
 
     return {
         "result_id": result.id,
