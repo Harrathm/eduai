@@ -340,3 +340,188 @@ class TestContenuFallback:
         assert result["niveau_servi"] == NiveauAssimilation.STANDARD.value, (
             f"Le contenu servi devrait être STANDARD, recu {result['niveau_servi']}"
         )
+
+
+# ============================================================
+# TESTS RBAC PÉDAGOGIQUE (Scénarios 7-10)
+# ============================================================
+
+class TestRBACPedagogique:
+    """Tests proof-based pour la RBAC pédagogique par spécialité."""
+
+    def setup_method(self):
+        from app.db import Base as TestBase
+        self.engine = create_engine(
+            "sqlite:///:memory:",
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+        TestBase.metadata.create_all(bind=self.engine)
+        self.TestSession = sessionmaker(bind=self.engine)
+
+    def _db(self):
+        return self.TestSession()
+
+    def _seed(self):
+        db = self._db()
+        from app.core.security import get_password_hash
+        from app.models import (
+            SpecialitePedagogique, SpecialitePedagogiqueMatiere, ResponsablePedagogique,
+            NiveauEtude, Matiere, ChapterPathway, Notion, ContenuNotion, User,
+        )
+
+        # School
+        school = School(name="Test", slug="test", school_type="REAL", invite_code="T")
+        db.add(school)
+        db.flush()
+
+        # Niveaux
+        niv1 = NiveauEtude(nom="7eme", ordre=1)
+        niv2 = NiveauEtude(nom="Bac", ordre=5)
+        db.add_all([niv1, niv2])
+        db.flush()
+
+        # Matieres: Maths 7eme, Eveil 7eme, Maths Bac
+        mat_maths_7eme = Matiere(niveau_etude_id=niv1.id, nom="Maths 7eme")
+        mat_eveil = Matiere(niveau_etude_id=niv1.id, nom="Eveil Scientifique")
+        mat_maths_bac = Matiere(niveau_etude_id=niv2.id, nom="Maths Bac")
+        db.add_all([mat_maths_7eme, mat_eveil, mat_maths_bac])
+        db.flush()
+
+        # Users
+        resp1_user = User(email="resp1@test", full_name="Resp1", school_id=school.id,
+                          hashed_password=get_password_hash("pw"), role="pedagogical_admin", is_active=True)
+        resp2_user = User(email="resp2@test", full_name="Resp2", school_id=school.id,
+                          hashed_password=get_password_hash("pw"), role="pedagogical_admin", is_active=True)
+        teacher_user = User(email="teacher@test", full_name="Teacher", school_id=school.id,
+                            hashed_password=get_password_hash("pw"), role="teacher", is_active=True)
+        student_user = User(email="student@test", full_name="Student", school_id=school.id,
+                            hashed_password=get_password_hash("pw"), role="student", is_active=True)
+        db.add_all([resp1_user, resp2_user, teacher_user, student_user])
+        db.flush()
+
+        # Specialite "Sciences" = Maths 7eme + Eveil + Maths Bac
+        spec_sciences = SpecialitePedagogique(ecole_id=school.id, nom="Sciences", cycle_scolaire="1er_cycle")
+        db.add(spec_sciences)
+        db.flush()
+        db.add_all([
+            SpecialitePedagogiqueMatiere(specialite_id=spec_sciences.id, matiere_id=mat_maths_7eme.id),
+            SpecialitePedagogiqueMatiere(specialite_id=spec_sciences.id, matiere_id=mat_eveil.id),
+            SpecialitePedagogiqueMatiere(specialite_id=spec_sciences.id, matiere_id=mat_maths_bac.id),
+        ])
+
+        # Responsable 1: Sciences, scope = [7eme]
+        resp1 = ResponsablePedagogique(user_id=resp1_user.id, specialite_id=spec_sciences.id)
+        db.add(resp1)
+        db.flush()
+        resp1.niveaux_etude_scope.append(niv1)
+
+        # Responsable 2: Sciences, scope = [Bac] (disjoint)
+        resp2 = ResponsablePedagogique(user_id=resp2_user.id, specialite_id=spec_sciences.id)
+        db.add(resp2)
+        db.flush()
+        resp2.niveaux_etude_scope.append(niv2)
+
+        # Chapters + Notions
+        ch_maths_7eme = ChapterPathway(matiere_id=mat_maths_7eme.id, nom="Chap Maths 7eme", ordre=1)
+        ch_eveil = ChapterPathway(matiere_id=mat_eveil.id, nom="Chap Eveil", ordre=1)
+        ch_maths_bac = ChapterPathway(matiere_id=mat_maths_bac.id, nom="Chap Maths Bac", ordre=1)
+        db.add_all([ch_maths_7eme, ch_eveil, ch_maths_bac])
+        db.flush()
+
+        n_maths_7eme = Notion(chapitre_id=ch_maths_7eme.id, nom="Notion Maths 7eme", ordre=1)
+        n_eveil = Notion(chapitre_id=ch_eveil.id, nom="Notion Eveil", ordre=1)
+        n_maths_bac = Notion(chapitre_id=ch_maths_bac.id, nom="Notion Maths Bac", ordre=1)
+        db.add_all([n_maths_7eme, n_eveil, n_maths_bac])
+        db.flush()
+
+        # Contenus
+        c_maths_7eme = ContenuNotion(notion_id=n_maths_7eme.id, niveau_assimilation="standard",
+                                      type_ressource="cours", contenu="Maths 7eme C",
+                                      enseignant_id=teacher_user.id, statut_pedagogique="c",
+                                      statut_validation_pedagogique="en_attente")
+        c_eveil = ContenuNotion(notion_id=n_eveil.id, niveau_assimilation="standard",
+                                 type_ressource="cours", contenu="Eveil C",
+                                 enseignant_id=teacher_user.id, statut_pedagogique="c",
+                                 statut_validation_pedagogique="en_attente")
+        c_maths_bac = ContenuNotion(notion_id=n_maths_bac.id, niveau_assimilation="standard",
+                                     type_ressource="cours", contenu="Maths Bac C",
+                                     enseignant_id=teacher_user.id, statut_pedagogique="c",
+                                     statut_validation_pedagogique="en_attente")
+        db.add_all([c_maths_7eme, c_eveil, c_maths_bac])
+        db.commit()
+
+        return {
+            "db": db, "school": school,
+            "resp1_user": resp1_user, "resp2_user": resp2_user,
+            "teacher_user": teacher_user, "student_user": student_user,
+            "mat_maths_7eme": mat_maths_7eme, "mat_eveil": mat_eveil, "mat_maths_bac": mat_maths_bac,
+            "n_maths_7eme": n_maths_7eme, "n_eveil": n_eveil, "n_maths_bac": n_maths_bac,
+            "c_maths_7eme": c_maths_7eme, "c_eveil": c_eveil, "c_maths_bac": c_maths_bac,
+            "spec_sciences": spec_sciences,
+            "niv1": niv1, "niv2": niv2,
+        }
+
+    def test_7_responsable_sciences_voit_deux_matieres(self):
+        """Test 7: Un responsable avec specialite 'Sciences' (Maths + Eveil) voit le contenu des deux matières dans son scope."""
+        d = self._seed()
+        from app.services.adaptive_pathway import get_contenus_for_responsable
+
+        # resp1 scope = [7eme] -> voit Maths 7eme et Eveil (les deux dans son scope)
+        contenus = get_contenus_for_responsable(d["resp1_user"].id, d["db"])
+        contenu_ids = [c.id for c in contenus]
+
+        assert d["c_maths_7eme"].id in contenu_ids, "Le responsable Sciences devrait voir le contenu Maths 7eme"
+        assert d["c_eveil"].id in contenu_ids, "Le responsable Sciences devrait voir le contenu Eveil"
+        # Maths Bac n'est PAS dans le scope 7eme
+        assert d["c_maths_bac"].id not in contenu_ids, "Le responsable Sciences (scope 7eme) ne devrait PAS voir Maths Bac"
+
+    def test_8_deux_responsables_scopes_disjoints(self):
+        """Test 8: Deux responsables sur la même specialite avec scopes disjoints ne voient pas le contenu de l'autre."""
+        d = self._seed()
+        from app.services.adaptive_pathway import get_contenus_for_responsable
+
+        # Resp1 scope = [7eme] -> voit Maths 7eme et Eveil (7eme), PAS Maths Bac
+        contenus_resp1 = get_contenus_for_responsable(d["resp1_user"].id, d["db"])
+        ids_resp1 = [c.id for c in contenus_resp1]
+
+        # Resp2 scope = [Bac] -> voit Maths Bac, PAS Maths 7eme ni Eveil
+        contenus_resp2 = get_contenus_for_responsable(d["resp2_user"].id, d["db"])
+        ids_resp2 = [c.id for c in contenus_resp2]
+
+        assert d["c_maths_7eme"].id in ids_resp1, "Resp1 (7eme) devrait voir Maths 7eme"
+        assert d["c_eveil"].id in ids_resp1, "Resp1 (7eme) devrait voir Eveil (7eme)"
+        assert d["c_maths_bac"].id in ids_resp2, "Resp2 (Bac) devrait voir Maths Bac"
+        assert d["c_maths_bac"].id not in ids_resp1, "Resp1 (7eme) ne devrait PAS voir Maths Bac"
+        assert d["c_maths_7eme"].id not in ids_resp2, "Resp2 (Bac) ne devrait PAS voir Maths 7eme"
+        assert d["c_eveil"].id not in ids_resp2, "Resp2 (Bac) ne devrait PAS voir Eveil (7eme)"
+
+    def test_9_contenu_en_attente_non_visible_eleve(self):
+        """Test 9: Un contenu en statut C mais validation EN_ATTENTE n'est PAS visible_eleve."""
+        d = self._seed()
+        from app.services.adaptive_pathway import visible_eleve
+
+        assert visible_eleve(d["c_maths_7eme"]) is False, (
+            "Le contenu avec statut_validation_pedagogique='en_attente' ne devrait pas être visible"
+        )
+
+    def test_10_rejet_remet_statut_a(self):
+        """Test 10: Un rejet remet statut_pedagogique à A, efface valide_par/date_validation, avec commentaire."""
+        d = self._seed()
+        from app.services.adaptive_pathway import rejeter_contenu
+
+        contenu = d["c_maths_7eme"]
+        assert contenu.statut_pedagogique == "c"
+        assert contenu.valide_par is None
+        assert contenu.date_validation is None
+
+        rejeter_contenu(contenu, d["resp1_user"].id, "Contenu incomplet", d["db"])
+
+        d["db"].refresh(contenu)
+        assert contenu.statut_pedagogique == "a", (
+            f"Après rejet, statut_pedagogique devrait être 'a', recu '{contenu.statut_pedagogique}'"
+        )
+        assert contenu.statut_validation_pedagogique == "rejete"
+        assert contenu.valide_par is None
+        assert contenu.date_validation is None
+        assert contenu.commentaire_rejet == "Contenu incomplet"

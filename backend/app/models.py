@@ -4,13 +4,11 @@ SQLAlchemy 2.0 with Multi-Tenancy Support
 """
 
 from __future__ import annotations
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 from enum import Enum
 from typing import Optional, List
 import uuid
 import secrets
-from datetime import datetime, timezone
-from enum import Enum
 
 
 def utcnow() -> datetime:
@@ -19,7 +17,7 @@ def utcnow() -> datetime:
 
 from sqlalchemy import (
     Column, Integer, String, Boolean, DateTime, Text, Float, Numeric,
-    ForeignKey, Enum as SQLEnum, UniqueConstraint, Index, 
+    Date, ForeignKey, Enum as SQLEnum, UniqueConstraint, Index, 
     CheckConstraint, JSON
 )
 from sqlalchemy.orm import (
@@ -1798,6 +1796,9 @@ class Matiere(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     niveau_etude_id: Mapped[int] = mapped_column(ForeignKey("niveaux_etude.id", ondelete="CASCADE"), nullable=False)
     nom: Mapped[str] = mapped_column(String(100), nullable=False)
+    remediation_threshold: Mapped[int] = mapped_column(Integer, default=40)
+    standard_threshold: Mapped[int] = mapped_column(Integer, default=75)
+    avance_threshold: Mapped[int] = mapped_column(Integer, default=75)
 
     niveau_etude: Mapped["NiveauEtude"] = relationship("NiveauEtude", back_populates="matieres")
     chapitres: Mapped[List["ChapterPathway"]] = relationship("ChapterPathway", back_populates="matiere", cascade="all, delete-orphan")
@@ -1852,9 +1853,14 @@ class ContenuNotion(Base):
     contenu: Mapped[str] = mapped_column(Text, nullable=False)  # texte ou reference_media
     enseignant_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     statut_pedagogique: Mapped[str] = mapped_column(String(10), default=StatutContenuPedagogique.A.value)
+    statut_validation_pedagogique: Mapped[str] = mapped_column(String(20), default="en_attente")  # en_attente, valide, rejete
+    valide_par: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    date_validation: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    commentaire_rejet: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     notion: Mapped["Notion"] = relationship("Notion", back_populates="contenus")
     enseignant: Mapped[Optional["User"]] = relationship("User", foreign_keys=[enseignant_id])
+    responsable: Mapped[Optional["User"]] = relationship("User", foreign_keys=[valide_par])
 
     __table_args__ = (
         Index("ix_contenus_notion_notion", "notion_id"),
@@ -1921,6 +1927,146 @@ class NotificationReorientation(Base):
     __table_args__ = (
         Index("ix_notifications_reorientation_enseignant", "enseignant_id"),
         Index("ix_notifications_reorientation_profil", "profil_assimilation_id"),
+    )
+
+
+# ============================================================
+# RBAC PEDAGOGIQUE — Specialites & Responsables
+# ============================================================
+
+class SpecialitePedagogique(Base):
+    """Regroupement de matières par spécialité pédagogique (scope par école)."""
+    __tablename__ = "specialites_pedagogiques"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    ecole_id: Mapped[int] = mapped_column(ForeignKey("schools.id", ondelete="CASCADE"), nullable=False)
+    nom: Mapped[str] = mapped_column(String(100), nullable=False)
+    cycle_scolaire: Mapped[str] = mapped_column(String(50), nullable=False)  # 1er_cycle, 2eme_cycle
+
+    ecole: Mapped["School"] = relationship("School")
+    matieres: Mapped[List["SpecialitePedagogiqueMatiere"]] = relationship("SpecialitePedagogiqueMatiere", back_populates="specialite", cascade="all, delete-orphan")
+    responsables: Mapped[List["ResponsablePedagogique"]] = relationship("ResponsablePedagogique", back_populates="specialite", cascade="all, delete-orphan")
+
+
+class SpecialitePedagogiqueMatiere(Base):
+    """Table de liaison spécialité → matière."""
+    __tablename__ = "specialite_pedagogique_matieres"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    specialite_id: Mapped[int] = mapped_column(ForeignKey("specialites_pedagogiques.id", ondelete="CASCADE"), nullable=False)
+    matiere_id: Mapped[int] = mapped_column(ForeignKey("matieres.id", ondelete="CASCADE"), nullable=False)
+
+    specialite: Mapped["SpecialitePedagogique"] = relationship("SpecialitePedagogique", back_populates="matieres")
+    matiere: Mapped["Matiere"] = relationship("Matiere")
+
+    __table_args__ = (
+        UniqueConstraint("specialite_id", "matiere_id", name="uq_specialite_matiere"),
+    )
+
+
+class ResponsablePedagogique(Base):
+    """Responsable pédagogique : user lié à une spécialité avec scope niveaux_etude."""
+    __tablename__ = "responsables_pedagogiques"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    specialite_id: Mapped[int] = mapped_column(ForeignKey("specialites_pedagogiques.id", ondelete="CASCADE"), nullable=False)
+
+    user: Mapped["User"] = relationship("User")
+    specialite: Mapped["SpecialitePedagogique"] = relationship("SpecialitePedagogique", back_populates="responsables")
+    niveaux_etude_scope: Mapped[List["NiveauEtude"]] = relationship("NiveauEtude", secondary="responsable_niveaux_etude")
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "specialite_id", name="uq_user_specialite"),
+    )
+
+
+# Table de liaison ResponsablePedagogique ↔ NiveauEtude
+from sqlalchemy import Table
+responsable_niveaux_etude = Table(
+    "responsable_niveaux_etude",
+    Base.metadata,
+    Column("responsable_id", Integer, ForeignKey("responsables_pedagogiques.id", ondelete="CASCADE"), primary_key=True),
+    Column("niveau_etude_id", Integer, ForeignKey("niveaux_etude.id", ondelete="CASCADE"), primary_key=True),
+)
+
+
+# ============================================================
+# GAMIFICATION
+# ============================================================
+
+class BadgeDefinition(Base):
+    """Définition d'un badge (catalogue)."""
+    __tablename__ = "badge_definitions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    nom: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    icon_url: Mapped[Optional[str]] = mapped_column(String(500))
+    couleur: Mapped[str] = mapped_column(String(20), default="#F97316")
+    categorie: Mapped[str] = mapped_column(String(50), nullable=False)  # progression, quiz, streak, special
+    critere_type: Mapped[str] = mapped_column(String(50), nullable=False)  # quiz_count, score_avg, streak_days, chapters_completed
+    critere_valeur: Mapped[int] = mapped_column(Integer, nullable=False)
+    points: Mapped[int] = mapped_column(Integer, default=10)
+
+
+class StudentBadge(Base):
+    """Badge obtenu par un élève."""
+    __tablename__ = "student_badges"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    eleve_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    badge_id: Mapped[int] = mapped_column(ForeignKey("badge_definitions.id", ondelete="CASCADE"), nullable=False)
+    date_obtention: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
+
+    eleve: Mapped["User"] = relationship("User", foreign_keys=[eleve_id])
+    badge: Mapped["BadgeDefinition"] = relationship("BadgeDefinition")
+
+    __table_args__ = (
+        Index("ix_student_badges_eleve", "eleve_id"),
+        UniqueConstraint("eleve_id", "badge_id", name="uq_student_badge"),
+    )
+
+
+class StudentStreak(Base):
+    """Streak quotidien d'un élève (connexions, quiz, etc)."""
+    __tablename__ = "student_streaks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    eleve_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    date_jour: Mapped[date] = mapped_column(Date, nullable=False)
+    streak_login: Mapped[bool] = mapped_column(Boolean, default=False)
+    streak_quiz: Mapped[bool] = mapped_column(Boolean, default=False)
+    streak_objectif: Mapped[bool] = mapped_column(Boolean, default=False)
+    points_jour: Mapped[int] = mapped_column(Integer, default=0)
+
+    eleve: Mapped["User"] = relationship("User", foreign_keys=[eleve_id])
+
+    __table_args__ = (
+        Index("ix_student_streaks_eleve", "eleve_id"),
+        UniqueConstraint("eleve_id", "date_jour", name="uq_student_streak_day"),
+    )
+
+
+class StudentRanking(Base):
+    """Classement d'un élève dans son palier (par matière)."""
+    __tablename__ = "student_rankings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    eleve_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    matiere_id: Mapped[Optional[int]] = mapped_column(ForeignKey("matieres.id", ondelete="SET NULL"))
+    palier: Mapped[str] = mapped_column(String(20), nullable=False)  # decouverte, excellence, etablissement
+    points_total: Mapped[int] = mapped_column(Integer, default=0)
+    rang: Mapped[Optional[int]] = mapped_column(Integer)
+    date_calcul: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
+
+    eleve: Mapped["User"] = relationship("User", foreign_keys=[eleve_id])
+    matiere: Mapped[Optional["Matiere"]] = relationship("Matiere", foreign_keys=[matiere_id])
+
+    __table_args__ = (
+        Index("ix_student_rankings_eleve", "eleve_id"),
+        Index("ix_student_rankings_palier", "palier"),
+        Index("ix_student_rankings_matiere", "matiere_id"),
     )
 
 

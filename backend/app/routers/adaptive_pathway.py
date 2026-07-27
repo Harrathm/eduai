@@ -377,8 +377,16 @@ def update_matiere(
     matiere = db.query(Matiere).filter(Matiere.id == matiere_id).first()
     if not matiere:
         raise HTTPException(status_code=404, detail="Matière non trouvée")
-    matiere.niveau_etude_id = matiere_in.niveau_etude_id
-    matiere.nom = matiere_in.nom
+    if matiere_in.niveau_etude_id is not None:
+        matiere.niveau_etude_id = matiere_in.niveau_etude_id
+    if matiere_in.nom is not None:
+        matiere.nom = matiere_in.nom
+    if matiere_in.remediation_threshold is not None:
+        matiere.remediation_threshold = matiere_in.remediation_threshold
+    if matiere_in.standard_threshold is not None:
+        matiere.standard_threshold = matiere_in.standard_threshold
+    if matiere_in.avance_threshold is not None:
+        matiere.avance_threshold = matiere_in.avance_threshold
     db.commit()
     db.refresh(matiere)
     return matiere
@@ -600,3 +608,484 @@ def delete_contenu(
     db.delete(contenu)
     db.commit()
     return {"message": "Contenu supprimé"}
+
+
+# ============================================================
+# PATHWAY CATALOG + PURCHASE + PROGRESSION
+# ============================================================
+
+from datetime import datetime, timezone, timedelta
+from app.models import (
+    StudyPack, PackPurchase, PackPurchaseStatus, PackStatus, PurchaserType,
+    Transaction, TransactionType, Currency, School,
+    Progress, Lesson, Module,
+)
+
+
+@router.get("/catalog")
+def pathway_catalog(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List available pathways (NiveauEtude + Matieres) with pack info and access status."""
+    with tenant_unaware():
+        niveaux = db.query(NiveauEtude).order_by(NiveauEtude.ordre).all()
+        all_matieres = db.query(Matiere).all()
+        all_chapters = db.query(ChapterPathway).all()
+        all_notions = db.query(Notion).all()
+        all_packs = db.query(StudyPack).filter(StudyPack.status == PackStatus.PUBLISHED.value).all()
+
+    # Check what the student already has access to
+    now = datetime.now(timezone.utc)
+    active_pack_niveaux = set()
+    active_pack_purchases = []
+    if current_user.school_id:
+        school_packs = db.query(PackPurchase).filter(
+            PackPurchase.school_id == current_user.school_id,
+            PackPurchase.purchaser_type == PurchaserType.SCHOOL.value,
+            PackPurchase.status == PackPurchaseStatus.ACTIVE.value,
+            PackPurchase.valid_until > now,
+        ).all()
+        for sp in school_packs:
+            pack = db.query(StudyPack).filter(StudyPack.id == sp.pack_id).first()
+            if pack:
+                active_pack_niveaux.add(pack.niveau_scolaire)
+                active_pack_purchases.append(sp)
+
+    student_packs = db.query(PackPurchase).filter(
+        PackPurchase.student_id == current_user.id,
+        PackPurchase.purchaser_type == PurchaserType.STUDENT.value,
+        PackPurchase.status == PackPurchaseStatus.ACTIVE.value,
+        PackPurchase.valid_until > now,
+    ).all()
+    for sp in student_packs:
+        pack = db.query(StudyPack).filter(StudyPack.id == sp.pack_id).first()
+        if pack:
+            active_pack_niveaux.add(pack.niveau_scolaire)
+            active_pack_purchases.append(sp)
+
+    # Build pathway tree
+    result = []
+    for niveau in niveaux:
+        matieres_data = []
+        for matiere in all_matieres:
+            if matiere.niveau_etude_id != niveau.id:
+                continue
+            chapters_data = []
+            for ch in all_chapters:
+                if ch.matiere_id != matiere.id:
+                    continue
+                notions_count = len([n for n in all_notions if n.chapitre_id == ch.id])
+                chapters_data.append({
+                    "id": ch.id,
+                    "nom": ch.nom,
+                    "ordre": ch.ordre,
+                    "notions_count": notions_count,
+                })
+            matieres_data.append({
+                "id": matiere.id,
+                "nom": matiere.nom,
+                "chapters_count": len(chapters_data),
+                "chapters": chapters_data,
+            })
+
+        # Find matching pack
+        matching_pack = None
+        for p in all_packs:
+            if p.niveau_scolaire == niveau.nom:
+                matching_pack = p
+                break
+
+        has_access = niveau.nom in active_pack_niveaux
+        purchase = None
+        for pp in active_pack_purchases:
+            pack = db.query(StudyPack).filter(StudyPack.id == pp.pack_id).first()
+            if pack and pack.niveau_scolaire == niveau.nom:
+                purchase = {
+                    "valid_until": pp.valid_until.isoformat(),
+                    "purchaser_type": pp.purchaser_type,
+                }
+                break
+
+        result.append({
+            "niveau": {
+                "id": niveau.id,
+                "nom": niveau.nom,
+                "ordre": niveau.ordre,
+            },
+            "matieres": matieres_data,
+            "pack": {
+                "id": matching_pack.id if matching_pack else None,
+                "name": matching_pack.name if matching_pack else None,
+                "price": matching_pack.price if matching_pack else None,
+                "currency": matching_pack.currency if matching_pack else "TND",
+            } if matching_pack else None,
+            "has_access": has_access,
+            "purchase": purchase,
+        })
+
+    return result
+
+
+@router.get("/mon-parcours")
+def mon_parcours(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get the student's full pathway with progression per chapter."""
+    now = datetime.now(timezone.utc)
+
+    # Find active packs
+    active_niveaux = set()
+    if current_user.school_id:
+        school_packs = db.query(PackPurchase).filter(
+            PackPurchase.school_id == current_user.school_id,
+            PackPurchase.purchaser_type == PurchaserType.SCHOOL.value,
+            PackPurchase.status == PackPurchaseStatus.ACTIVE.value,
+            PackPurchase.valid_until > now,
+        ).all()
+        for sp in school_packs:
+            pack = db.query(StudyPack).filter(StudyPack.id == sp.pack_id).first()
+            if pack:
+                active_niveaux.add(pack.niveau_scolaire)
+
+    student_packs = db.query(PackPurchase).filter(
+        PackPurchase.student_id == current_user.id,
+        PackPurchase.purchaser_type == PurchaserType.STUDENT.value,
+        PackPurchase.status == PackPurchaseStatus.ACTIVE.value,
+        PackPurchase.valid_until > now,
+    ).all()
+    for sp in student_packs:
+        pack = db.query(StudyPack).filter(StudyPack.id == sp.pack_id).first()
+        if pack:
+            active_niveaux.add(pack.niveau_scolaire)
+
+    if not active_niveaux:
+        return {"message": "Aucun pack actif. Achetez un pack pour accéder à votre parcours.", "niveaux": []}
+
+    with tenant_unaware():
+        niveaux = db.query(NiveauEtude).filter(NiveauEtude.nom.in_(active_niveaux)).order_by(NiveauEtude.ordre).all()
+        all_matieres = db.query(Matiere).all()
+        all_chapters = db.query(ChapterPathway).all()
+        all_notions = db.query(Notion).all()
+
+    # Get student profiles
+    profiles = db.query(ProfilAssimilationEleve).filter(
+        ProfilAssimilationEleve.eleve_id == current_user.id,
+    ).all()
+    profile_map = {}
+    for p in profiles:
+        profile_map[p.chapitre_id] = p
+
+    # Get student scores
+    scores = db.query(HistoriqueScoreEleve).filter(
+        HistoriqueScoreEleve.eleve_id == current_user.id,
+    ).all()
+    score_map = {}
+    for s in scores:
+        score_map.setdefault(s.chapitre_id, []).append(s.score)
+
+    # Get student lesson progress
+    progress_records = db.query(Progress).filter(
+        Progress.user_id == current_user.id,
+    ).all()
+    progress_map = {}
+    for pr in progress_records:
+        # Find which chapter this lesson belongs to
+        lesson = db.query(Lesson).filter(Lesson.id == pr.lesson_id).first()
+        if lesson:
+            module = db.query(Module).filter(Module.id == lesson.module_id).first()
+            if module:
+                # Map course to chapter via matiere/category
+                progress_map.setdefault(module.id, []).append(pr)
+
+    result = []
+    for niveau in niveaux:
+        matieres_data = []
+        for matiere in all_matieres:
+            if matiere.niveau_etude_id != niveau.id:
+                continue
+            chapters_data = []
+            for ch in all_chapters:
+                if ch.matiere_id != matiere.id:
+                    continue
+                notions = [n for n in all_notions if n.chapitre_id == ch.id]
+                profile = profile_map.get(ch.id)
+                chap_scores = score_map.get(ch.id, [])
+                avg_score = sum(chap_scores) / len(chap_scores) if chap_scores else None
+
+                # Determine chapter status
+                if profile:
+                    if profile.statut_validation == "annule_enseignant":
+                        status = "annule"
+                    elif profile.niveau_assimilation_courant:
+                        status = "en_cours"
+                    else:
+                        status = "a_commencer"
+                else:
+                    status = "a_commencer"
+
+                notions_data = []
+                for notion in notions:
+                    has_content = db.query(ContenuNotion).filter(
+                        ContenuNotion.notion_id == notion.id,
+                        ContenuNotion.statut_pedagogique == "a",
+                    ).count() > 0
+                    notions_data.append({
+                        "id": notion.id,
+                        "nom": notion.nom,
+                        "ordre": notion.ordre,
+                        "has_content": has_content,
+                    })
+
+                chapters_data.append({
+                    "id": ch.id,
+                    "nom": ch.nom,
+                    "ordre": ch.ordre,
+                    "status": status,
+                    "niveau_assimilation": profile.niveau_assimilation_courant if profile else None,
+                    "score_moyen": round(avg_score * 100, 1) if avg_score is not None else None,
+                    "scores_count": len(chap_scores),
+                    "notions_count": len(notions),
+                    "notions": notions_data,
+                })
+
+            matieres_data.append({
+                "id": matiere.id,
+                "nom": matiere.nom,
+                "chapters_count": len(chapters_data),
+                "chapters": chapters_data,
+            })
+
+        result.append({
+            "niveau": {"id": niveau.id, "nom": niveau.nom},
+            "matieres": matieres_data,
+        })
+
+    return {"niveaux": result}
+
+
+@router.post("/enroll-pathway")
+def enroll_pathway(
+    body: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Enroll in a pathway after pack purchase — creates initial profiles for all chapters."""
+    niveau_id = body.get("niveau_id")
+    if not niveau_id:
+        raise HTTPException(status_code=400, detail="niveau_id requis")
+
+    # Verify student has active pack for this niveau
+    niveau = db.query(NiveauEtude).filter(NiveauEtude.id == niveau_id).first()
+    if not niveau:
+        raise HTTPException(status_code=404, detail="Niveau non trouvé")
+
+    now = datetime.now(timezone.utc)
+    has_access = False
+
+    # Check school pack
+    if current_user.school_id:
+        school_pack = db.query(PackPurchase).filter(
+            PackPurchase.school_id == current_user.school_id,
+            PackPurchase.purchaser_type == PurchaserType.SCHOOL.value,
+            PackPurchase.status == PackPurchaseStatus.ACTIVE.value,
+            PackPurchase.valid_until > now,
+        ).join(StudyPack).filter(StudyPack.niveau_scolaire == niveau.nom).first()
+        if school_pack:
+            has_access = True
+
+    # Check student pack
+    if not has_access:
+        student_pack = db.query(PackPurchase).filter(
+            PackPurchase.student_id == current_user.id,
+            PackPurchase.purchaser_type == PurchaserType.STUDENT.value,
+            PackPurchase.status == PackPurchaseStatus.ACTIVE.value,
+            PackPurchase.valid_until > now,
+        ).join(StudyPack).filter(StudyPack.niveau_scolaire == niveau.nom).first()
+        if student_pack:
+            has_access = True
+
+    if not has_access:
+        raise HTTPException(status_code=403, detail="Vous n'avez pas de pack actif pour ce niveau")
+
+    # Find all chapters for this niveau
+    matieres = db.query(Matiere).filter(Matiere.niveau_etude_id == niveau_id).all()
+    matiere_ids = [m.id for m in matieres]
+    chapters = db.query(ChapterPathway).filter(ChapterPathway.matiere_id.in_(matiere_ids)).all()
+
+    # Create profiles for chapters without one
+    created = 0
+    for ch in chapters:
+        existing = db.query(ProfilAssimilationEleve).filter(
+            ProfilAssimilationEleve.eleve_id == current_user.id,
+            ProfilAssimilationEleve.chapitre_id == ch.id,
+        ).first()
+        if not existing:
+            profil = ProfilAssimilationEleve(
+                eleve_id=current_user.id,
+                chapitre_id=ch.id,
+                niveau_assimilation_courant="standard",
+                source_changement=SourceChangement.TEST_INITIAL.value,
+                statut_validation=StatutValidationProfil.AUTO_APPLIQUE.value,
+            )
+            db.add(profil)
+            created += 1
+
+    db.commit()
+
+    return {
+        "message": f"Parcours inscrit. {created} chapitre(s) initialisé(s).",
+        "niveau": niveau.nom,
+        "chapters_initialized": created,
+        "total_chapters": len(chapters),
+    }
+
+
+# ============================================================
+# RBAC PÉDAGOGIQUE — SPÉCIALITÉS & RESPONSABLES
+# ============================================================
+
+from app.models import (
+    SpecialitePedagogique, SpecialitePedagogiqueMatiere, ResponsablePedagogique,
+)
+
+
+@router.get("/specialites-pedagogiques")
+def list_specialites(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_platform_admin),
+):
+    """Liste les spécialités pédagogiques de l'école."""
+    specs = db.query(SpecialitePedagogique).filter(
+        SpecialitePedagogique.ecole_id == current_user.school_id
+    ).all() if current_user.school_id else db.query(SpecialitePedagogique).all()
+
+    result = []
+    for s in specs:
+        matiere_ids = [sm.matiere_id for sm in db.query(SpecialitePedagogiqueMatiere).filter(
+            SpecialitePedagogiqueMatiere.specialite_id == s.id
+        ).all()]
+        result.append({
+            "id": s.id,
+            "nom": s.nom,
+            "cycle_scolaire": s.cycle_scolaire,
+            "ecole_id": s.ecole_id,
+            "matiere_ids": matiere_ids,
+        })
+    return result
+
+
+@router.post("/specialites-pedagogiques")
+def create_specialite(
+    body: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_platform_admin),
+):
+    """Crée une spécialité pédagogique."""
+    spec = SpecialitePedagogique(
+        ecole_id=current_user.school_id or body.get("ecole_id"),
+        nom=body["nom"],
+        cycle_scolaire=body.get("cycle_scolaire", "2eme_cycle"),
+    )
+    db.add(spec)
+    db.flush()
+
+    for matiere_id in body.get("matiere_ids", []):
+        db.add(SpecialitePedagogiqueMatiere(specialite_id=spec.id, matiere_id=matiere_id))
+
+    db.commit()
+    db.refresh(spec)
+    return {"id": spec.id, "nom": spec.nom, "message": "Spécialité créée"}
+
+
+@router.post("/responsables-pedagogiques")
+def assign_responsable(
+    body: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_platform_admin),
+):
+    """Assigne un responsable pédagogique à une spécialité."""
+    resp = ResponsablePedagogique(
+        user_id=body["user_id"],
+        specialite_id=body["specialite_id"],
+    )
+    db.add(resp)
+    db.flush()
+
+    # Ajouter les niveaux_etude_scope
+    from app.models import NiveauEtude
+    for niv_id in body.get("niveaux_etude_ids", []):
+        niv = db.query(NiveauEtude).filter(NiveauEtude.id == niv_id).first()
+        if niv:
+            resp.niveaux_etude_scope.append(niv)
+
+    db.commit()
+    db.refresh(resp)
+    return {"id": resp.id, "message": "Responsable assigné"}
+
+
+@router.get("/responsables-pedagogiques/{user_id}/contenus")
+def get_responsable_contenus(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Retourne les contenus filtrés par spécialité et niveaux_etude_scope du responsable."""
+    from app.services.adaptive_pathway import get_contenus_for_responsable
+    contenus = get_contenus_for_responsable(user_id, db)
+    return [
+        {
+            "id": c.id,
+            "notion_id": c.notion_id,
+            "niveau_assimilation": c.niveau_assimilation,
+            "type_ressource": c.type_ressource,
+            "statut_pedagogique": c.statut_pedagogique,
+            "statut_validation_pedagogique": c.statut_validation_pedagogique,
+            "enseignant_id": c.enseignant_id,
+        }
+        for c in contenus
+    ]
+
+
+@router.post("/contenus-notion/{contenu_id}/valider")
+def valider_contenu_endpoint(
+    contenu_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Valide un contenu par un responsable pédagogique."""
+    contenu = db.query(ContenuNotion).filter(ContenuNotion.id == contenu_id).first()
+    if not contenu:
+        raise HTTPException(status_code=404, detail="Contenu non trouvé")
+
+    from app.services.adaptive_pathway import valider_contenu, contenu_visible as check_contenu_visible
+    if not check_contenu_visible(current_user.id, contenu, db):
+        raise HTTPException(status_code=403, detail="Ce contenu n'est pas dans votre périmètre pédagogique")
+
+    valider_contenu(contenu, current_user.id, db)
+    return {"message": "Contenu validé", "statut_validation": "valide"}
+
+
+@router.post("/contenus-notion/{contenu_id}/rejeter")
+def rejeter_contenu_endpoint(
+    contenu_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Rejette un contenu avec commentaire."""
+    contenu = db.query(ContenuNotion).filter(ContenuNotion.id == contenu_id).first()
+    if not contenu:
+        raise HTTPException(status_code=404, detail="Contenu non trouvé")
+
+    commentaire = body.get("commentaire", "")
+    if not commentaire:
+        raise HTTPException(status_code=400, detail="Un commentaire de rejet est obligatoire")
+
+    from app.services.adaptive_pathway import rejeter_contenu, contenu_visible as check_contenu_visible
+    if not check_contenu_visible(current_user.id, contenu, db):
+        raise HTTPException(status_code=403, detail="Ce contenu n'est pas dans votre périmètre pédagogique")
+
+    rejeter_contenu(contenu, current_user.id, commentaire, db)
+    return {"message": "Contenu rejeté", "statut_validation": "rejete"}

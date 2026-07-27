@@ -99,6 +99,12 @@ export default function RegisterPage() {
       return;
     }
 
+    if (role === "student" && !schoolName.trim()) {
+      setSchoolNotFound(true);
+      return;
+    }
+    setSchoolNotFound(false);
+
     const success = await register(email, password, fullName, schoolName, role === "student" ? niveauScolaire : undefined);
     if (success) {
       const userStr = localStorage.getItem("user");
@@ -267,6 +273,24 @@ export default function RegisterPage() {
                   minLength={8}
                 />
               </div>
+
+              {role === "student" && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray tracking-wide uppercase mb-2">
+                    Nom de l'école
+                  </label>
+                  <input
+                    type="text"
+                    value={schoolName}
+                    onChange={(e) => setSchoolName(e.target.value)}
+                    className="w-full px-5 py-3 bg-cream-m rounded-xl border border-black/5 focus:border-orange focus:outline-none transition-colors"
+                    placeholder="Nom de votre école (existent ou non)"
+                    required
+                    autoComplete="off"
+                  />
+                  <p className="text-xs text-gray mt-1">Si votre école n'est pas dans le système, elle sera créée automatiquement</p>
+                </div>
+              )}
 
               {role === "student" && (
                 <div>

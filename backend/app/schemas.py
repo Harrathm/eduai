@@ -851,6 +851,9 @@ class MatiereRead(BaseModel):
     id: int
     niveau_etude_id: int
     nom: str
+    remediation_threshold: int = 40
+    standard_threshold: int = 75
+    avance_threshold: int = 75
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -968,8 +971,11 @@ class NiveauEtudeCreate(BaseModel):
 
 
 class MatiereCreate(BaseModel):
-    niveau_etude_id: int
-    nom: str
+    niveau_etude_id: Optional[int] = None
+    nom: Optional[str] = None
+    remediation_threshold: Optional[int] = None
+    standard_threshold: Optional[int] = None
+    avance_threshold: Optional[int] = None
 
 
 class ChapterPathwayCreate(BaseModel):
@@ -982,3 +988,37 @@ class NotionCreate(BaseModel):
     chapitre_id: int
     nom: str
     ordre: int = 0
+
+
+# ============================================================
+# GAMIFICATION
+# ============================================================
+
+class StudentBadgeRead(BaseModel):
+    id: int
+    eleve_id: int
+    badge_id: int
+    date_obtention: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
+class StudentStreakRead(BaseModel):
+    id: int
+    eleve_id: int
+    date_jour: date
+    streak_login: bool
+    streak_quiz: bool
+    streak_objectif: bool
+    points_jour: int
+    model_config = ConfigDict(from_attributes=True)
+
+
+class StudentRankingRead(BaseModel):
+    id: int
+    eleve_id: int
+    matiere_id: Optional[int] = None
+    palier: str
+    points_total: int
+    rang: Optional[int] = None
+    date_calcul: datetime
+    model_config = ConfigDict(from_attributes=True)

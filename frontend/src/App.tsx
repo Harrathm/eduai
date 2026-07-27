@@ -21,6 +21,10 @@ import AdminArborescencePage from "./features/admin/pages/AdminArborescencePage"
 import AdminPublicationStatusPage from "./features/admin/pages/AdminPublicationStatusPage";
 import TeacherReorientationPage from "./features/teacher/pages/TeacherReorientationPage";
 import StudentAssimilationProfilePage from "./features/student/pages/StudentAssimilationProfilePage";
+import PathwayCatalogPage from "./features/student/pages/PathwayCatalogPage";
+import MonParcoursPage from "./features/student/pages/MonParcoursPage";
+import GamificationPage from "./features/student/pages/GamificationPage";
+import AdminSeuilsConfigPage from "./features/admin/pages/AdminSeuilsConfigPage";
 import SchoolAdminLayout from "./features/admin/pages/SchoolAdminLayout";
 import SchoolAdminDashboard from "./features/admin/pages/SchoolAdminDashboard";
 import UserManagementView from "./features/admin/pages/UserManagementView";
@@ -153,6 +157,7 @@ function AppContent() {
           <Route path="pedagogical-review" element={<PedagogicalAdminPage />} />
           <Route path="arborescence" element={<AdminArborescencePage />} />
           <Route path="publication-status" element={<AdminPublicationStatusPage />} />
+          <Route path="seuils-config" element={<AdminSeuilsConfigPage />} />
         </Route>
 
         {/* ADMIN_SCHOOL - Uses SchoolAdminLayout */}
@@ -260,6 +265,21 @@ function AppContent() {
           <Route path="assimilation" element={
             <RequireRole roles={["student", "admin_school"]}>
               <StudentAssimilationProfilePage />
+            </RequireRole>
+          } />
+          <Route path="parcours-catalog" element={
+            <RequireRole roles={["student", "teacher"]}>
+              <PathwayCatalogPage />
+            </RequireRole>
+          } />
+          <Route path="mon-parcours" element={
+            <RequireRole roles={["student"]}>
+              <MonParcoursPage />
+            </RequireRole>
+          } />
+          <Route path="gamification" element={
+            <RequireRole roles={["student", "teacher"]}>
+              <GamificationPage />
             </RequireRole>
           } />
         </Route>

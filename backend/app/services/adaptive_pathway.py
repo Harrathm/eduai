@@ -19,7 +19,7 @@ from app.models import (
     NotificationReorientation, Matiere, ChapterPathway, User,
     StudyPack, PackPurchase, PackPurchaseStatus, PurchaserType,
     NiveauAssimilation, SourceChangement, StatutValidationProfil,
-    ActionReorientation,
+    ActionReorientation, StatutContenuPedagogique,
 )
 
 logger = logging.getLogger(__name__)
@@ -404,3 +404,152 @@ def acces_effectif(
         "acces": True,
         "niveau_effectif": niveau_info["niveau_effectif"],
     }
+
+
+# ============================================================
+# VÉRIFICATION DE VISIBILITÉ ÉLÈVE
+# ============================================================
+
+def visible_eleve(contenu_notion: ContenuNotion) -> bool:
+    """Un contenu est visible par un élève ssi statut_pedagogique='C' ET statut_validation_pedagogique='valide'."""
+    return (
+        contenu_notion.statut_pedagogique == StatutContenuPedagogique.C.value
+        and contenu_notion.statut_validation_pedagogique == "valide"
+    )
+
+
+def get_contenus_visibles_eleve(notion_id: int, db: Session) -> list[ContenuNotion]:
+    """Retourne les contenus visibles pour les élèves d'une notion donnée."""
+    return db.query(ContenuNotion).filter(
+        ContenuNotion.notion_id == notion_id,
+        ContenuNotion.statut_pedagogique == StatutContenuPedagogique.C.value,
+        ContenuNotion.statut_validation_pedagogique == "valide",
+    ).all()
+
+
+# ============================================================
+# REJET DE CONTENU PAR RESPONSABLE PÉDAGOGIQUE
+# ============================================================
+
+def rejeter_contenu(contenu_notion: ContenuNotion, responsable_user_id: int, commentaire: str, db: Session):
+    """Rejeter un contenu : repasse en modification (A), efface valide_par/date_validation."""
+    contenu_notion.statut_validation_pedagogique = "rejete"
+    contenu_notion.statut_pedagogique = StatutContenuPedagogique.A.value  # retour automatique en modification
+    contenu_notion.valide_par = None
+    contenu_notion.date_validation = None
+    contenu_notion.commentaire_rejet = commentaire
+    db.commit()
+
+    # Notifier l'enseignant (in-app notification via NotificationReorientation ou autre canal)
+    from app.models import NotificationReorientation
+    if contenu_notion.enseignant_id:
+        notif = NotificationReorientation(
+            profil_assimilation_id=0,  # placeholder —pas lié à une réorientation
+            enseignant_id=contenu_notion.enseignant_id,
+            date_notification=datetime.now(timezone.utc),
+            date_limite_action=datetime.now(timezone.utc) + timedelta(days=7),
+            action_prise="aucune",
+        )
+        # Note: en production, on utiliserait un modèle de notification dédié
+        # Pour l'instant on log seulement
+        logger.info(f"Contenu {contenu_notion.id} rejeté par responsable {responsable_user_id}: {commentaire}")
+
+
+def valider_contenu(contenu_notion: ContenuNotion, responsable_user_id: int, db: Session):
+    """Valider un contenu par un responsable pédagogique."""
+    contenu_notion.statut_validation_pedagogique = "valide"
+    contenu_notion.valide_par = responsable_user_id
+    contenu_notion.date_validation = datetime.now(timezone.utc)
+    contenu_notion.commentaire_rejet = None
+    db.commit()
+
+
+# ============================================================
+# RBAC — VISIBILITÉ PAR SPÉCIALITÉ
+# ============================================================
+
+def matieres_of_specialite(specialite_id: int, db: Session) -> list[int]:
+    """Retourne les IDs des matières couvertes par une spécialité."""
+    from app.models import SpecialitePedagogiqueMatiere
+    rows = db.query(SpecialitePedagogiqueMatiere.matiere_id).filter(
+        SpecialitePedagogiqueMatiere.specialite_id == specialite_id
+    ).all()
+    return [r[0] for r in rows]
+
+
+def contenu_visible(responsable_user_id: int, contenu_notion: ContenuNotion, db: Session) -> bool:
+    """Vérifie si un contenu est dans le périmètre du responsable (matière + niveaux_etude)."""
+    from app.models import ResponsablePedagogique, Notion, ChapterPathway, Matiere
+
+    resp = db.query(ResponsablePedagogique).filter(
+        ResponsablePedagogique.user_id == responsable_user_id
+    ).first()
+    if not resp:
+        return False
+
+    # Vérifier la matière
+    notion = db.query(Notion).filter(Notion.id == contenu_notion.notion_id).first()
+    if not notion:
+        return False
+    chapter = db.query(ChapterPathway).filter(ChapterPathway.id == notion.chapitre_id).first()
+    if not chapter:
+        return False
+
+    matiere_ids = matieres_of_specialite(resp.specialite_id, db)
+    if chapter.matiere_id not in matiere_ids:
+        return False
+
+    # Vérifier les niveaux_etude_scope
+    matiere = db.query(Matiere).filter(Matiere.id == chapter.matiere_id).first()
+    if not matiere:
+        return False
+
+    scope_niveaux = [n.id for n in resp.niveaux_etude_scope]
+    if scope_niveaux and matiere.niveau_etude_id not in scope_niveaux:
+        return False
+
+    return True
+
+
+def get_contenus_for_responsable(responsable_user_id: int, db: Session) -> list[ContenuNotion]:
+    """Retourne tous les contenus dans le périmètre du responsable pédagogique."""
+    from app.models import ResponsablePedagogique, Notion, ChapterPathway
+
+    resp = db.query(ResponsablePedagogique).filter(
+        ResponsablePedagogique.user_id == responsable_user_id
+    ).first()
+    if not resp:
+        return []
+
+    matiere_ids = matieres_of_specialite(resp.specialite_id, db)
+    scope_niveaux = [n.id for n in resp.niveaux_etude_scope]
+
+    # Trouver toutes les notions des matières de la spécialité
+    chapter_ids = db.query(ChapterPathway.id).filter(
+        ChapterPathway.matiere_id.in_(matiere_ids)
+    ).all()
+    chapter_ids = [c[0] for c in chapter_ids]
+
+    notion_ids = db.query(Notion.id).filter(
+        Notion.chapitre_id.in_(chapter_ids)
+    ).all()
+    notion_ids = [n[0] for n in notion_ids]
+
+    contenus = db.query(ContenuNotion).filter(
+        ContenuNotion.notion_id.in_(notion_ids)
+    ).all()
+
+    # Filtrer par niveaux_etude_scope si défini
+    if scope_niveaux:
+        filtered = []
+        for c in contenus:
+            notion = db.query(Notion).filter(Notion.id == c.notion_id).first()
+            if notion:
+                chapter = db.query(ChapterPathway).filter(ChapterPathway.id == notion.chapitre_id).first()
+                if chapter:
+                    matiere = db.query(Matiere).filter(Matiere.id == chapter.matiere_id).first()
+                    if matiere and matiere.niveau_etude_id in scope_niveaux:
+                        filtered.append(c)
+        return filtered
+
+    return contenus

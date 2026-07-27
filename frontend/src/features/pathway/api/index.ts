@@ -194,3 +194,33 @@ export const validerReorientation = (profilId: number, action: "confirme" | "ann
 // Scores
 export const recordScore = (data: { eleve_id: number; chapitre_id: number; quiz_id?: number; score: number }) =>
   request<HistoriqueScore>("/api/pathway/scores", { method: "POST", body: JSON.stringify(data) });
+
+// Pathway catalog + enrollment
+export interface PathwayCatalogItem {
+  niveau: { id: number; nom: string; ordre: number };
+  matieres: {
+    id: number; nom: string; chapters_count: number;
+    chapters: { id: number; nom: string; ordre: number; notions_count: number }[];
+  }[];
+  pack: { id: number; name: string; price: number; currency: string } | null;
+  has_access: boolean;
+  purchase: { valid_until: string; purchaser_type: string } | null;
+}
+
+export interface MonParcoursNiveau {
+  niveau: { id: number; nom: string };
+  matieres: {
+    id: number; nom: string; chapters_count: number;
+    chapters: {
+      id: number; nom: string; ordre: number; status: string;
+      niveau_assimilation: string | null; score_moyen: number | null;
+      scores_count: number; notions_count: number;
+      notions: { id: number; nom: string; ordre: number; has_content: boolean }[];
+    }[];
+  }[];
+}
+
+export const getPathwayCatalog = () => request<PathwayCatalogItem[]>("/api/pathway/catalog");
+export const getMonParcours = () => request<{ niveaux: MonParcoursNiveau[]; message?: string }>("/api/pathway/mon-parcours");
+export const enrollPathway = (niveauId: number) =>
+  request<any>("/api/pathway/enroll-pathway", { method: "POST", body: JSON.stringify({ niveau_id: niveauId }) });
