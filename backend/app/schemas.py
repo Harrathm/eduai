@@ -834,3 +834,151 @@ class PackPurchaseRead(BaseModel):
     created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# ============================================================
+# ADAPTIVE PEDAGOGICAL PATHWAY
+# ============================================================
+
+class NiveauEtudeRead(BaseModel):
+    id: int
+    nom: str
+    ordre: int
+    model_config = ConfigDict(from_attributes=True)
+
+
+class MatiereRead(BaseModel):
+    id: int
+    niveau_etude_id: int
+    nom: str
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ChapterPathwayRead(BaseModel):
+    id: int
+    matiere_id: int
+    nom: str
+    ordre: int
+    model_config = ConfigDict(from_attributes=True)
+
+
+class NotionRead(BaseModel):
+    id: int
+    chapitre_id: int
+    nom: str
+    ordre: int
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ContenuNotionRead(BaseModel):
+    id: int
+    notion_id: int
+    niveau_assimilation: str
+    type_ressource: str
+    contenu: str
+    enseignant_id: Optional[int] = None
+    statut_pedagogique: str
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ContenuNotionCreate(BaseModel):
+    notion_id: int
+    niveau_assimilation: str
+    type_ressource: str
+    contenu: str
+    enseignant_id: Optional[int] = None
+    statut_pedagogique: str = "a"
+
+
+class ProfilAssimilationEleveRead(BaseModel):
+    id: int
+    eleve_id: int
+    chapitre_id: int
+    niveau_assimilation_courant: str
+    source_changement: str
+    score_declencheur: Optional[float] = None
+    date: datetime
+    statut_validation: str
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ProfilAssimilationEleveCreate(BaseModel):
+    eleve_id: int
+    chapitre_id: int
+    niveau_assimilation_courant: str
+    source_changement: str
+    score_declencheur: Optional[float] = None
+    statut_validation: str = "auto_applique"
+
+
+class StatutPublicationRead(BaseModel):
+    statut: str  # "publiable" | "brouillon"
+    niveaux_manquants: list[str]
+
+
+class NiveauEffectifRead(BaseModel):
+    eleve_id: int
+    chapitre_id: int
+    niveau_effectif: str
+    source: str  # "profil" | "defaut_matiere"
+
+
+class AccesEffectifRead(BaseModel):
+    eleve_id: int
+    matiere_id: int
+    chapitre_id: int
+    acces: bool
+    niveau_effectif: Optional[str] = None
+
+
+class NotificationReorientationRead(BaseModel):
+    id: int
+    profil_assimilation_id: int
+    enseignant_id: int
+    date_notification: datetime
+    date_limite_action: datetime
+    action_prise: str
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ValidationReorientation(BaseModel):
+    action: str  # "confirme" | "annule"
+
+
+class HistoriqueScoreEleveRead(BaseModel):
+    id: int
+    eleve_id: int
+    chapitre_id: int
+    quiz_id: Optional[int] = None
+    score: float
+    date: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
+class HistoriqueScoreEleveCreate(BaseModel):
+    eleve_id: int
+    chapitre_id: int
+    quiz_id: Optional[int] = None
+    score: float
+
+
+class NiveauEtudeCreate(BaseModel):
+    nom: str
+    ordre: int = 0
+
+
+class MatiereCreate(BaseModel):
+    niveau_etude_id: int
+    nom: str
+
+
+class ChapterPathwayCreate(BaseModel):
+    matiere_id: int
+    nom: str
+    ordre: int = 0
+
+
+class NotionCreate(BaseModel):
+    chapitre_id: int
+    nom: str
+    ordre: int = 0

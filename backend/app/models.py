@@ -1731,6 +1731,199 @@ class LearningGoal(Base):
     creator: Mapped[Optional["User"]] = relationship("User", foreign_keys=[created_by])
 
 
+# ============================================================
+# ADAPTIVE PEDAGOGICAL PATHWAY
+# ============================================================
+
+
+class NiveauAssimilation(str, Enum):
+    """Niveau d'assimilation d'un élève pour un chapitre donné."""
+    REMEDIATION = "remediation"
+    STANDARD = "standard"
+    AVANCE = "avance"
+
+
+class TypeContenu(str, Enum):
+    """Type de ressource pédagogique rattaché à une notion."""
+    VIDEO = "video"
+    FICHE = "fiche"
+    QUIZ = "quiz"
+    BANQUE_EXERCICES = "banque_exercices"
+    EVALUATION_IA = "evaluation_ia"
+
+
+class StatutContenuPedagogique(str, Enum):
+    """Statut de publication d'un contenu (aligné sur les états existants du prof)."""
+    A = "a"       # Publié / actif
+    B = "b"       # Brouillon
+    C = "c"       # Archivé
+
+
+class SourceChangement(str, Enum):
+    """Origine d'un changement de niveau d'assimilation."""
+    TEST_INITIAL = "test_initial"
+    AJUSTEMENT_AUTO = "ajustement_auto"
+    OVERRIDE_ENSEIGNANT = "override_enseignant"
+
+
+class StatutValidationProfil(str, Enum):
+    """Statut de validation d'une réorientation d'assimilation."""
+    AUTO_APPLIQUE = "auto_applique"
+    CONFIRME_ENSEIGNANT = "confirme_enseignant"
+    ANNULE_ENSEIGNANT = "annule_enseignant"
+
+
+class ActionReorientation(str, Enum):
+    """Action prise par l'enseignant sur une notification de réorientation."""
+    AUCUNE = "aucune"
+    CONFIRME = "confirme"
+    ANNULE = "annule"
+
+
+class NiveauEtude(Base):
+    """Arborescence : niveau d'étude (ex. 9ème de base, 1ère secondaire…)."""
+    __tablename__ = "niveaux_etude"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    nom: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    ordre: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    matieres: Mapped[List["Matiere"]] = relationship("Matiere", back_populates="niveau_etude", cascade="all, delete-orphan")
+
+
+class Matiere(Base):
+    """Arborescence : matière rattachée à un niveau d'étude."""
+    __tablename__ = "matieres"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    niveau_etude_id: Mapped[int] = mapped_column(ForeignKey("niveaux_etude.id", ondelete="CASCADE"), nullable=False)
+    nom: Mapped[str] = mapped_column(String(100), nullable=False)
+
+    niveau_etude: Mapped["NiveauEtude"] = relationship("NiveauEtude", back_populates="matieres")
+    chapitres: Mapped[List["ChapterPathway"]] = relationship("ChapterPathway", back_populates="matiere", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        Index("ix_matieres_niveau_etude", "niveau_etude_id"),
+    )
+
+
+class ChapterPathway(Base):
+    """Arborescence : chapitre rattaché à une matière (granularité du profil d'assimilation)."""
+    __tablename__ = "chapter_pathways"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    matiere_id: Mapped[int] = mapped_column(ForeignKey("matieres.id", ondelete="CASCADE"), nullable=False)
+    nom: Mapped[str] = mapped_column(String(200), nullable=False)
+    ordre: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    matiere: Mapped["Matiere"] = relationship("Matiere", back_populates="chapitres")
+    notions: Mapped[List["Notion"]] = relationship("Notion", back_populates="chapitre", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        Index("ix_chapter_pathways_matiere", "matiere_id"),
+    )
+
+
+class Notion(Base):
+    """Arborescence : notion rattachée à un chapitre."""
+    __tablename__ = "notions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    chapitre_id: Mapped[int] = mapped_column(ForeignKey("chapter_pathways.id", ondelete="CASCADE"), nullable=False)
+    nom: Mapped[str] = mapped_column(String(200), nullable=False)
+    ordre: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    chapitre: Mapped["ChapterPathway"] = relationship("ChapterPathway", back_populates="notions")
+    contenus: Mapped[List["ContenuNotion"]] = relationship("ContenuNotion", back_populates="notion", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        Index("ix_notions_chapitre", "chapitre_id"),
+    )
+
+
+class ContenuNotion(Base):
+    """Contenu pédagogique rattaché à une notion pour un niveau d'assimilation donné."""
+    __tablename__ = "contenus_notion"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    notion_id: Mapped[int] = mapped_column(ForeignKey("notions.id", ondelete="CASCADE"), nullable=False)
+    niveau_assimilation: Mapped[str] = mapped_column(String(20), nullable=False)  # NiveauAssimilation
+    type_ressource: Mapped[str] = mapped_column(String(30), nullable=False)  # TypeContenu
+    contenu: Mapped[str] = mapped_column(Text, nullable=False)  # texte ou reference_media
+    enseignant_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    statut_pedagogique: Mapped[str] = mapped_column(String(10), default=StatutContenuPedagogique.A.value)
+
+    notion: Mapped["Notion"] = relationship("Notion", back_populates="contenus")
+    enseignant: Mapped[Optional["User"]] = relationship("User", foreign_keys=[enseignant_id])
+
+    __table_args__ = (
+        Index("ix_contenus_notion_notion", "notion_id"),
+        Index("ix_contenus_notion_niveau", "niveau_assimilation"),
+    )
+
+
+class ProfilAssimilationEleve(Base):
+    """Profil d'assimilation d'un élève pour un chapitre donné."""
+    __tablename__ = "profils_assimilation"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    eleve_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    chapitre_id: Mapped[int] = mapped_column(ForeignKey("chapter_pathways.id", ondelete="CASCADE"), nullable=False)
+    niveau_assimilation_courant: Mapped[str] = mapped_column(String(20), nullable=False)  # NiveauAssimilation
+    source_changement: Mapped[str] = mapped_column(String(30), nullable=False)  # SourceChangement
+    score_declencheur: Mapped[Optional[float]] = mapped_column(Float)
+    date: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
+    statut_validation: Mapped[str] = mapped_column(String(30), nullable=False, default=StatutValidationProfil.AUTO_APPLIQUE.value)
+
+    eleve: Mapped["User"] = relationship("User", foreign_keys=[eleve_id])
+    chapitre: Mapped["ChapterPathway"] = relationship("ChapterPathway", foreign_keys=[chapitre_id])
+
+    __table_args__ = (
+        Index("ix_profils_assimilation_eleve", "eleve_id"),
+        Index("ix_profils_assimilation_chapitre", "chapitre_id"),
+        Index("ix_profils_assimilation_eleve_chapitre", "eleve_id", "chapitre_id"),
+    )
+
+
+class HistoriqueScoreEleve(Base):
+    """Historique des scores d'un élève par chapitre/quiz."""
+    __tablename__ = "historiques_scores"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    eleve_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    chapitre_id: Mapped[int] = mapped_column(ForeignKey("chapter_pathways.id", ondelete="CASCADE"), nullable=False)
+    quiz_id: Mapped[Optional[int]] = mapped_column(ForeignKey("quizzes.id", ondelete="SET NULL"))
+    score: Mapped[float] = mapped_column(Float, nullable=False)
+    date: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
+
+    eleve: Mapped["User"] = relationship("User", foreign_keys=[eleve_id])
+    chapitre: Mapped["ChapterPathway"] = relationship("ChapterPathway", foreign_keys=[chapitre_id])
+
+    __table_args__ = (
+        Index("ix_historiques_scores_eleve_chapitre", "eleve_id", "chapitre_id"),
+    )
+
+
+class NotificationReorientation(Base):
+    """Notification envoyée à l'enseignant lors d'une réorientation automatique."""
+    __tablename__ = "notifications_reorientation"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    profil_assimilation_id: Mapped[int] = mapped_column(ForeignKey("profils_assimilation.id", ondelete="CASCADE"), nullable=False)
+    enseignant_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    date_notification: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
+    date_limite_action: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    action_prise: Mapped[str] = mapped_column(String(20), default=ActionReorientation.AUCUNE.value)
+
+    profil_assimilation: Mapped["ProfilAssimilationEleve"] = relationship("ProfilAssimilationEleve", foreign_keys=[profil_assimilation_id])
+    enseignant: Mapped["User"] = relationship("User", foreign_keys=[enseignant_id])
+
+    __table_args__ = (
+        Index("ix_notifications_reorientation_enseignant", "enseignant_id"),
+        Index("ix_notifications_reorientation_profil", "profil_assimilation_id"),
+    )
+
+
 # Backward compatibility aliases
 Quiz = Quiz
 QuizQuestion = QuizQuestion

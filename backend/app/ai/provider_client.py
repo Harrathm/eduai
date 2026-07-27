@@ -60,11 +60,13 @@ SUPPORTED_PROVIDERS = {
 def load_providers_config(db) -> dict:
     """Load ai_providers_config from PlatformSetting table."""
     from app.models import PlatformSetting
-    setting = db.query(PlatformSetting).filter(
-        PlatformSetting.key == "ai_providers_config",
-        PlatformSetting.value.isnot(None),
-        PlatformSetting.value != "",
-    ).first()
+    from app.db.session import tenant_unaware
+    with tenant_unaware():
+        setting = db.query(PlatformSetting).filter(
+            PlatformSetting.key == "ai_providers_config",
+            PlatformSetting.value.isnot(None),
+            PlatformSetting.value != "",
+        ).first()
     if setting and setting.value:
         try:
             return json.loads(setting.value)

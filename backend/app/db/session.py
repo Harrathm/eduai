@@ -36,7 +36,11 @@ from app.models import (
     UserRole, SubscriptionTier, EnrollmentStatus, TransactionType, Currency,
     ContentType, CourseStatus, NiveauScolaire, PackStatus, PackPurchaseStatus, PurchaserType,
     DocumentStatus, TeacherRegistrationStatus, MessageType,
-    Progress
+    Progress,
+    NiveauEtude, Matiere, ChapterPathway, Notion, ContenuNotion,
+    ProfilAssimilationEleve, HistoriqueScoreEleve, NotificationReorientation,
+    NiveauAssimilation, TypeContenu, StatutContenuPedagogique, SourceChangement,
+    StatutValidationProfil, ActionReorientation,
 )
 
 

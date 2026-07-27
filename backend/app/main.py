@@ -49,6 +49,7 @@ from app.routers.inbox import router as inbox_router
 from app.routers.placement import router as placement_router
 from app.routers.goals import learner_router as goals_learner_router
 from app.routers.goals import pedagogical_lead_router as goals_pedagogical_router
+from app.routers.adaptive_pathway import router as adaptive_pathway_router
 
 # Import models_lms to register its models with Base metadata
 import app.models_lms
@@ -292,6 +293,7 @@ app.include_router(inbox_router, prefix="/api")
 app.include_router(placement_router, prefix="/api")
 app.include_router(goals_learner_router, prefix="/api")
 app.include_router(goals_pedagogical_router, prefix="/api")
+app.include_router(adaptive_pathway_router, prefix="/api/pathway")
 
 
 # Add file logging for error log viewer
