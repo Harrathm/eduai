@@ -25,6 +25,8 @@ import PathwayCatalogPage from "./features/student/pages/PathwayCatalogPage";
 import MonParcoursPage from "./features/student/pages/MonParcoursPage";
 import GamificationPage from "./features/student/pages/GamificationPage";
 import AdminSeuilsConfigPage from "./features/admin/pages/AdminSeuilsConfigPage";
+import AdminSpecialitesPedagogiquesPage from "./features/admin/pages/AdminSpecialitesPedagogiquesPage";
+import TeacherValidationContenuPage from "./features/teacher/pages/TeacherValidationContenuPage";
 import SchoolAdminLayout from "./features/admin/pages/SchoolAdminLayout";
 import SchoolAdminDashboard from "./features/admin/pages/SchoolAdminDashboard";
 import UserManagementView from "./features/admin/pages/UserManagementView";
@@ -158,6 +160,7 @@ function AppContent() {
           <Route path="arborescence" element={<AdminArborescencePage />} />
           <Route path="publication-status" element={<AdminPublicationStatusPage />} />
           <Route path="seuils-config" element={<AdminSeuilsConfigPage />} />
+          <Route path="specialites-pedagogiques" element={<AdminSpecialitesPedagogiquesPage />} />
         </Route>
 
         {/* ADMIN_SCHOOL - Uses SchoolAdminLayout */}
@@ -207,6 +210,7 @@ function AppContent() {
             <Route path="wallet" element={<TeacherWallet />} />
             <Route path="sales" element={<TeacherSalesPage />} />
             <Route path="reorientations" element={<TeacherReorientationPage />} />
+            <Route path="validation-contenu" element={<TeacherValidationContenuPage />} />
           </Route>
 
           <Route path="inbox" element={<InboxPage />} />
