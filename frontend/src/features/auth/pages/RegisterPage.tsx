@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuthStore } from "../../../store/authStore";
 
@@ -25,6 +25,59 @@ export default function RegisterPage() {
   const { register, registerTrialTeacher, registerTeacher, isLoading, error } = useAuthStore();
   const navigate = useNavigate();
 
+  // School search state
+  const [schoolQuery, setSchoolQuery] = useState("");
+  const [schoolResults, setSchoolResults] = useState<{id: number; name: string}[]>([]);
+  const [selectedSchool, setSelectedSchool] = useState<{id: number; name: string} | null>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [schoolNotFound, setSchoolNotFound] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const searchSchools = async (query: string) => {
+    if (query.length < 2) {
+      setSchoolResults([]);
+      setSchoolNotFound(false);
+      return;
+    }
+    try {
+      const res = await fetch(`/auth/schools/search?q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      setSchoolResults(data);
+      setSchoolNotFound(data.length === 0);
+    } catch {
+      setSchoolResults([]);
+      setSchoolNotFound(true);
+    }
+  };
+
+  const handleSchoolInputChange = (value: string) => {
+    setSchoolQuery(value);
+    setSelectedSchool(null);
+    setShowDropdown(true);
+    setSchoolNotFound(false);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => searchSchools(value), 300);
+  };
+
+  const handleSelectSchool = (school: {id: number; name: string}) => {
+    setSelectedSchool(school);
+    setSchoolName(school.name);
+    setSchoolQuery(school.name);
+    setShowDropdown(false);
+    setSchoolNotFound(false);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -35,7 +88,11 @@ export default function RegisterPage() {
     }
 
     if (role === "teacher" && !trialMode) {
-      const result = await registerTeacher(email, password, fullName, schoolName);
+      if (!selectedSchool) {
+        setSchoolNotFound(true);
+        return;
+      }
+      const result = await registerTeacher(email, password, fullName, schoolName, selectedSchool.id);
       if (result === "pending") {
         setSubmitted(true);
       }
@@ -235,18 +292,39 @@ export default function RegisterPage() {
               )}
 
               {role === "teacher" && !trialMode && (
-                <div>
+                <div ref={searchRef} className="relative">
                   <label className="block text-xs font-semibold text-gray tracking-wide uppercase mb-2">
                     Nom de l'école
                   </label>
                   <input
                     type="text"
-                    value={schoolName}
-                    onChange={(e) => setSchoolName(e.target.value)}
+                    value={schoolQuery}
+                    onChange={(e) => handleSchoolInputChange(e.target.value)}
+                    onFocus={() => schoolQuery.length >= 2 && setShowDropdown(true)}
                     className="w-full px-5 py-3 bg-cream-m rounded-xl border border-black/5 focus:border-orange focus:outline-none transition-colors"
-                    placeholder="Mon École"
+                    placeholder="Rechercher votre école..."
                     required
+                    autoComplete="off"
                   />
+                  {showDropdown && schoolResults.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-auto">
+                      {schoolResults.map((school) => (
+                        <button
+                          key={school.id}
+                          type="button"
+                          onClick={() => handleSelectSchool(school)}
+                          className="w-full text-left px-5 py-3 hover:bg-orange/5 transition-colors border-b border-gray-100 last:border-0"
+                        >
+                          <span className="text-sm text-navy">{school.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {schoolNotFound && (
+                    <p className="text-red-500 text-sm mt-2">
+                      Cette école n'appartient pas au système. Veuillez contacter l'administrateur.
+                    </p>
+                  )}
                 </div>
               )}
 

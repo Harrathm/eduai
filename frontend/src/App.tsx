@@ -40,6 +40,9 @@ import TeacherSalesPage from "./features/teacher/pages/TeacherSalesPage";
 import StudentCourseCatalog from "./features/student/pages/CourseCatalog";
 import StudentWallet from "./features/student/pages/StudentWallet";
 import StudentTierPage from "./features/student/pages/StudentTierPage";
+import PacksPage from "./features/student/pages/PacksPage";
+import PlacementTestPage from "./features/student/pages/PlacementTestPage";
+import OnboardingPage from "./features/student/pages/OnboardingPage";
 import InboxPage from "./features/student/pages/InboxPage";
 import CourseBuilderPage from "./features/admin/pages/CourseBuilderPage";
 import CourseEditorPage from "./features/admin/pages/CourseEditorPage";
@@ -98,6 +101,7 @@ function AppContent() {
     const role = user?.role?.toUpperCase();
     if (role === "SUPER_ADMIN" || role === "PEDAGOGICAL_ADMIN") return "/dashboard/admin";
     if (role === "ADMIN_SCHOOL" || role === "PEDAGOGICAL_LEAD") return "/dashboard/school";
+    if (user && !user.onboarding_complete) return "/onboarding";
     return "/dashboard";
   };
 
@@ -107,6 +111,11 @@ function AppContent() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/onboarding" element={
+          <RequireAuth>
+            <OnboardingPage />
+          </RequireAuth>
+        } />
         
         {/* SUPER_ADMIN - Uses AdminLayout with new professional dashboard */}
         <Route
@@ -218,9 +227,19 @@ function AppContent() {
               <StudentWallet />
             </RequireRole>
           } />
+          <Route path="packs" element={
+            <RequireRole roles={["student", "admin_school"]}>
+              <PacksPage />
+            </RequireRole>
+          } />
           <Route path="tier" element={
             <RequireRole roles={["student", "admin_school"]}>
               <StudentTierPage />
+            </RequireRole>
+          } />
+          <Route path="placement/:testId" element={
+            <RequireRole roles={["student", "admin_school"]}>
+              <PlacementTestPage />
             </RequireRole>
           } />
         </Route>

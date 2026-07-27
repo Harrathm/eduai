@@ -198,7 +198,7 @@ export default function StudentTierPage() {
           </p>
           {tier === "decouverte" && (
             <a
-              href="/dashboard/courses"
+              href="/dashboard/packs"
               className="inline-block px-5 py-2 bg-navy text-white rounded-xl text-sm font-medium hover:bg-navy/90 transition-colors"
             >
               Voir les packs

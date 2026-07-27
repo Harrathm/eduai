@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Outlet, useNavigate, NavLink } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
 import WalletWidget from "../WalletWidget";
+import LanguageSelector from "../LanguageSelector";
 
 const ADMIN_NAV = [
   { to: "/dashboard/admin", label: "Dashboard", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3a1 1 0 001-1V10", end: true },
@@ -84,6 +85,9 @@ export default function DashboardLayout() {
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
           <div className="mb-3">
             <WalletWidget compact />
+          </div>
+          <div className="mb-3">
+            <LanguageSelector />
           </div>
           <button
             onClick={handleLogout}

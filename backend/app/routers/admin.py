@@ -8,6 +8,7 @@ import logging
 import json
 import csv
 import io
+import secrets
 
 from app.db import get_db
 from app.auth import get_current_user
@@ -72,10 +73,14 @@ def _super_or_school_filter(query, admin: User, school_field):
 
 @router.post("/schools", response_model=SchoolRead)
 def create_school(school_in: SchoolCreate, db: Session = Depends(get_db), admin=Depends(require_admin)):
-    existing = db.query(School).filter(School.slug == (school_in.slug or school_in.name.lower().replace(" ", "-"))).first()
+    slug = school_in.slug or school_in.name.lower().replace(" ", "-").replace("'", "")
+    existing = db.query(School).filter(School.slug == slug).first()
     if existing:
         raise HTTPException(status_code=400, detail="School slug already exists")
-    school = School(**school_in.model_dump(exclude_unset=True))
+    data = school_in.model_dump(exclude_unset=True)
+    data["slug"] = slug
+    data["invite_code"] = secrets.token_urlsafe(8)
+    school = School(**data)
     db.add(school)
     db.commit()
     db.refresh(school)
@@ -1814,6 +1819,14 @@ def review_teacher_registration(
         reg.rejection_reason = rejection_reason
     
     if status == "approved":
+        # Check school quota
+        school = db.query(School).filter(School.id == reg.school_id).first()
+        if school:
+            max_users = school.max_users if school.max_users else 10
+            current_count = db.query(User).filter(User.school_id == reg.school_id).count()
+            if current_count >= max_users:
+                raise HTTPException(status_code=400, detail=f"User limit reached ({max_users}). Cannot approve more teachers for this school.")
+
         # Find the user to update — prefer existing_user_id, fallback to email lookup
         user = None
         if reg.existing_user_id:
@@ -1824,11 +1837,26 @@ def review_teacher_registration(
         if user:
             user.role = UserRole.TEACHER
             user.is_approved = True
-            # Convert trial → school-affiliated
-            if user.subscription_plan == SubscriptionPlan.TRIAL:
-                user.school_id = admin.school_id
-                user.subscription_plan = SubscriptionPlan.SCHOOL_AFFILIATED
-                user.is_demo_account = False
+            user.school_id = reg.school_id
+            user.subscription_plan = SubscriptionPlan.SCHOOL_AFFILIATED
+            user.is_demo_account = False
+        else:
+            # No existing user — create one from the registration data
+            if not reg.hashed_password:
+                raise HTTPException(status_code=400, detail="Registration missing password data. Cannot create user account.")
+            user = User(
+                email=reg.email,
+                full_name=reg.full_name,
+                hashed_password=reg.hashed_password,
+                role=UserRole.TEACHER,
+                school_id=reg.school_id,
+                subscription_plan=SubscriptionPlan.SCHOOL_AFFILIATED,
+                is_active=True,
+                is_approved=True,
+            )
+            db.add(user)
+            db.flush()
+            reg.existing_user_id = user.id
 
     db.commit()
     db.refresh(reg)

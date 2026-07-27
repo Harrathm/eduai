@@ -43,11 +43,11 @@ async function authAPI_registerTrialTeacher(email, password, full_name) {
   return res.json();
 }
 
-async function authAPI_registerTeacher(email, password, full_name, school_name) {
+async function authAPI_registerTeacher(email, password, full_name, school_name, school_id) {
   const res = await fetch(`${API_URL}/auth/teacher-register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password, full_name, school_name }),
+    body: JSON.stringify({ email, password, full_name, school_name, school_id }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -123,10 +123,10 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
-  registerTeacher: async (email, password, full_name, school_name) => {
+  registerTeacher: async (email, password, full_name, school_name, school_id) => {
     set({ isLoading: true, error: null });
     try {
-      await authAPI_registerTeacher(email, password, full_name, school_name);
+      await authAPI_registerTeacher(email, password, full_name, school_name, school_id);
       set({ isLoading: false });
       return "pending";
     } catch (err) {

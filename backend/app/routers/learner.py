@@ -359,7 +359,32 @@ def enroll_in_course(
     db.add(enrollment)
     db.commit()
     db.refresh(enrollment)
-    return {"id": enrollment.id, "status": enrollment.status}
+    
+    # Check if placement test should be recommended
+    from app.services.student_tier import get_student_tier
+    tier = get_student_tier(user, db)
+    placement_test_available = False
+    placement_test_id = None
+    if tier in ("excellence", "etablissement"):
+        test = db.query(PlacementTest).filter(
+            PlacementTest.matiere == course.matiere if hasattr(course, 'matiere') else True,
+            PlacementTest.is_active == True
+        ).first()
+        if test:
+            existing_result = db.query(PlacementTestResult).filter(
+                PlacementTestResult.user_id == user.id,
+                PlacementTestResult.placement_test_id == test.id
+            ).first()
+            if not existing_result:
+                placement_test_available = True
+                placement_test_id = test.id
+    
+    return {
+        "id": enrollment.id,
+        "status": enrollment.status,
+        "placement_test_available": placement_test_available,
+        "placement_test_id": placement_test_id
+    }
 
 
 @router.get("/my-courses")

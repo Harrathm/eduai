@@ -248,6 +248,7 @@ class School(Base):
     maintenance_mode: Mapped[bool] = mapped_column(Boolean, default=False)
     allow_teacher_registration: Mapped[bool] = mapped_column(Boolean, default=True)
     allow_new_signups: Mapped[bool] = mapped_column(Boolean, default=True)
+    invite_code: Mapped[Optional[str]] = mapped_column(String(20), unique=True, nullable=True)
     
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
@@ -292,6 +293,12 @@ class User(Base):
     subscription_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
     is_demo_account: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    # Langue préférée (fr, en, ar)
+    language: Mapped[str] = mapped_column(String(5), default="fr")
+    
+    # Onboarding
+    onboarding_complete: Mapped[bool] = mapped_column(Boolean, default=False)
+    
     # Niveau scolaire (élèves uniquement)
     niveau_scolaire: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)  # ex: "9ème de base", "2ème année sciences"
 

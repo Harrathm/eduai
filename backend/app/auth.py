@@ -78,23 +78,34 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
 
 @router.post("/register", response_model=Token)
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
-    from app.models import User, School
+    from app.models import User, School, SchoolType
     existing = db.query(User).filter(User.email == user_in.email).first()
     if existing:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
+
+    school = None
     domain = user_in.school_domain or (user_in.school_name.lower().replace(" ", "-") if user_in.school_name else None)
+
+    # 1. Try to find school by domain if provided
     if domain:
         school = db.query(School).filter(School.domain == domain).first()
-    else:
-        school = db.query(School).first()
+
+    # 2. If not found and school_name provided, create a new school
     if not school and user_in.school_name:
-        school = School(name=user_in.school_name, domain=domain, slug=domain)
+        slug = domain or user_in.school_name.lower().replace(" ", "-")
+        existing_slug = db.query(School).filter(School.slug == slug).first()
+        if existing_slug:
+            slug = f"{slug}-{existing_slug.id}"
+        school = School(name=user_in.school_name, domain=domain, slug=slug)
         db.add(school)
         db.flush()
-    elif not school:
-        school = db.query(School).first()
-        if not school:
-            raise HTTPException(status_code=400, detail="No school found. Please provide school_name.")
+
+    # 3. SECURITY: If no school identified, reject — never silently assign a random school
+    if not school:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="School name is required. Please provide the name of your school.",
+        )
     role = "student"
     ok, err = validate_password_strength(user_in.password)
     if not ok:
@@ -198,23 +209,19 @@ def teacher_register(user_in: UserCreate, db: Session = Depends(get_db)):
     if not ok:
         raise HTTPException(status_code=422, detail=err)
 
-    domain = user_in.school_domain or (user_in.school_name.lower().replace(" ", "-") if user_in.school_name else None)
     school = None
-    if domain:
-        school = db.query(School).filter(School.domain == domain).first()
+    if getattr(user_in, "school_id", None):
+        school = db.query(School).filter(School.id == user_in.school_id).first()
     if not school and user_in.school_name:
-        school = School(name=user_in.school_name, domain=domain, slug=domain)
-        db.add(school)
-        db.flush()
+        school = db.query(School).filter(School.name.ilike(user_in.school_name)).first()
     if not school:
-        school = db.query(School).first()
-        if not school:
-            raise HTTPException(status_code=400, detail="No school found. Provide school_name.")
+        raise HTTPException(status_code=400, detail="École introuvable. Veuillez sélectionner une école dans la liste.")
 
     reg = TeacherRegistration(
         school_id=school.id,
         email=user_in.email,
         full_name=user_in.full_name,
+        hashed_password=get_password_hash(user_in.password),
         status=TeacherRegistrationStatus.PENDING,
     )
     db.add(reg)
@@ -272,3 +279,40 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 def read_me(current_user: User = Depends(get_current_user)):
     # FastAPI will return 200 with current user; pydantic model will serialize via orm_mode
     return current_user
+
+
+@router.put("/me/language")
+def update_language(language: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if language not in ("fr", "en", "ar"):
+        raise HTTPException(status_code=400, detail="Language must be fr, en, or ar")
+    current_user.language = language
+    db.commit()
+    return {"language": language}
+
+
+@router.put("/me/onboarding-complete")
+def complete_onboarding(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    current_user.onboarding_complete = True
+    db.commit()
+    return {"onboarding_complete": True}
+
+
+@router.get("/schools/search")
+def search_schools(q: str = "", db: Session = Depends(get_db)):
+    from app.models import School
+    query = db.query(School).filter(School.is_active == True)
+    if q.strip():
+        query = query.filter(School.name.ilike(f"%{q}%"))
+    schools = query.order_by(School.name).limit(10).all()
+    return [{"id": s.id, "name": s.name, "slug": s.slug} for s in schools]
+
+
+@router.get("/schools/join/{code}")
+def join_school_by_code(code: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    from app.models import School
+    school = db.query(School).filter(School.invite_code == code, School.is_active == True).first()
+    if not school:
+        raise HTTPException(status_code=404, detail="Invalid or inactive invitation code")
+    current_user.school_id = school.id
+    db.commit()
+    return {"school_id": school.id, "school_name": school.name}

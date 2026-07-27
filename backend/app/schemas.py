@@ -18,6 +18,7 @@ class UserCreate(BaseModel):
     full_name: Optional[str] = None
     school_name: Optional[str] = None
     school_domain: Optional[str] = None
+    school_id: Optional[int] = None
     niveau_scolaire: Optional[str] = None
 
 
@@ -31,6 +32,8 @@ class UserRead(BaseModel):
     role: str
     niveau_scolaire: Optional[str] = None
     subscription_plan: Optional[str] = None
+    language: Optional[str] = "fr"
+    onboarding_complete: Optional[bool] = False
     token_balance: Optional[int] = 0
     dt_balance: Optional[float] = 0.0
     is_approved: Optional[bool] = True
@@ -48,6 +51,7 @@ class UserUpdate(BaseModel):
     is_active: Optional[bool] = None
     role: Optional[str] = None
     niveau_scolaire: Optional[str] = None
+    language: Optional[str] = None
     token_balance: Optional[int] = None
     dt_balance: Optional[float] = None
     is_approved: Optional[bool] = None
@@ -86,6 +90,7 @@ class SchoolRead(BaseModel):
     phone: Optional[str] = None
     is_active: bool
     plan: Optional[str] = None
+    invite_code: Optional[str] = None
     created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)

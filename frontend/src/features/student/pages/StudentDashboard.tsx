@@ -1,8 +1,109 @@
+import { useState, useEffect } from "react";
 import { useAuthStore } from "../../../store/authStore";
+import { tierAPI, type DashboardData, type DailyObjective } from "../../../api/tier";
+
+function StatSkeleton() {
+  return (
+    <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5 animate-pulse">
+      <div className="h-10 w-16 bg-gray-200 rounded mb-2" />
+      <div className="h-4 w-24 bg-gray-100 rounded" />
+    </div>
+  );
+}
+
+function ObjectiveSkeleton() {
+  return (
+    <div className="bg-white rounded-3xl p-6 shadow-sm border border-black/5 animate-pulse">
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 bg-gray-200 rounded-xl" />
+        <div className="flex-1">
+          <div className="h-5 w-48 bg-gray-200 rounded mb-2" />
+          <div className="h-4 w-72 bg-gray-100 rounded" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TierBadge({ tier }: { tier: string }) {
+  const labels: Record<string, { label: string; color: string }> = {
+    decouverte: { label: "Découverte", color: "bg-blue-100 text-blue-700" },
+    excellence: { label: "Excellence", color: "bg-orange-100 text-orange-700" },
+    etablissement: { label: "Établissement", color: "bg-purple-100 text-purple-700" },
+  };
+  const info = labels[tier] || labels.decouverte;
+  return (
+    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${info.color}`}>
+      {info.label}
+    </span>
+  );
+}
+
+function DailyObjectiveCard({ objective }: { objective: DailyObjective | null }) {
+  if (!objective) return null;
+
+  const icons: Record<string, string> = {
+    no_enrollment: "📚",
+    continue_lesson: "📖",
+    start_course: "🚀",
+    no_lessons: "📭",
+    adaptive_practice: "🎯",
+    review: "🔄",
+    curriculum_lesson: "📋",
+    no_pending: "🎉",
+  };
+
+  return (
+    <div className="bg-gradient-to-r from-orange/10 to-cream rounded-3xl p-6 border border-orange/20">
+      <div className="flex items-start gap-4">
+        <div className="w-12 h-12 bg-gradient-to-br from-orange to-orange-l rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
+          <span className="text-2xl">{icons[objective.type] || "🎯"}</span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="font-semibold text-navy text-sm">Objectif du jour</h3>
+            <TierBadge tier={objective.tier} />
+          </div>
+          <p className="text-gray-700 text-sm leading-relaxed">{objective.message}</p>
+          {objective.estimated_minutes > 0 && (
+            <p className="text-gray-400 text-xs mt-1">
+              ~{objective.estimated_minutes} min estimées
+            </p>
+          )}
+        </div>
+        {objective.lesson_id && (
+          <a
+            href={`/dashboard/courses/${objective.course_title ? "" : ""}lessons/${objective.lesson_id}`}
+            className="px-4 py-2 bg-navy text-white text-xs font-medium rounded-xl hover:bg-navy/90 transition-colors flex-shrink-0"
+          >
+            Commencer
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function StudentDashboard() {
   const { user } = useAuthStore();
-  
+  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const dashData = await tierAPI.dashboard();
+        setDashboard(dashData);
+      } catch (err: any) {
+        setError(err.message || "Erreur de chargement");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -11,23 +112,76 @@ export default function StudentDashboard() {
           Mon <span className="italic text-orange-l">Apprentissage</span>
         </h1>
         <p className="text-white/50 mt-2">Bienvenue, {user?.full_name}</p>
+        {dashboard?.tier && (
+          <div className="mt-3">
+            <TierBadge tier={dashboard.tier} />
+          </div>
+        )}
       </div>
+
+      {/* Daily Objective — first section */}
+      {loading ? (
+        <ObjectiveSkeleton />
+      ) : dashboard?.daily_objective ? (
+        <DailyObjectiveCard objective={dashboard.daily_objective} />
+      ) : null}
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
-          <div className="text-4xl font-[300] text-orange">0</div>
-          <div className="text-sm text-gray mt-1">Mes Cours</div>
-        </div>
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
-          <div className="text-4xl font-[300] text-green-600">0</div>
-          <div className="text-sm text-gray mt-1">AI Tokens</div>
-        </div>
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
-          <div className="text-4xl font-[300] text-yellow-600">0</div>
-          <div className="text-sm text-gray mt-1">DT Balance</div>
-        </div>
+        {loading ? (
+          <>
+            <StatSkeleton />
+            <StatSkeleton />
+            <StatSkeleton />
+          </>
+        ) : (
+          <>
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
+              <div className="text-4xl font-[300] text-orange">
+                {dashboard?.total_enrolled_courses ?? 0}
+              </div>
+              <div className="text-sm text-gray mt-1">Mes Cours</div>
+              {dashboard && dashboard.total_enrolled_courses > 0 && (
+                <div className="text-xs text-gray-400 mt-1">
+                  {dashboard.lessons_completed}/{dashboard.total_lessons} leçons complétées
+                </div>
+              )}
+            </div>
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
+              <div className="text-4xl font-[300] text-green-600">
+                {dashboard?.overall_progress_pct ?? 0}%
+              </div>
+              <div className="text-sm text-gray mt-1">Progression</div>
+              {dashboard && dashboard.total_enrolled_courses > 0 && (
+                <div className="w-full bg-gray-100 rounded-full h-1.5 mt-2">
+                  <div
+                    className="bg-green-500 h-1.5 rounded-full transition-all"
+                    style={{ width: `${Math.min(dashboard.overall_progress_pct, 100)}%` }}
+                  />
+                </div>
+              )}
+            </div>
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
+              <div className="text-4xl font-[300] text-purple-600">
+                {dashboard?.lessons_completed ?? 0}
+              </div>
+              <div className="text-sm text-gray mt-1">Leçons Complétées</div>
+              {dashboard && dashboard.total_lessons > 0 && (
+                <div className="text-xs text-gray-400 mt-1">
+                  sur {dashboard.total_lessons} au total
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
+
+      {/* Error */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-red-700 text-sm">
+          {error}
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div className="bg-white rounded-3xl p-8 shadow-sm border border-black/5">
@@ -55,6 +209,38 @@ export default function StudentDashboard() {
           </a>
         </div>
       </div>
+
+      {/* Enrolled Courses */}
+      {dashboard && dashboard.courses.length > 0 && (
+        <div className="bg-white rounded-3xl p-8 shadow-sm border border-black/5">
+          <h2 className="text-2xl font-[300] text-navy mb-6">Mes Cours</h2>
+          <div className="space-y-3">
+            {dashboard.courses.map((course) => (
+              <a
+                key={course.id}
+                href={`/dashboard/courses/${course.id}`}
+                className="flex items-center justify-between p-4 rounded-xl border border-black/5 hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-medium text-navy text-sm truncate">{course.title}</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {course.niveau_scolaire} · {course.lessons_completed}/{course.total_lessons} leçons
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <div className="w-20 bg-gray-100 rounded-full h-1.5">
+                    <div
+                      className="bg-orange h-1.5 rounded-full"
+                      style={{ width: `${Math.min(course.progress_pct, 100)}%` }}
+                    />
+                  </div>
+                  <span className="text-xs text-gray-500 w-10 text-right">{course.progress_pct}%</span>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

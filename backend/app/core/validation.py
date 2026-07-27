@@ -94,8 +94,8 @@ def validate_password_strength(password: str) -> tuple[bool, Optional[str]]:
     if len(password) > 128:
         return False, "Password must be less than 128 characters"
     
-    # Check for at least one letter
-    if not re.search(r'[a-zA-Z]', password):
+    # Check for at least one letter (Unicode-aware)
+    if not any(c.isalpha() for c in password):
         return False, "Password must contain at least one letter"
     
     # Check for at least one number

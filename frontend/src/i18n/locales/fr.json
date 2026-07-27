@@ -1,0 +1,119 @@
+{
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "courses": "Mes cours",
+    "catalog": "Catalogue",
+    " packs": "Packs",
+    "inbox": "Messagerie",
+    "profile": "Profil",
+    "logout": "Déconnexion",
+    "settings": "Paramètres"
+  },
+  "dashboard": {
+    "welcome": "Bienvenue",
+    "daily_objective": "Objectif du jour",
+    "my_courses": "Mes cours",
+    "progression": "Progression",
+    "completed_lessons": "Leçons complétées",
+    "start": "Commencer",
+    "continue": "Continuer",
+    "no_enrollment": "Vous n'êtes inscrit à aucun cours",
+    "browse_catalog": "Parcourir le catalogue",
+    "no_objective": "Aucun objectif pour aujourd'hui",
+    "tier_prefix": "Palier"
+  },
+  "tier": {
+    "decouverte": "Découverte",
+    "excellence": "Excellence",
+    "etablissement": "Établissement",
+    "current_tier": "Votre palier actuel",
+    "upgrade": "Passer au palier supérieur",
+    "features_access": "Fonctionnalités accessibles",
+    "ai_level": "Niveau IA",
+    "ai_basic": "Basique",
+    "ai_adaptive": "Adaptatif",
+    "ai_curriculum": "Aligné curriculum"
+  },
+  "catalog": {
+    "title": "Catalogue de cours",
+    "search": "Rechercher un cours...",
+    "filter_level": "Filtrer par niveau",
+    "filter_language": "Filtrer par langue",
+    "all_levels": "Tous les niveaux",
+    "enroll": "S'inscrire",
+    "already_enrolled": "Déjà inscrit",
+    "school_only": "Réservé aux écoles",
+    "no_results": "Aucun cours trouvé"
+  },
+  "packs": {
+    "title": "Packs disponibles",
+    "included_by_school": "Inclus via école",
+    "already_active": "Déjà actif",
+    "purchase": "Acheter",
+    "per_month": "/mois",
+    "no_packs": "Aucun pack disponible"
+  },
+  "profile": {
+    "title": "Mon profil",
+    "full_name": "Nom complet",
+    "email": "Email",
+    "role": "Rôle",
+    "school": "École",
+    "language": "Langue",
+    "niveau": "Niveau scolaire",
+    "save": "Enregistrer",
+    "saved": "Enregistré !"
+  },
+  "language": {
+    "fr": "Français",
+    "en": "English",
+    "ar": "العربية"
+  },
+  "placement": {
+    "title": "Test de positionnement",
+    "description": "Évaluez votre niveau pour des recommandations personnalisées",
+    "start_test": "Commencer le test",
+    "submit": "Valider",
+    "result": "Votre niveau",
+    "debutant": "Débutant",
+    "intermediaire": "Intermédiaire",
+    "avance": "Avancé",
+    "no_test": "Aucun test disponible pour ce niveau"
+  },
+  "onboarding": {
+    "welcome_title": "Bienvenue sur EDUAI Learning !",
+    "welcome_desc": "Complétez votre profil pour commencer.",
+    "choose_language": "Choisissez votre langue",
+    "choose_level": "Quel est votre niveau scolaire ?",
+    "next": "Suivant",
+    "skip": "Passer",
+    "finish": "Commencer"
+  },
+  "auth": {
+    "login": "Connexion",
+    "register": "Inscription",
+    "email": "Email",
+    "password": "Mot de passe",
+    "confirm_password": "Confirmer le mot de passe",
+    "school_name": "Nom de l'école",
+    "full_name": "Nom complet",
+    "niveau_scolaire": "Niveau scolaire",
+    "no_account": "Pas encore de compte ?",
+    "has_account": "Déjà un compte ?",
+    "login_button": "Se connecter",
+    "register_button": "S'inscrire"
+  },
+  "common": {
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "confirm": "Confirmer",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "close": "Fermer"
+  }
+}

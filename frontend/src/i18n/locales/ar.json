@@ -1,0 +1,119 @@
+{
+  "nav": {
+    "dashboard": "لوحة التحكم",
+    "courses": "دروسي",
+    "catalog": "الكتالوج",
+    "packs": "الباقات",
+    "inbox": "الرسائل",
+    "profile": "الملف الشخصي",
+    "logout": "تسجيل الخروج",
+    "settings": "الإعدادات"
+  },
+  "dashboard": {
+    "welcome": "مرحبا",
+    "daily_objective": "الهدف اليومي",
+    "my_courses": "دروسي",
+    "progression": "التقدم",
+    "completed_lessons": "الدروس المكتملة",
+    "start": "ابدأ",
+    "continue": "تابع",
+    "no_enrollment": "لست مسجلاً في أي مقرر",
+    "browse_catalog": "تصفح الكتالوج",
+    "no_objective": "لا يوجد هدف اليوم",
+    "tier_prefix": "المستوى"
+  },
+  "tier": {
+    "decouverte": "الاكتشاف",
+    "excellence": "التميز",
+    "etablissement": "المؤسسة",
+    "current_tier": "مستواك الحالي",
+    "upgrade": "ترقية المستوى",
+    "features_access": "الميزات المتاحة",
+    "ai_level": "مستوى الذكاء الاصطناعي",
+    "ai_basic": "أساسي",
+    "ai_adaptive": "تكيفي",
+    "ai_curriculum": "متوافق مع المنهج"
+  },
+  "catalog": {
+    "title": "كتالوج المقررات",
+    "search": "بحث في المقررات...",
+    "filter_level": "تصفية حسب المستوى",
+    "filter_language": "تصفية حسب اللغة",
+    "all_levels": "جميع المستويات",
+    "enroll": "تسجيل",
+    "already_enrolled": "مسجل بالفعل",
+    "school_only": "محجوز للمدارس",
+    "no_results": "لم يتم العثور على مقررات"
+  },
+  "packs": {
+    "title": "الباقات المتاحة",
+    "included_by_school": "متضمن عبر المدرسة",
+    "already_active": "نشط بالفعل",
+    "purchase": "شراء",
+    "per_month": "/شهرياً",
+    "no_packs": "لا توجد باقات متاحة"
+  },
+  "profile": {
+    "title": "ملفي الشخصي",
+    "full_name": "الاسم الكامل",
+    "email": "البريد الإلكتروني",
+    "role": "الدور",
+    "school": "المدرسة",
+    "language": "اللغة",
+    "niveau": "المستوى الدراسي",
+    "save": "حفظ",
+    "saved": "تم الحفظ!"
+  },
+  "language": {
+    "fr": "Français",
+    "en": "English",
+    "ar": "العربية"
+  },
+  "placement": {
+    "title": "اختبار التحديد",
+    "description": "قيّم مستواك لتوصيات مخصصة",
+    "start_test": "ابدأ الاختبار",
+    "submit": "إرسال",
+    "result": "مستواك",
+    "debutant": "مبتدئ",
+    "intermediaire": "متوسط",
+    "avance": "متقدم",
+    "no_test": "لا يوجد اختبار لهذا المستوى"
+  },
+  "onboarding": {
+    "welcome_title": "مرحباً بك في EDUAI Learning!",
+    "welcome_desc": "أكمل ملفك الشخصي للبدء.",
+    "choose_language": "اختر لغتك",
+    "choose_level": "ما هو مستواك الدراسي؟",
+    "next": "التالي",
+    "skip": "تخطي",
+    "finish": "ابدأ"
+  },
+  "auth": {
+    "login": "تسجيل الدخول",
+    "register": "التسجيل",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "confirm_password": "تأكيد كلمة المرور",
+    "school_name": "اسم المدرسة",
+    "full_name": "الاسم الكامل",
+    "niveau_scolaire": "المستوى الدراسي",
+    "no_account": "ليس لديك حساب؟",
+    "has_account": "لديك حساب بالفعل؟",
+    "login_button": "تسجيل الدخول",
+    "register_button": "التسجيل"
+  },
+  "common": {
+    "loading": "جاري التحميل...",
+    "error": "خطأ",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "confirm": "تأكيد",
+    "back": "رجوع",
+    "next": "التالي",
+    "previous": "السابق",
+    "close": "إغلاق"
+  }
+}
