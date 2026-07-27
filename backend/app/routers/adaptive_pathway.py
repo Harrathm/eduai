@@ -865,6 +865,88 @@ def mon_parcours(
     return {"niveaux": result}
 
 
+@router.post("/auto-enroll-from-test")
+def auto_enroll_from_test(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Auto-enroll student in pathway based on most recent placement test result.
+    No pack required — creates ProfilAssimilationEleve for all chapters of matched niveau."""
+    from app.models import PlacementTest, PlacementTestResult
+
+    # Find latest test result for this student
+    latest_result = db.query(PlacementTestResult).filter(
+        PlacementTestResult.user_id == current_user.id,
+    ).order_by(PlacementTestResult.completed_at.desc()).first()
+
+    if not latest_result:
+        raise HTTPException(status_code=404, detail="Aucun test de positionnement complété")
+
+    test = db.query(PlacementTest).filter(PlacementTest.id == latest_result.placement_test_id).first()
+    if not test:
+        raise HTTPException(status_code=404, detail="Test de positionnement introuvable")
+
+    # Find matching niveau
+    niveau_etude = db.query(NiveauEtude).filter(
+        NiveauEtude.nom.ilike(f"%{test.niveau}%")
+    ).first()
+    if not niveau_etude:
+        raise HTTPException(status_code=404, detail="Niveau non trouvé pour ce test")
+
+    # Map competency_level to niveau_assimilation
+    level_map = {
+        "debutant": "remediation",
+        "intermediaire": "standard",
+        "intermédiaire": "standard",
+        "avance": "avance",
+    }
+    niveau_assim = level_map.get(latest_result.competency_level, "standard")
+
+    # Find matiere + chapters
+    matiere = db.query(Matiere).filter(
+        Matiere.niveau_etude_id == niveau_etude.id,
+        Matiere.nom.ilike(f"%{test.matiere}%"),
+    ).first()
+    if not matiere:
+        # Fallback: get all chapters for this niveau
+        matieres = db.query(Matiere).filter(Matiere.niveau_etude_id == niveau_etude.id).all()
+        chapters = db.query(ChapterPathway).filter(ChapterPathway.matiere_id.in_([m.id for m in matieres])).all()
+    else:
+        chapters = db.query(ChapterPathway).filter(ChapterPathway.matiere_id == matiere.id).all()
+
+    # Create profiles for chapters without one
+    created = 0
+    for ch in chapters:
+        existing = db.query(ProfilAssimilationEleve).filter(
+            ProfilAssimilationEleve.eleve_id == current_user.id,
+            ProfilAssimilationEleve.chapitre_id == ch.id,
+        ).first()
+        if not existing:
+            profil = ProfilAssimilationEleve(
+                eleve_id=current_user.id,
+                chapitre_id=ch.id,
+                niveau_assimilation_courant=niveau_assim,
+                source_changement=SourceChangement.TEST_INITIAL.value,
+                score_declencheur=latest_result.score,
+                date=datetime.now(timezone.utc),
+                statut_validation=StatutValidationProfil.AUTO_APPLIQUE.value,
+            )
+            db.add(profil)
+            created += 1
+
+    db.commit()
+
+    return {
+        "message": f"Parcours auto-inscrit. {created} chapitre(s) initialisé(s).",
+        "niveau": niveau_etude.nom,
+        "niveau_id": niveau_etude.id,
+        "competency_level": latest_result.competency_level,
+        "niveau_assimilation": niveau_assim,
+        "chapters_initialized": created,
+        "total_chapters": len(chapters),
+    }
+
+
 @router.post("/enroll-pathway")
 def enroll_pathway(
     body: dict,

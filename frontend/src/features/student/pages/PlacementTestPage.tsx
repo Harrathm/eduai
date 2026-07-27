@@ -59,7 +59,13 @@ export default function PlacementTestPage() {
         selected: sel,
       }));
       const res = await apiClient.post(`/placement/tests/${test.id}/submit`, { answers: answerList });
-      setResult(res.data);
+      // Auto-enroll in pathway
+      try {
+        const enrollRes = await apiClient.post(`/api/pathway/auto-enroll-from-test`);
+        setResult({ ...res.data, auto_enroll: enrollRes.data });
+      } catch {
+        setResult({ ...res.data, auto_enroll: null });
+      }
     } catch {
     } finally {
       setSubmitting(false);
@@ -81,12 +87,27 @@ export default function PlacementTestPage() {
           <p className="text-gray-500 mb-6">
             {result.correct}/{result.total} correct — {t(`placement.${result.competency_level}`)}
           </p>
-          <button
-            onClick={() => navigate("/dashboard")}
-            className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700"
-          >
-            {t("common.back")}
-          </button>
+          <div className="flex flex-col gap-3 items-center">
+            {result.auto_enroll && (
+              <div className="w-full max-w-sm bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-800">
+                <p className="font-semibold mb-1">Parcours initialisé !</p>
+                <p>{result.auto_enroll.chapters_initialized} chapitre(s) configuré(s) pour <b>{result.auto_enroll.niveau}</b></p>
+                <p className="text-xs text-green-600 mt-1">Niveau: {result.auto_enroll.niveau_assimilation}</p>
+              </div>
+            )}
+            <button
+              onClick={() => navigate(result.auto_enroll ? "/dashboard/mon-parcours" : "/dashboard/parcours-catalog")}
+              className="px-6 py-3 bg-gradient-to-r from-orange to-orange-l text-white rounded-xl font-medium hover:opacity-90"
+            >
+              {result.auto_enroll ? "Voir mon parcours" : "Voir le catalogue"}
+            </button>
+            <button
+              onClick={() => navigate("/dashboard")}
+              className="px-6 py-3 text-gray-500 hover:text-navy"
+            >
+              {t("common.back")}
+            </button>
+          </div>
         </div>
       </div>
     );
