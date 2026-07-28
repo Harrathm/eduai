@@ -19,7 +19,7 @@ from app.models import (
     NotificationReorientation, Matiere, ChapterPathway, User,
     StudyPack, PackPurchase, PackPurchaseStatus, PurchaserType,
     NiveauAssimilation, SourceChangement, StatutValidationProfil,
-    ActionReorientation, StatutContenuPedagogique,
+    ActionReorientation, StatutContenuPedagogique, StatutValidationPedagogique,
 )
 
 logger = logging.getLogger(__name__)
@@ -414,7 +414,7 @@ def visible_eleve(contenu_notion: ContenuNotion) -> bool:
     """Un contenu est visible par un élève ssi statut_pedagogique='C' ET statut_validation_pedagogique='valide'."""
     return (
         contenu_notion.statut_pedagogique == StatutContenuPedagogique.C.value
-        and contenu_notion.statut_validation_pedagogique == "valide"
+        and contenu_notion.statut_validation_pedagogique == StatutValidationPedagogique.VALIDE.value
     )
 
 
@@ -423,7 +423,7 @@ def get_contenus_visibles_eleve(notion_id: int, db: Session) -> list[ContenuNoti
     return db.query(ContenuNotion).filter(
         ContenuNotion.notion_id == notion_id,
         ContenuNotion.statut_pedagogique == StatutContenuPedagogique.C.value,
-        ContenuNotion.statut_validation_pedagogique == "valide",
+        ContenuNotion.statut_validation_pedagogique == StatutValidationPedagogique.VALIDE.value,
     ).all()
 
 
@@ -433,7 +433,7 @@ def get_contenus_visibles_eleve(notion_id: int, db: Session) -> list[ContenuNoti
 
 def rejeter_contenu(contenu_notion: ContenuNotion, responsable_user_id: int, commentaire: str, db: Session):
     """Rejeter un contenu : repasse en modification (A), efface valide_par/date_validation."""
-    contenu_notion.statut_validation_pedagogique = "rejete"
+    contenu_notion.statut_validation_pedagogique = StatutValidationPedagogique.REJETE.value
     contenu_notion.statut_pedagogique = StatutContenuPedagogique.A.value  # retour automatique en modification
     contenu_notion.valide_par = None
     contenu_notion.date_validation = None
@@ -457,7 +457,7 @@ def rejeter_contenu(contenu_notion: ContenuNotion, responsable_user_id: int, com
 
 def valider_contenu(contenu_notion: ContenuNotion, responsable_user_id: int, db: Session):
     """Valider un contenu par un responsable pédagogique."""
-    contenu_notion.statut_validation_pedagogique = "valide"
+    contenu_notion.statut_validation_pedagogique = StatutValidationPedagogique.VALIDE.value
     contenu_notion.valide_par = responsable_user_id
     contenu_notion.date_validation = datetime.now(timezone.utc)
     contenu_notion.commentaire_rejet = None

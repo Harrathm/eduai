@@ -1757,6 +1757,13 @@ class StatutContenuPedagogique(str, Enum):
     C = "c"       # Archivé
 
 
+class StatutValidationPedagogique(str, Enum):
+    """Statut de validation pédagogique d'un contenu par un responsable."""
+    EN_ATTENTE = "en_attente"
+    VALIDE = "valide"
+    REJETE = "rejete"
+
+
 class SourceChangement(str, Enum):
     """Origine d'un changement de niveau d'assimilation."""
     TEST_INITIAL = "test_initial"
@@ -1853,7 +1860,7 @@ class ContenuNotion(Base):
     contenu: Mapped[str] = mapped_column(Text, nullable=False)  # texte ou reference_media
     enseignant_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     statut_pedagogique: Mapped[str] = mapped_column(String(10), default=StatutContenuPedagogique.A.value)
-    statut_validation_pedagogique: Mapped[str] = mapped_column(String(20), default="en_attente")  # en_attente, valide, rejete
+    statut_validation_pedagogique: Mapped[str] = mapped_column(String(20), default=StatutValidationPedagogique.EN_ATTENTE.value)
     valide_par: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     date_validation: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     commentaire_rejet: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
