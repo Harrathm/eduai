@@ -43,6 +43,7 @@ class UserRole(str, Enum):
     SUPER_ADMIN = "super_admin"
     PEDAGOGICAL_ADMIN = "pedagogical_admin"    # super_admin_pédagogique — portée plateforme
     PEDAGOGICAL_LEAD = "pedagogical_lead"      # admin_pédagogique — portée école (school_id obligatoire)
+    PARENT = "parent"                           # Parent d'élève — accès lecture seule progression
 
 class SubscriptionTier(str, Enum):
     FREE = "free"
@@ -364,6 +365,10 @@ class User(Base):
 
     # Wallet ledger
     wallet_transactions: Mapped[List[WalletTransaction]] = relationship("WalletTransaction", foreign_keys="WalletTransaction.user_id", cascade="all, delete-orphan")
+
+    # Parent–student links (N:N)
+    children_links: Mapped[List["ParentEnfant"]] = relationship("ParentEnfant", foreign_keys="ParentEnfant.parent_user_id", cascade="all, delete-orphan")
+    parent_links: Mapped[List["ParentEnfant"]] = relationship("ParentEnfant", foreign_keys="ParentEnfant.eleve_id", cascade="all, delete-orphan")
 
     # AI conversation history
     ai_conversations: Mapped[List["AIConversation"]] = relationship(
@@ -1557,6 +1562,33 @@ class WalletTransaction(Base):
     metadata_: Mapped[Optional[dict]] = mapped_column("metadata", JSON)  # input/output tokens
 
     user: Mapped[User] = relationship("User", foreign_keys=[user_id], overlaps="wallet_transactions")
+
+
+# ---------------------------------------------------------------------------
+# Parent–Student relationship (N:N)
+# ---------------------------------------------------------------------------
+
+class ParentEnfant(Base):
+    """Link between a parent and one or more students.
+
+    A parent may have multiple children; in recomposed families a student
+    could have more than one legal guardian, so no unique constraint on
+    (eleve_id) alone.
+    """
+    __tablename__ = "parent_enfants"
+    __table_args__ = (
+        Index("ix_parent_enfant_parent", "parent_user_id"),
+        Index("ix_parent_enfant_eleve", "eleve_id"),
+        UniqueConstraint("parent_user_id", "eleve_id", name="uq_parent_eleve"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    parent_user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    eleve_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    date_creation: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+    parent: Mapped[User] = relationship("User", foreign_keys=[parent_user_id], back_populates="children_links")
+    eleve: Mapped[User] = relationship("User", foreign_keys=[eleve_id], back_populates="parent_links")
 
 
 # ---------------------------------------------------------------------------

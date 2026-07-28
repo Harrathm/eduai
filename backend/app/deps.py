@@ -257,3 +257,14 @@ def require_active_subscription(current_user: User = Depends(set_tenant_context)
                 detail="Subscription expired. Please renew to continue creating content.",
             )
     return current_user
+
+
+# ---------------------------------------------------------------------------
+# Permission dependencies — Parent role
+# ---------------------------------------------------------------------------
+
+def require_parent(current_user: User = Depends(set_tenant_context)) -> User:
+    """Require PARENT role. Also sets tenant context."""
+    if get_user_role(current_user) != "parent":
+        raise HTTPException(status_code=403, detail="Parent access required")
+    return current_user
