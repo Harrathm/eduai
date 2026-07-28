@@ -1038,7 +1038,12 @@ def list_specialites(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_platform_admin),
 ):
-    """Liste les spécialités pédagogiques de l'école."""
+    """Liste les spécialités pédagogiques de l'école.
+
+    NOTE: Uses manual `ecole_id` filter instead of the central tenant filter
+    (_add_tenant_filter) because SpecialitePedagogique.ecole_id ≠ school_id.
+    The central filter only matches columns named `school_id`.
+    """
     specs = db.query(SpecialitePedagogique).filter(
         SpecialitePedagogique.ecole_id == current_user.school_id
     ).all() if current_user.school_id else db.query(SpecialitePedagogique).all()
