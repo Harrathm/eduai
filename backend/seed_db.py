@@ -54,7 +54,7 @@ def seed_database():
         admin = User(
             school_id=school.id,
             email="admin@demo-academy.edu",
-            hashed_password=get_password_hash("admin123"),
+            hashed_password=get_password_hash("password123"),
             full_name="Admin User",
             role=UserRole.ADMIN_SCHOOL,
             is_active=True,
@@ -69,7 +69,7 @@ def seed_database():
         teacher = User(
             school_id=school.id,
             email="teacher@demo-academy.edu",
-            hashed_password=get_password_hash("teacher123"),
+            hashed_password=get_password_hash("password123"),
             full_name="Mohamed Trabelsi",
             role=UserRole.TEACHER,
             is_active=True,
@@ -84,7 +84,7 @@ def seed_database():
         student = User(
             school_id=school.id,
             email="student@demo-academy.edu",
-            hashed_password=get_password_hash("student123"),
+            hashed_password=get_password_hash("password123"),
             full_name="Ahmed Ben Ali",
             role=UserRole.STUDENT,
             is_active=True,
@@ -144,13 +144,13 @@ def seed_database():
         print("-"*30)
         print("ADMIN:")
         print("  Email: admin@demo-academy.edu")
-        print("  Password: admin123")
+        print("  Password: password123")
         print("\nTEACHER:")
         print("  Email: teacher@demo-academy.edu")
-        print("  Password: teacher123")
+        print("  Password: password123")
         print("\nSTUDENT:")
         print("  Email: student@demo-academy.edu")
-        print("  Password: student123")
+        print("  Password: password123")
         print("="*50)
         
     except Exception as e:

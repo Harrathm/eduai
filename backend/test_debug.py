@@ -5,7 +5,7 @@ BASE = "http://localhost:8000"
 
 # Step 1: Login
 print("=== Step 1: Login ===")
-resp = requests.post(f"{BASE}/auth/login", data={"username": "admin@eduai.platform", "password": "admin123"})
+resp = requests.post(f"{BASE}/auth/login", data={"username": "admin@eduai.platform", "password": "password123"})
 print(f"Status: {resp.status_code}")
 if resp.status_code != 200:
     print(f"Error: {resp.text}")

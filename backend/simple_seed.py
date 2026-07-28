@@ -34,7 +34,7 @@ def seed():
         print("\n[2] Creating Super Admin...")
         admin = User(
             email="admin@eduai.platform",
-            hashed_password=get_password_hash("admin123"),
+            hashed_password=get_password_hash("password123"),
             full_name="Platform Admin",
             role="SUPER_ADMIN",
             is_active=True,
@@ -45,7 +45,7 @@ def seed():
         )
         db.add(admin)
         db.commit()
-        print(f"  admin@eduai.platform / admin123")
+        print(f"  admin@eduai.platform / password123")
         
         # School Admins
         print("\n[3] Creating School Admins...")
@@ -58,7 +58,7 @@ def seed():
         for email, name, sid in admins:
             u = User(
                 email=email,
-                hashed_password=get_password_hash("admin123"),
+                hashed_password=get_password_hash("password123"),
                 full_name=name,
                 role="ADMIN",
                 is_active=True,
@@ -162,8 +162,8 @@ def seed():
         print("\n" + "=" * 50)
         print("CREDENTIALS")
         print("=" * 50)
-        print("Super Admin:  admin@eduai.platform / admin123")
-        print("School Adm:  admin@pro-school.edu / admin123")
+        print("Super Admin:  admin@eduai.platform / password123")
+        print("School Adm:  admin@pro-school.edu / password123")
         print("Teacher:     teacher1@pro-school.edu / password123")
         print("Student:    student1@pro-school.edu / password123")
         print("\n[OK] Done!")

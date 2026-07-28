@@ -76,7 +76,7 @@ def seed():
     if not super_admin:
         super_admin = User(
             email="admin@eduai.platform",
-            hashed_password=get_password_hash("admin123"),
+            hashed_password=get_password_hash("password123"),
             full_name="Platform Super Admin",
             role=UserRole.SUPER_ADMIN,
             is_active=True,
@@ -86,7 +86,7 @@ def seed():
         )
         db.add(super_admin)
         db.flush()
-        print("    admin@eduai.platform / admin123 (created)")
+        print("    admin@eduai.platform / password123 (created)")
     else:
         print("    admin@eduai.platform (already exists)")
 
@@ -103,7 +103,7 @@ def seed():
         if not existing:
             admin = User(
                 email=email,
-                hashed_password=get_password_hash("admin123"),
+                hashed_password=get_password_hash("password123"),
                 full_name=name,
                 role=UserRole.ADMIN_SCHOOL,
                 is_active=True,
@@ -112,7 +112,7 @@ def seed():
                 dt_balance=500.0,
             )
             db.add(admin)
-            print(f"    {email} / admin123")
+            print(f"    {email} / password123")
     db.commit()
 
     # ===== DEMO USERS =====
@@ -231,8 +231,8 @@ def seed():
     print("SEED COMPLETE")
     print("=" * 60)
     print()
-    print("  SUPER ADMIN:  admin@eduai.platform / admin123")
-    print("  SCHOOL ADMIN: admin@pro-school.edu / admin123")
+    print("  SUPER ADMIN:  admin@eduai.platform / password123")
+    print("  SCHOOL ADMIN: admin@pro-school.edu / password123")
     print("  TEACHER:      teacher@pro-school.edu / password123")
     print("  STUDENT:      student1@pro-school.edu / password123")
     print()

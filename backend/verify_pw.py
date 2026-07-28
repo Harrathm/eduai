@@ -11,5 +11,5 @@ row = cursor.fetchone()
 if row:
     print(f"Email: {row[0]}")
     print(f"Hash: {row[1][:20]}...")
-    result = verify_password("admin123", row[1])
+    result = verify_password("password123", row[1])
     print(f"Password verification: {result}")

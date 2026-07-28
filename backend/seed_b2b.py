@@ -54,7 +54,7 @@ def main():
         super_admin = User(
             school_id=1, email="admin@eduai.platform",
             full_name="Super Admin", role=UserRole.SUPER_ADMIN,
-            hashed_password=get_password_hash("admin123"),
+            hashed_password=get_password_hash("password123"),
             is_active=True, is_approved=True,
         )
         db.add(super_admin)
@@ -235,7 +235,7 @@ and basic machine learning with Scikit-learn. Includes real-world datasets.""",
     admin_eit = User(
         school_id=school_eit.id, email="admin.eit@b2b_test.edu",
         full_name="Amel Ben Ali", role=UserRole.ADMIN_SCHOOL,
-        hashed_password=get_password_hash("admin123"),
+        hashed_password=get_password_hash("password123"),
         is_active=True, is_approved=True,
         created_at=utcnow(),
     )
@@ -244,7 +244,7 @@ and basic machine learning with Scikit-learn. Includes real-world datasets.""",
     admin_lp = User(
         school_id=school_lp.id, email="admin.lp@b2b_test.edu",
         full_name="Mehdi Trabelsi", role=UserRole.ADMIN_SCHOOL,
-        hashed_password=get_password_hash("admin123"),
+        hashed_password=get_password_hash("password123"),
         is_active=True, is_approved=True,
         created_at=utcnow(),
     )

@@ -3,7 +3,7 @@ import requests
 print("=== EDUAI LEARNING - FINAL STATUS ===")
 
 # Test login as super admin
-r = requests.post('http://localhost:8000/auth/login', data={'username': 'admin@eduai.platform', 'password': 'admin123'}, timeout=3)
+r = requests.post('http://localhost:8000/auth/login', data={'username': 'admin@eduai.platform', 'password': 'password123'}, timeout=3)
 if r.ok:
     token = r.json()['access_token']
     print("Auth: SUPER_ADMIN login OK")
@@ -22,7 +22,7 @@ else:
     print("Auth: FAILED")
 
 # Test school admin
-r = requests.post('http://localhost:8000/auth/login', data={'username': 'admin@pro-school.edu', 'password': 'admin123'}, timeout=3)
+r = requests.post('http://localhost:8000/auth/login', data={'username': 'admin@pro-school.edu', 'password': 'password123'}, timeout=3)
 if r.ok:
     token = r.json()['access_token']
     print("Auth: SCHOOL_ADMIN login OK")

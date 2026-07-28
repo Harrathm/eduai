@@ -1,6 +1,6 @@
 import requests
 
-resp = requests.post('http://localhost:8000/auth/login', data={'username': 'admin@eduai.platform', 'password': 'admin123'})
+resp = requests.post('http://localhost:8000/auth/login', data={'username': 'admin@eduai.platform', 'password': 'password123'})
 token = resp.json()['access_token']
 headers = {'Authorization': f'Bearer {token}'}
 

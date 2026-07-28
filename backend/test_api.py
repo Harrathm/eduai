@@ -3,7 +3,7 @@ import requests
 BASE = "http://localhost:8000"
 
 # Login
-resp = requests.post(f"{BASE}/auth/login", data={"username": "admin@eduai.platform", "password": "admin123"})
+resp = requests.post(f"{BASE}/auth/login", data={"username": "admin@eduai.platform", "password": "password123"})
 print("Login:", resp.status_code)
 token = resp.json()["access_token"]
 
