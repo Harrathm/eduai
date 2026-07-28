@@ -2396,14 +2396,19 @@ def purchase_school_pack(
             detail=f"Un pack actif pour le niveau '{pack.niveau_scolaire}' existe déjà pour votre école (expire le {existing.valid_until.strftime('%d/%m/%Y')})."
         )
 
-    # Débiter le solde de l'école (via le compte de l'admin)
-    if admin.dt_balance < pack.price:
+    # Débiter le solde de l'école via WalletTransaction (append-only audit trail)
+    from app.services.wallet import get_dt_balance, debit_dt, InsufficientCreditsError
+    current_dt = get_dt_balance(db, admin.id)
+    if current_dt < pack.price:
         raise HTTPException(
             status_code=400,
-            detail=f"Solde insuffisant. Solde actuel: {admin.dt_balance} {pack.currency}, prix du pack: {pack.price} {pack.currency}"
+            detail=f"Solde insuffisant. Solde actuel: {current_dt} {pack.currency}, prix du pack: {pack.price} {pack.currency}"
         )
 
-    admin.dt_balance -= pack.price
+    try:
+        debit_dt(db, admin.id, pack.price, source="purchase", reason=f"Achat pack école: {pack.name}")
+    except InsufficientCreditsError:
+        raise HTTPException(status_code=400, detail="Solde insuffisant lors du débit")
 
     # Créer la transaction
     transaction = Transaction(
@@ -2457,7 +2462,7 @@ def purchase_school_pack(
         "amount_paid": purchase.amount_paid,
         "currency": purchase.currency,
         "students_covered": student_count,
-        "remaining_balance": admin.dt_balance,
+        "remaining_balance": get_dt_balance(db, admin.id),
         "message": f"Pack '{pack.name}' acheté pour l'école. {student_count} élève(s) du niveau '{pack.niveau_scolaire}' couvert(s) automatiquement."
     }
 

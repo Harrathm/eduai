@@ -331,14 +331,19 @@ def purchase_course(
         raise HTTPException(status_code=400, detail="Vous avez déjà acheté ce cours")
 
     # Vérifier le solde DT
-    if current_user.dt_balance < course.price:
+    from app.services.wallet import get_dt_balance, debit_dt, InsufficientCreditsError
+    current_dt = get_dt_balance(db, current_user.id)
+    if current_dt < course.price:
         raise HTTPException(
             status_code=402,
-            detail=f"Solde insuffisant. Solde actuel: {current_user.dt_balance} {course.currency or 'TND'}, prix du cours: {course.price} {course.currency or 'TND'}"
+            detail=f"Solde insuffisant. Solde actuel: {current_dt} {course.currency or 'TND'}, prix du cours: {course.price} {course.currency or 'TND'}"
         )
 
-    # Débiter le solde DT
-    current_user.dt_balance -= course.price
+    # Débiter le solde DT via WalletTransaction (append-only audit trail)
+    try:
+        debit_dt(db, current_user.id, course.price, source="purchase", reason=f"Achat cours: {course.title}")
+    except InsufficientCreditsError:
+        raise HTTPException(status_code=402, detail="Solde insuffisant lors du débit")
 
     # Créer la transaction financière
     transaction = Transaction(
@@ -384,7 +389,7 @@ def purchase_course(
         "currency": purchase.currency,
         "platform_fee": purchase.platform_fee,
         "teacher_revenue": purchase.teacher_revenue,
-        "remaining_balance": current_user.dt_balance,
+        "remaining_balance": get_dt_balance(db, current_user.id),
     }
 
 

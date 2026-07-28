@@ -18,6 +18,7 @@ from app.db import Base, get_db
 from app.main import app
 from app.models import User, School, Course, Module, Lesson, Quiz, CourseStatus, TransactionType
 from app.core.security import get_password_hash
+from app.services.wallet import credit_dt
 
 TEST_PASSWORD = "password123"
 TEST_HASH = get_password_hash(TEST_PASSWORD)
@@ -251,9 +252,8 @@ class TestPurchaseCourse:
     def test_purchase_succeeds_and_deducts_correct_amount(self, setup):
         """Purchase succeeds and deducts exactly the course price from dt_balance."""
         client, db, data, tokens = setup
-        # Give student enough balance
-        data["student_no"].dt_balance = 100.0
-        db.commit()
+        # Give student enough balance via WalletTransaction (append-only ledger)
+        credit_dt(db, data["student_no"].id, 100.0, source="test", reason="test seed")
 
         resp = client.post(
             f"/api/courses/{data['course'].id}/purchase",
@@ -264,9 +264,9 @@ class TestPurchaseCourse:
         assert body["amount_paid"] == 50.0, f"Expected 50.0 paid, got {body['amount_paid']}"
         assert body["remaining_balance"] == 50.0, f"Expected 50.0 remaining, got {body['remaining_balance']}"
 
-        # Verify dt_balance was actually deducted in DB
-        db.refresh(data["student_no"])
-        assert data["student_no"].dt_balance == 50.0, f"DB balance should be 50.0, got {data['student_no'].dt_balance}"
+        # Verify dt_balance was actually deducted in DB (via ledger)
+        from app.services.wallet import get_dt_balance
+        assert get_dt_balance(db, data["student_no"].id) == 50.0, f"DB balance should be 50.0, got {get_dt_balance(db, data['student_no'].id)}"
 
         # Verify Transaction was created
         from app.models import Transaction
@@ -288,8 +288,7 @@ class TestPurchaseCourse:
     def test_purchase_prevents_duplicate(self, setup):
         """Cannot purchase the same course twice."""
         client, db, data, tokens = setup
-        data["student_no"].dt_balance = 200.0
-        db.commit()
+        credit_dt(db, data["student_no"].id, 200.0, source="test", reason="test seed")
 
         # First purchase succeeds
         resp1 = client.post(

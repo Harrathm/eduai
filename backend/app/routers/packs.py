@@ -181,14 +181,19 @@ def purchase_pack(
             )
 
     # Vérifier le solde
-    if user.dt_balance < pack.price:
+    from app.services.wallet import get_dt_balance, debit_dt, InsufficientCreditsError
+    current_dt = get_dt_balance(db, user.id)
+    if current_dt < pack.price:
         raise HTTPException(
             status_code=400,
-            detail=f"Solde insuffisant. Solde actuel: {user.dt_balance} {pack.currency}, prix du pack: {pack.price} {pack.currency}"
+            detail=f"Solde insuffisant. Solde actuel: {current_dt} {pack.currency}, prix du pack: {pack.price} {pack.currency}"
         )
 
-    # Débiter
-    user.dt_balance -= pack.price
+    # Débiter via WalletTransaction (append-only audit trail)
+    try:
+        debit_dt(db, user.id, pack.price, source="purchase", reason=f"Achat pack: {pack.name}")
+    except InsufficientCreditsError:
+        raise HTTPException(status_code=400, detail="Solde insuffisant lors du débit")
 
     # Créer la transaction
     transaction = Transaction(
@@ -231,6 +236,6 @@ def purchase_pack(
         "valid_until": valid_until.isoformat(),
         "amount_paid": purchase.amount_paid,
         "currency": purchase.currency,
-        "remaining_balance": user.dt_balance,
+        "remaining_balance": get_dt_balance(db, user.id),
         "message": f"Pack '{pack.name}' acheté avec succès. Accès valide jusqu'au {valid_until.strftime('%d/%m/%Y')}."
     }

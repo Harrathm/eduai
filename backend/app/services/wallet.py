@@ -99,6 +99,72 @@ def get_total_balance(db: Session, user_id: int) -> int:
 
 
 # ---------------------------------------------------------------------------
+# DT (real-money) balance — unified with WalletTransaction ledger
+# ---------------------------------------------------------------------------
+
+def get_dt_balance(db: Session, user_id: int) -> float:
+    """Compute current DT balance from WalletTransaction ledger (append-only).
+
+    Replaces the legacy mutable User.dt_balance column.
+    """
+    total = (
+        db.query(func.coalesce(func.sum(WalletTransaction.amount), 0))
+        .filter(
+            WalletTransaction.user_id == user_id,
+            WalletTransaction.pool == WalletPool.DT_PURCHASED,
+        )
+        .scalar()
+    )
+    return float(max(0, total))
+
+
+def debit_dt(
+    db: Session,
+    user_id: int,
+    amount: float,
+    source: str = "purchase",
+    reason: str = "",
+) -> WalletTransaction:
+    """Debit DT from user via WalletTransaction (append-only audit trail).
+
+    Raises InsufficientCreditsError if DT balance < amount.
+    """
+    current = get_dt_balance(db, user_id)
+    if current < amount:
+        raise InsufficientCreditsError(required=int(amount), available=int(current))
+    tx = WalletTransaction(
+        user_id=user_id,
+        pool=WalletPool.DT_PURCHASED,
+        amount=-int(amount),
+        metadata_={"source": source, "reason": reason},
+    )
+    db.add(tx)
+    db.commit()
+    db.refresh(tx)
+    return tx
+
+
+def credit_dt(
+    db: Session,
+    user_id: int,
+    amount: float,
+    source: str = "admin",
+    reason: str = "",
+) -> WalletTransaction:
+    """Credit DT to user via WalletTransaction (append-only audit trail)."""
+    tx = WalletTransaction(
+        user_id=user_id,
+        pool=WalletPool.DT_PURCHASED,
+        amount=int(amount),
+        metadata_={"source": source, "reason": reason},
+    )
+    db.add(tx)
+    db.commit()
+    db.refresh(tx)
+    return tx
+
+
+# ---------------------------------------------------------------------------
 # Credit consumption (strict priority order)
 # ---------------------------------------------------------------------------
 

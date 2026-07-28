@@ -17,7 +17,7 @@ from app.db import Base, get_db
 from app.main import app
 from app.models import (
     User, School, StudyPack, PackPurchase, PackPurchaseStatus, PackStatus,
-    PurchaserType, Transaction,
+    PurchaserType, Transaction, WalletTransaction, WalletPool,
 )
 from app.core.security import get_password_hash
 
@@ -59,11 +59,17 @@ def test_db():
         is_approved=True,
         school_id=school.id,
         niveau_scolaire="9eme de base",
-        dt_balance=200.0,
     )
     db.add(student_9eme)
     db.commit()
     db.refresh(student_9eme)
+
+    # Credit DT via WalletTransaction (append-only ledger)
+    credit_9 = WalletTransaction(
+        user_id=student_9eme.id, pool=WalletPool.DT_PURCHASED, amount=200,
+        metadata_={"source": "test", "reason": "test seed"},
+    )
+    db.add(credit_9)
 
     student_7eme = User(
         email="student_7eme@test.com",
@@ -74,11 +80,17 @@ def test_db():
         is_approved=True,
         school_id=school.id,
         niveau_scolaire="7eme de base",
-        dt_balance=200.0,
     )
     db.add(student_7eme)
     db.commit()
     db.refresh(student_7eme)
+
+    # Credit DT via WalletTransaction (append-only ledger)
+    credit_7 = WalletTransaction(
+        user_id=student_7eme.id, pool=WalletPool.DT_PURCHASED, amount=200,
+        metadata_={"source": "test", "reason": "test seed"},
+    )
+    db.add(credit_7)
 
     pack_9 = StudyPack(
         name="Pack 9eme",
@@ -156,7 +168,8 @@ class TestPackPurchaseGuard:
     def test_cannot_purchase_pack_included_by_school(self, test_db, client, student_9eme_token):
         """Achat rejete si l'ecole a deja un pack actif pour le meme niveau."""
         db, school, student_9eme, student_7eme, pack_9, pack_7 = test_db
-        balance_before = student_9eme.dt_balance
+        from app.services.wallet import get_dt_balance
+        balance_before = get_dt_balance(db, student_9eme.id)
 
         resp = client.post(
             f"/api/packs/{pack_9.id}/purchase",
@@ -168,9 +181,8 @@ class TestPackPurchaseGuard:
         has_keyword = any(kw in detail.lower() for kw in ["ecole", "\u00e9cole", "deja", "d\u00e9j\u00e0", "besoin"])
         assert has_keyword, f"Le message doit mentionner l'ecole ou deja: {detail}"
 
-        db.refresh(student_9eme)
-        assert student_9eme.dt_balance == balance_before, (
-            f"Solde inchange. Avant: {balance_before}, Apres: {student_9eme.dt_balance}"
+        assert get_dt_balance(db, student_9eme.id) == balance_before, (
+            f"Solde inchange. Avant: {balance_before}, Apres: {get_dt_balance(db, student_9eme.id)}"
         )
 
         transactions_count = db.query(Transaction).filter(Transaction.user_id == student_9eme.id).count()
@@ -182,7 +194,8 @@ class TestPackPurchaseGuard:
     def test_can_purchase_pack_not_included_by_school(self, test_db, client, student_7eme_token):
         """Achat reussi si l'ecole n'a pas de pack actif pour le niveau de l'eleve."""
         db, school, student_9eme, student_7eme, pack_9, pack_7 = test_db
-        balance_before = student_7eme.dt_balance
+        from app.services.wallet import get_dt_balance
+        balance_before = get_dt_balance(db, student_7eme.id)
 
         resp = client.post(
             f"/api/packs/{pack_7.id}/purchase",
@@ -193,9 +206,8 @@ class TestPackPurchaseGuard:
         data = resp.json()
         assert data["amount_paid"] == 30.0
 
-        db.refresh(student_7eme)
-        assert student_7eme.dt_balance == balance_before - 30.0, (
-            f"Solde debite. Avant: {balance_before}, Apres: {student_7eme.dt_balance}"
+        assert get_dt_balance(db, student_7eme.id) == balance_before - 30.0, (
+            f"Solde debite. Avant: {balance_before}, Apres: {get_dt_balance(db, student_7eme.id)}"
         )
 
         purchase = db.query(PackPurchase).filter(

@@ -81,6 +81,7 @@ class WalletPool(str, Enum):
     SCHOOL_ALLOCATED = "school_allocated"  # Credits allocated by school admin
     PURCHASED = "purchased"            # Direct purchase (never expires)
     SUBSCRIPTION = "subscription"      # Credits included in subscription
+    DT_PURCHASED = "dt_purchased"      # Real-money (TND) credits — purchase ledger
 
 
 class BillableFeature(str, Enum):
