@@ -73,7 +73,7 @@ def seed_schools(db):
 
 def seed_users(db, schools):
     users = {}
-    password_hash = "$2b$12$LJ3m4ys3Lz0gMKR4O3SqkOaKJqFhQhX5T8wXqZf5v4b3n2m1p0o"  # password123
+    password_hash = get_password_hash("password123")
 
     user_defs = [
         # super_admin (1)

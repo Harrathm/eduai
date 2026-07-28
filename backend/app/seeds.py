@@ -163,7 +163,8 @@ db.execute(text("""
 db.commit()
 
 # Users (password123 hash)
-password_hash = "$2b$12$LQv3c1S7.V7H4E.iQ.wpe.1JL8.FfE5n/V6E4/0mZ9bXKvK4z3eWm"
+from app.core.security import get_password_hash
+password_hash = get_password_hash("password123")
 
 db.execute(text(f"""
     INSERT INTO users (email, hashed_password, full_name, role, school_id, is_active)

@@ -1,3 +1,3 @@
-from app.core.security import verify_password
-h = "$2b$12$PiO0X8xHJ2SynXHUmp57neoRBzPpWJgZ2c6MpwXSlgtF3dyzWTQDa"
+from app.core.security import verify_password, get_password_hash
+h = get_password_hash("password123")
 print(verify_password('password123', h))
