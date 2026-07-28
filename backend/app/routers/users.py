@@ -67,43 +67,7 @@ def get_user(
     return user
 
 
-@router.put("/{user_id}/balance", response_model=UserRead)
-def update_user_balance(
-    user_id: int,
-    balance_update: UserBalanceUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(_require_admin),
-):
-    """Update user token/DT balance (admins only — financial operation)"""
-    user = db.query(User).filter(
-        User.id == user_id,
-        User.school_id == current_user.school_id
-    ).first()
-    
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    old_tokens = user.token_balance
-    old_dt = user.dt_balance
-
-    if balance_update.token_balance is not None:
-        user.token_balance = balance_update.token_balance
-    if balance_update.dt_balance is not None:
-        user.dt_balance = balance_update.dt_balance
-    
-    db.commit()
-    db.refresh(user)
-
-    from app.audit import log_admin_action
-    log_admin_action(
-        "user.balance_update", current_user.id, current_user.email or "",
-        target_type="user", target_id=user.id,
-        details={"old_tokens": old_tokens, "new_tokens": user.token_balance,
-                 "old_dt": old_dt, "new_dt": user.dt_balance},
-        db=db,
-    )
-    
-    return user
+# PUT /{user_id}/balance removed — use /api/admin/users/{user_id}/balance instead
 
 
 @router.put("/{user_id}", response_model=UserRead)

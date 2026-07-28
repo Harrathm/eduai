@@ -193,6 +193,68 @@ def add_credits(
 
 
 # ---------------------------------------------------------------------------
+# Admin credit / debit (append-only, replaces direct assignment)
+# ---------------------------------------------------------------------------
+
+def credit_balance(
+    db: Session,
+    user_id: int,
+    amount: int,
+    pool: WalletPool = WalletPool.PURCHASED,
+    source: str = "admin",
+    reason: str = "",
+    expires_at: Optional[datetime] = None,
+) -> WalletTransaction:
+    """Add credits via a WalletTransaction (append-only, no direct field mutation).
+
+    This is the ONLY sanctioned way for admin endpoints to adjust user balances.
+    Every call produces a ledger entry with full traceability.
+    """
+    meta = {"source": source, "reason": reason}
+    if expires_at:
+        meta["expires_at"] = expires_at.isoformat()
+    tx = WalletTransaction(
+        user_id=user_id,
+        pool=pool,
+        amount=max(0, amount),
+        expires_at=expires_at,
+        metadata_=meta,
+    )
+    db.add(tx)
+    db.commit()
+    db.refresh(tx)
+    return tx
+
+
+def debit_balance(
+    db: Session,
+    user_id: int,
+    amount: int,
+    pool: WalletPool = WalletPool.PURCHASED,
+    source: str = "admin",
+    reason: str = "",
+) -> WalletTransaction:
+    """Remove credits via a WalletTransaction (append-only, no direct field mutation).
+
+    Raises InsufficientCreditsError if pool balance < amount.
+    """
+    balances = get_balance_by_pool(db, user_id)
+    pool_balance = balances.get(pool, 0)
+    if pool_balance < amount:
+        raise InsufficientCreditsError(required=amount, available=pool_balance)
+    tx = WalletTransaction(
+        user_id=user_id,
+        pool=pool,
+        amount=-amount,
+        metadata_={"source": source, "reason": reason},
+    )
+    db.add(tx)
+    db.commit()
+    db.refresh(tx)
+    return tx
+
+
+# ---------------------------------------------------------------------------
 # Low balance alerts
 # ---------------------------------------------------------------------------
 

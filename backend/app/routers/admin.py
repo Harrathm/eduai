@@ -231,8 +231,6 @@ def get_user(user_id: int, db: Session = Depends(get_db), admin=Depends(require_
 def user_update_post(
     user_id: int,
     is_active: bool | None = None,
-    token_balance: int | None = None,
-    dt_balance: float | None = None,
     role: str | None = None,
     db: Session = Depends(get_db),
     admin=Depends(require_admin)
@@ -249,17 +247,13 @@ def user_update_post(
     
     if is_active is not None:
         user.is_active = is_active
-    if token_balance is not None:
-        user.token_balance = token_balance
-    if dt_balance is not None:
-        user.dt_balance = dt_balance
     if role:
         user.role = role
     
     db.commit()
     db.refresh(user)
     
-    return {"success": True, "user": {"id": user.id, "email": user.email, "is_active": user.is_active, "token_balance": user.token_balance, "dt_balance": user.dt_balance, "role": str(user.role)}}
+    return {"success": True, "user": {"id": user.id, "email": user.email, "is_active": user.is_active, "role": str(user.role)}}
 
 
 @router.post("/users/{user_id}/reset-password")
@@ -572,17 +566,43 @@ def update_user(user_id: int, body: UserEditRequest, db: Session = Depends(get_d
 
 @router.put("/users/{user_id}/balance", response_model=UserDetail)
 def update_user_balance(user_id: int, balance: UserBalanceUpdate, db: Session = Depends(get_db), admin=Depends(require_platform_admin)):
+    from app.services.wallet import credit_balance, debit_balance, get_total_balance, InsufficientCreditsError
+    from app.models import WalletPool
+
     if _is_super(admin):
         user = db.query(User).filter(User.id == user_id).first()
     else:
         user = db.query(User).filter(User.id == user_id, User.school_id == admin.school_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
+    # Credit tokens via WalletTransaction (append-only audit trail)
     if balance.tokens is not None:
-        user.token_balance = balance.tokens
+        current = get_total_balance(db, user_id)
+        diff = balance.tokens - (user.token_balance or 0)
+        if diff > 0:
+            credit_balance(db, user_id, diff, WalletPool.PURCHASED,
+                           source="admin", reason=f"Admin balance set by {admin.id}")
+        elif diff < 0:
+            try:
+                debit_balance(db, user_id, abs(diff), WalletPool.PURCHASED,
+                              source="admin", reason=f"Admin balance set by {admin.id}")
+            except InsufficientCreditsError:
+                raise HTTPException(status_code=400, detail="Insufficient balance for requested adjustment")
+
+    # Credit DT via WalletTransaction (append-only audit trail)
     if balance.dt_balance is not None:
-        user.dt_balance = balance.dt_balance
-    db.commit()
+        diff = int(balance.dt_balance - (user.dt_balance or 0))
+        if diff > 0:
+            credit_balance(db, user_id, diff, WalletPool.PURCHASED,
+                           source="admin", reason=f"Admin DT balance set by {admin.id}")
+        elif diff < 0:
+            try:
+                debit_balance(db, user_id, abs(diff), WalletPool.PURCHASED,
+                              source="admin", reason=f"Admin DT balance set by {admin.id}")
+            except InsufficientCreditsError:
+                raise HTTPException(status_code=400, detail="Insufficient DT balance for requested adjustment")
+
     db.refresh(user)
     return user
 
@@ -1259,9 +1279,10 @@ def add_to_wallet(
     db: Session = Depends(get_db),
     admin=Depends(require_platform_admin),
 ):
-    """Add DT or tokens to user wallet"""
+    """Add DT or tokens to user wallet (append-only via WalletTransaction)"""
     import logging
     logger = logging.getLogger(__name__)
+    from app.services.wallet import credit_balance, get_total_balance
 
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -1274,31 +1295,22 @@ def add_to_wallet(
 
     old_dt = user.dt_balance or 0.0
     old_tokens = user.token_balance or 0
-    new_dt = old_dt
-    new_tokens = old_tokens
 
     if body.amount_dt > 0:
-        user.dt_balance = old_dt + body.amount_dt
-        new_dt = user.dt_balance
-        tx = Transaction(
-            school_id=user.school_id, user_id=user.id,
-            type=TransactionType.DT_DEPOSIT, amount=body.amount_dt,
-            currency="DT", description=body.reason, status="completed",
+        credit_balance(
+            db, user.id, int(body.amount_dt), WalletPool.PURCHASED,
+            source="admin", reason=body.reason,
         )
-        db.add(tx)
 
     if body.amount_tokens > 0:
-        user.token_balance = old_tokens + body.amount_tokens
-        new_tokens = user.token_balance
-        tx = Transaction(
-            school_id=user.school_id, user_id=user.id,
-            type=TransactionType.TOKEN_RECHARGE, amount=body.amount_tokens,
-            currency="TOKEN", description=body.reason, status="completed",
+        credit_balance(
+            db, user.id, body.amount_tokens, WalletPool.PURCHASED,
+            source="admin", reason=body.reason,
         )
-        db.add(tx)
 
-    db.commit()
     db.refresh(user)
+    new_dt = user.dt_balance or 0.0
+    new_tokens = user.token_balance or 0
 
     audit_log(db, admin.id, admin.email or "admin",
         "USER_BALANCE_ADJUST", target_type="user", target_id=user_id,
@@ -1331,9 +1343,10 @@ def deduct_from_wallet(
     db: Session = Depends(get_db),
     admin=Depends(require_platform_admin),
 ):
-    """Deduct DT or tokens from user wallet"""
+    """Deduct DT or tokens from user wallet (append-only via WalletTransaction)"""
     import logging
     logger = logging.getLogger(__name__)
+    from app.services.wallet import debit_balance, get_total_balance, InsufficientCreditsError
 
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -1346,35 +1359,32 @@ def deduct_from_wallet(
 
     current_dt = user.dt_balance or 0.0
     current_tokens = user.token_balance or 0
-    new_dt = current_dt
-    new_tokens = current_tokens
 
     if body.amount_dt > 0:
         if body.amount_dt > current_dt:
             raise HTTPException(status_code=400, detail="Insufficient DT balance")
-        user.dt_balance = current_dt - body.amount_dt
-        new_dt = user.dt_balance
-        tx = Transaction(
-            school_id=user.school_id, user_id=user.id,
-            type=TransactionType.DT_WITHDRAWAL, amount=body.amount_dt,
-            currency="DT", description=body.reason, status="completed",
-        )
-        db.add(tx)
+        try:
+            debit_balance(
+                db, user.id, int(body.amount_dt), WalletPool.PURCHASED,
+                source="admin", reason=body.reason,
+            )
+        except InsufficientCreditsError as e:
+            raise HTTPException(status_code=400, detail=str(e))
 
     if body.amount_tokens > 0:
         if body.amount_tokens > current_tokens:
             raise HTTPException(status_code=400, detail="Insufficient token balance")
-        user.token_balance = current_tokens - body.amount_tokens
-        new_tokens = user.token_balance
-        tx = Transaction(
-            school_id=user.school_id, user_id=user.id,
-            type=TransactionType.TOKEN_CONSUMPTION, amount=body.amount_tokens,
-            currency="TOKEN", description=body.reason, status="completed",
-        )
-        db.add(tx)
+        try:
+            debit_balance(
+                db, user.id, body.amount_tokens, WalletPool.PURCHASED,
+                source="admin", reason=body.reason,
+            )
+        except InsufficientCreditsError as e:
+            raise HTTPException(status_code=400, detail=str(e))
 
-    db.commit()
     db.refresh(user)
+    new_dt = user.dt_balance or 0.0
+    new_tokens = user.token_balance or 0
 
     audit_log(db, admin.id, admin.email or "admin",
         "USER_BALANCE_ADJUST", target_type="user", target_id=user_id,
