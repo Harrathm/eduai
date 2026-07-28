@@ -440,19 +440,10 @@ def rejeter_contenu(contenu_notion: ContenuNotion, responsable_user_id: int, com
     contenu_notion.commentaire_rejet = commentaire
     db.commit()
 
-    # Notifier l'enseignant (in-app notification via NotificationReorientation ou autre canal)
-    from app.models import NotificationReorientation
-    if contenu_notion.enseignant_id:
-        notif = NotificationReorientation(
-            profil_assimilation_id=0,  # placeholder —pas lié à une réorientation
-            enseignant_id=contenu_notion.enseignant_id,
-            date_notification=datetime.now(timezone.utc),
-            date_limite_action=datetime.now(timezone.utc) + timedelta(days=7),
-            action_prise="aucune",
-        )
-        # Note: en production, on utiliserait un modèle de notification dédié
-        # Pour l'instant on log seulement
-        logger.info(f"Contenu {contenu_notion.id} rejeté par responsable {responsable_user_id}: {commentaire}")
+    logger.info(
+        "Contenu %d rejeté par responsable %d: %s (enseignant_id=%s)",
+        contenu_notion.id, responsable_user_id, commentaire, contenu_notion.enseignant_id,
+    )
 
 
 def valider_contenu(contenu_notion: ContenuNotion, responsable_user_id: int, db: Session):
