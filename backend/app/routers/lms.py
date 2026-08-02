@@ -5,8 +5,9 @@ from datetime import datetime, timezone
 
 from app.db import get_db
 from app.auth import get_current_user
-from app.deps import check_school_access, require_active_subscription
-from app.models import User, Assignment, ClassRoom, Submission, ClassroomEnrollment, Progress, UserRole
+from app.deps import check_school_access, require_active_subscription, set_tenant_context
+from app.models import User, Assignment, ClassRoom, Submission, ClassroomEnrollment, Progress, UserRole, Course, Lesson
+from app.services.course_access import has_course_access
 from app.schemas import (
     AssignmentCreate, AssignmentRead, SubmissionCreate, SubmissionRead,
     SubmissionResult, ProgressCreate, ProgressRead, EnrollmentCreate, EnrollmentRead,
@@ -36,7 +37,7 @@ def _is_super_user(user) -> bool:
 def create_assignment(
     assignment_in: AssignmentCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
     _sub=Depends(require_active_subscription),
 ):
     if not _is_admin_or_teacher(current_user):
@@ -68,7 +69,7 @@ def list_assignments(
     skip: int = 0,
     limit: int = 20,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     query = db.query(Assignment).join(ClassRoom, Assignment.classroom_id == ClassRoom.id).filter(ClassRoom.school_id == current_user.school_id)
     if class_id:
@@ -82,7 +83,7 @@ def list_assignments(
 def get_assignment(
     assignment_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     assignment = db.query(Assignment).filter(
         Assignment.id == assignment_id,
@@ -98,7 +99,7 @@ def update_assignment(
     assignment_id: int,
     assignment_in: AssignmentCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     if not _is_admin_or_teacher(current_user):
         raise HTTPException(status_code=403, detail="Only teachers or admins can update assignments")
@@ -123,7 +124,7 @@ def update_assignment(
 def delete_assignment(
     assignment_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     if not _is_admin_or_teacher(current_user):
         raise HTTPException(status_code=403, detail="Only teachers or admins can delete assignments")
@@ -145,7 +146,7 @@ def submit_assignment(
     assignment_id: int,
     submission_in: SubmissionCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     assignment = db.query(Assignment).filter(
         Assignment.id == assignment_id,
@@ -202,7 +203,7 @@ def list_submissions(
     skip: int = 0,
     limit: int = 20,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     query = db.query(Submission).join(Assignment).filter(
         Assignment.school_id == current_user.school_id
@@ -222,7 +223,7 @@ def list_submissions(
 def get_submission(
     submission_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     submission = db.query(Submission).join(Assignment).filter(
         Submission.id == submission_id,
@@ -241,7 +242,7 @@ def grade_submission(
     grade: float,
     ai_feedback: str | None = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     if not _is_admin_or_teacher(current_user):
         raise HTTPException(status_code=403, detail="Only teachers or admins can grade")
@@ -264,7 +265,7 @@ def grade_submission(
 @router.get("/classes", response_model=list[dict])
 def list_classes(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     classes = db.query(ClassRoom).filter(ClassRoom.school_id == current_user.school_id).all()
     result = []
@@ -286,7 +287,7 @@ def list_classes(
 def create_enrollment(
     enrollment_in: EnrollmentCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     if not _is_admin_or_teacher(current_user):
         raise HTTPException(status_code=403, detail="Only teachers or admins can enroll students")
@@ -322,7 +323,7 @@ def list_enrollments(
     skip: int = 0,
     limit: int = 20,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     from sqlalchemy import join
     query = db.query(ClassroomEnrollment).join(ClassRoom, ClassroomEnrollment.classroom_id == ClassRoom.id)
@@ -341,7 +342,7 @@ def list_enrollments(
 def delete_enrollment(
     enrollment_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     if not _is_admin_or_teacher(current_user):
         raise HTTPException(status_code=403, detail="Only teachers or admins can remove enrollments")
@@ -352,10 +353,11 @@ def delete_enrollment(
     if not enrollment:
         raise HTTPException(status_code=404, detail="Enrollment not found")
 
-    # School isolation: admin/teacher can only delete enrollments in their school
-    if not _is_super_user(current_user):
-        if enrollment.school_id and enrollment.school_id != current_user.school_id:
-            raise HTTPException(status_code=403, detail="Access denied")
+    classroom = db.query(ClassRoom).filter(ClassRoom.id == enrollment.classroom_id).first()
+    if not classroom:
+        raise HTTPException(status_code=404, detail="Class not found")
+
+    check_school_access(current_user, classroom.school_id)
 
     db.delete(enrollment)
     db.commit()
@@ -365,7 +367,7 @@ def delete_enrollment(
 @router.get("/my-classes", response_model=list[dict])
 def my_classes(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     if _role_str(current_user) == "student":
         enrollments = db.query(ClassroomEnrollment).filter(
@@ -407,7 +409,7 @@ def my_progress(
     skip: int = 0,
     limit: int = 20,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     query = db.query(Progress).filter(
         Progress.school_id == current_user.school_id,
@@ -424,8 +426,17 @@ def my_progress(
 def mark_progress(
     progress_in: ProgressCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
+    # Verify access to the lesson
+    lesson = db.query(Lesson).filter(Lesson.id == progress_in.lesson_id).first()
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Leçon non trouvée")
+    if not lesson.is_free:
+        course = db.query(Course).filter(Course.id == progress_in.course_id).first()
+        if course and not has_course_access(current_user, course, db):
+            raise HTTPException(status_code=403, detail="Accès non autorisé à ce cours")
+
     existing = db.query(Progress).filter(
         Progress.school_id == current_user.school_id,
         Progress.user_id == current_user.id,
@@ -459,7 +470,7 @@ def list_available_students(
     class_id: int,
     search: str = "",
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     enrolled_ids = [
         e.student_id for e in db.query(ClassroomEnrollment).filter(
@@ -506,7 +517,7 @@ def list_available_students(
 def list_class_students(
     class_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     classroom = db.query(ClassRoom).filter(ClassRoom.id == class_id).first()
     if not classroom:
@@ -541,7 +552,7 @@ def create_class_assignment(
     class_id: int,
     body: CreateAssignmentRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
     _sub=Depends(require_active_subscription),
 ):
     raw_role = current_user.role
@@ -585,7 +596,7 @@ def create_class_assignment(
 def list_class_assignments(
     class_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     class_room = db.query(ClassRoom).filter(ClassRoom.id == class_id).first()
     if not class_room:
@@ -611,7 +622,7 @@ class CreateClassRequest(BaseModel):
 def create_class(
     body: CreateClassRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     if not _is_admin_or_teacher(current_user):
         raise HTTPException(status_code=403, detail="Only teachers or admins can create classes")
@@ -632,7 +643,7 @@ def create_class(
 def delete_class(
     class_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     if not _is_admin_or_teacher(current_user):
         raise HTTPException(status_code=403, detail="Only teachers or admins can delete classes")
@@ -649,7 +660,7 @@ def remove_student_from_class(
     class_id: int,
     student_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     if not _is_admin_or_teacher(current_user):
         raise HTTPException(status_code=403, detail="Only teachers or admins can remove students")

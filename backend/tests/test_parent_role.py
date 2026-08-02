@@ -8,45 +8,27 @@ Covers audit §3.2:
 import pytest
 from datetime import datetime, timezone, timedelta
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
-from app.db import Base, get_db
 from app.main import app
-from app.models import User, School, ParentEnfant, UserRole, PackPurchase, PackPurchaseStatus, StudyPack, PackStatus, PurchaserType, WalletTransaction, WalletPool
+from app.models import (
+    User, School, ParentEnfant, UserRole, PackPurchase, PackPurchaseStatus,
+    StudyPack, PackStatus, PurchaserType, WalletTransaction, WalletPool,
+)
 from app.core.security import get_password_hash
 
-TEST_PASSWORD = "password123"
-TEST_HASH = get_password_hash(TEST_PASSWORD)
+from tests.conftest import TEST_PASSWORD, TEST_HASH, _login, _auth
 
 
 @pytest.fixture(scope="function")
-def test_db():
-    engine = create_engine(
-        "sqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    TestingSessionLocal = sessionmaker(bind=engine)
-    Base.metadata.create_all(bind=engine)
-
-    def override_get_db():
-        db = TestingSessionLocal()
-        try:
-            yield db
-        finally:
-            db.close()
-
-    app.dependency_overrides[get_db] = override_get_db
-    db = TestingSessionLocal()
+def test_db(_base_session):
+    """Custom test DB with parent, two students (one linked), packs, and wallet."""
+    db = _base_session
 
     school = School(name="Ecole Parent", slug="ecole-parent", subscription_tier="free")
     db.add(school)
     db.commit()
     db.refresh(school)
 
-    # Parent user
     parent = User(
         email="parent@test.com", hashed_password=TEST_HASH,
         full_name="Parent Test", role=UserRole.PARENT,
@@ -54,7 +36,6 @@ def test_db():
     )
     db.add(parent)
 
-    # Student 1 (linked to parent)
     student1 = User(
         email="eleve1@test.com", hashed_password=TEST_HASH,
         full_name="Eleve Un", role=UserRole.STUDENT,
@@ -63,7 +44,6 @@ def test_db():
     )
     db.add(student1)
 
-    # Student 2 (NOT linked to parent)
     student2 = User(
         email="eleve2@test.com", hashed_password=TEST_HASH,
         full_name="Eleve Deux", role=UserRole.STUDENT,
@@ -76,18 +56,15 @@ def test_db():
     db.refresh(student1)
     db.refresh(student2)
 
-    # Link parent -> student1 only
     link = ParentEnfant(parent_user_id=parent.id, eleve_id=student1.id)
     db.add(link)
 
-    # Credit student1 with DT (create WalletTransaction directly, avoid credit_dt's internal commit)
     credit_tx = WalletTransaction(
         user_id=student1.id, pool=WalletPool.DT_PURCHASED, amount=100,
         metadata_={"source": "test", "reason": "test seed"},
     )
     db.add(credit_tx)
 
-    # Create a pack purchase for student1
     pack = StudyPack(
         name="Pack 9eme", niveau_scolaire="9eme de base",
         price=50.0, validity_duration_days=365,
@@ -109,27 +86,14 @@ def test_db():
     db.add(purchase)
     db.commit()
 
-    # Expire all cached objects so the API session reads fresh from DB
     db.expire_all()
 
     yield db, school, parent, student1, student2, pack
-
-    app.dependency_overrides.clear()
-    db.close()
 
 
 @pytest.fixture(scope="function")
 def client(test_db):
     return TestClient(app)
-
-
-def _login(client, email):
-    resp = client.post("/auth/login", data={"username": email, "password": TEST_PASSWORD})
-    return resp.json().get("access_token")
-
-
-def _auth(token):
-    return {"Authorization": f"Bearer {token}"}
 
 
 class TestParentRBAC:
@@ -178,3 +142,108 @@ class TestParentRBAC:
         resp = client.get("/api/parents/me/enfants", headers=_auth(token))
         assert resp.status_code == 403
         assert "Parent access required" in resp.json()["detail"]
+
+
+class TestParentEndpoints:
+    def test_parent_can_link_child_by_email(self, test_db, client):
+        db, school, parent, student1, student2, pack = test_db
+        token = _login(client, parent.email)
+
+        resp = client.post(
+            "/api/parents/me/enfants/lier",
+            json={"email_eleve": student2.email},
+            headers=_auth(token),
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["eleve_id"] == student2.id
+        assert data["full_name"] == "Eleve Deux"
+
+        # Verify it shows in list
+        resp2 = client.get("/api/parents/me/enfants", headers=_auth(token))
+        assert len(resp2.json()["enfants"]) == 2
+
+    def test_parent_cannot_link_already_linked_child(self, test_db, client):
+        db, school, parent, student1, student2, pack = test_db
+        token = _login(client, parent.email)
+
+        resp = client.post(
+            "/api/parents/me/enfants/lier",
+            json={"email_eleve": student1.email},
+            headers=_auth(token),
+        )
+        assert resp.status_code == 400
+        assert "déjà rattaché" in resp.json()["detail"]
+
+    def test_parent_cannot_link_nonexistent_student(self, test_db, client):
+        db, school, parent, student1, student2, pack = test_db
+        token = _login(client, parent.email)
+
+        resp = client.post(
+            "/api/parents/me/enfants/lier",
+            json={"email_eleve": "nonexistent@test.com"},
+            headers=_auth(token),
+        )
+        assert resp.status_code == 404
+
+    def test_parent_can_unlink_child(self, test_db, client):
+        db, school, parent, student1, student2, pack = test_db
+        token = _login(client, parent.email)
+
+        resp = client.delete(
+            f"/api/parents/me/enfants/{student1.id}/delier",
+            headers=_auth(token),
+        )
+        assert resp.status_code == 200
+        assert resp.json()["eleve_id"] == student1.id
+
+        # Verify it's gone from list
+        resp2 = client.get("/api/parents/me/enfants", headers=_auth(token))
+        assert len(resp2.json()["enfants"]) == 0
+
+    def test_parent_cannot_unlink_non_linked_child(self, test_db, client):
+        db, school, parent, student1, student2, pack = test_db
+        token = _login(client, parent.email)
+
+        resp = client.delete(
+            f"/api/parents/me/enfants/{student2.id}/delier",
+            headers=_auth(token),
+        )
+        assert resp.status_code == 404
+
+    def test_dashboard_shows_children(self, test_db, client):
+        db, school, parent, student1, student2, pack = test_db
+        token = _login(client, parent.email)
+
+        resp = client.get("/api/parents/me/dashboard", headers=_auth(token))
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data["enfants"]) == 1
+        assert data["enfants"][0]["eleve_id"] == student1.id
+        assert data["enfants"][0]["dt_balance"] == 100.0
+
+    def test_progression_shows_student_data(self, test_db, client):
+        db, school, parent, student1, student2, pack = test_db
+        token = _login(client, parent.email)
+
+        resp = client.get(
+            f"/api/parents/me/enfants/{student1.id}/progression",
+            headers=_auth(token),
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["eleve_id"] == student1.id
+        assert isinstance(data["scores"], list)
+        assert isinstance(data["badges"], list)
+        assert isinstance(data["streaks"], list)
+        assert isinstance(data["objectifs"], list)
+
+    def test_progression_requires_link(self, test_db, client):
+        db, school, parent, student1, student2, pack = test_db
+        token = _login(client, parent.email)
+
+        resp = client.get(
+            f"/api/parents/me/enfants/{student2.id}/progression",
+            headers=_auth(token),
+        )
+        assert resp.status_code == 403

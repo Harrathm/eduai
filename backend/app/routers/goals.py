@@ -5,6 +5,7 @@ Endpoints:
     - GET  /learner/goals?horizon=...       — objectifs avec statut calculé
     - GET  /learner/goals/summary           — synthèse 5 horizons
     - GET  /learner/goals/report            — bilan de fin de période
+    - POST /learner/goals/monthly           — objectif mensuel (élève ou teacher/ped lead)
     - POST /learner/goals/annual            — objectif annuel (élève ou pedagogical_lead)
 
   Pedagogical Lead:
@@ -237,6 +238,61 @@ def create_annual_goal(
     db.commit()
     db.refresh(goal)
     return {"id": goal.id, "message": "Objectif annual cree"}
+
+
+@learner_router.post("/goals/monthly")
+def create_monthly_goal(
+    body: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Crée un objectif mensuel — par l'élève lui-même ou par un pedagogical_lead.
+    Body: {"matiere": "...", "target_value": 10, "metric_type": "lessons_completed"}
+    """
+    target_user_id = body.get("user_id", current_user.id)
+    if target_user_id != current_user.id:
+        if current_user.role not in ("pedagogical_lead", "super_admin", "teacher"):
+            raise HTTPException(status_code=403, detail="Non autorise")
+
+    matiere = body.get("matiere")
+    metric_type = body.get("metric_type", GoalMetricType.LESSONS_COMPLETED.value)
+    target_value = body.get("target_value", 10)
+
+    period_start, period_end = get_period_for_horizon("monthly")
+    start_dt = datetime.combine(period_start, datetime.min.time())
+    end_dt = datetime.combine(period_end, datetime.max.time())
+
+    existing = db.query(LearningGoal).filter(
+        LearningGoal.user_id == target_user_id,
+        LearningGoal.horizon == GoalHorizon.MONTHLY.value,
+        LearningGoal.matiere == matiere,
+        LearningGoal.period_start == start_dt,
+    ).first()
+    if existing:
+        existing.target_value = Decimal(str(target_value))
+        existing.metric_type = metric_type
+        db.commit()
+        db.refresh(existing)
+        return {"id": existing.id, "message": "Objectif monthly mis a jour"}
+
+    source = GoalSource.STUDENT_SELF.value if target_user_id == current_user.id else GoalSource.PEDAGOGICAL_LEAD_ASSIGNED.value
+
+    goal = LearningGoal(
+        user_id=target_user_id,
+        matiere=matiere,
+        horizon=GoalHorizon.MONTHLY.value,
+        metric_type=metric_type,
+        target_value=Decimal(str(target_value)),
+        period_start=start_dt,
+        period_end=end_dt,
+        source=source,
+        created_by=current_user.id,
+    )
+    db.add(goal)
+    db.commit()
+    db.refresh(goal)
+    return {"id": goal.id, "message": "Objectif monthly cree"}
 
 
 # ============================================================

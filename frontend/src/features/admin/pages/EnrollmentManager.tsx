@@ -28,7 +28,7 @@ export default function EnrollmentManager() {
     if (!token) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/teachers/registrations`, {
+      const res = await fetch(`${API_URL}/api/admin/teacher-registrations`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -44,13 +44,11 @@ export default function EnrollmentManager() {
   const approveRegistration = async (id: number) => {
     if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/api/admin/teachers/${id}/approve`, {
-        method: "PUT",
+      const res = await fetch(`${API_URL}/api/admin/teacher-registrations/${id}/review?status=approved`, {
+        method: "POST",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ approved: true }),
       });
       if (res.ok) fetchRegistrations();
     } catch (err) {
@@ -61,13 +59,11 @@ export default function EnrollmentManager() {
   const rejectRegistration = async (id: number) => {
     if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/api/admin/teachers/${id}/approve`, {
-        method: "PUT",
+      const res = await fetch(`${API_URL}/api/admin/teacher-registrations/${id}/review?status=rejected&rejection_reason=Rejected%20by%20admin`, {
+        method: "POST",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ approved: false, rejection_reason: "Rejected by admin" }),
       });
       if (res.ok) fetchRegistrations();
     } catch (err) {

@@ -147,6 +147,7 @@ def create_quiz(data: QuizCreate, db: Session = Depends(get_db), admin: User = D
         raise HTTPException(status_code=409, detail="Quiz already exists for this lesson")
 
     quiz = Quiz(
+        school_id=admin.school_id,
         lesson_id=data.lesson_id,
         title=data.title,
         description=data.description,

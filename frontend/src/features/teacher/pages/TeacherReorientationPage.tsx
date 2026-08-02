@@ -5,9 +5,10 @@ import { getNotificationsReorientation, validerReorientation } from "../../pathw
 import type { NotificationReorientation } from "../../pathway/api";
 
 export default function TeacherReorientationPage() {
-  const { token } = useAuthStore();
+  const { token, user } = useAuthStore();
   const [notifications, setNotifications] = useState<NotificationReorientation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState({ show: false, message: "", type: "success" as "success" | "error" });
 
   const showToast = (message: string, type: "success" | "error" = "success") => {
@@ -17,15 +18,24 @@ export default function TeacherReorientationPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      // Decode user ID from token
-      const payload = JSON.parse(atob(token?.split(".")[1] || ""));
-      const userId = parseInt(payload.sub);
-      const data = await getNotificationsReorientation(userId);
+      if (!user?.id) {
+        setError("Chargement en cours...");
+        setLoading(false);
+        return;
+      }
+      const data = await getNotificationsReorientation(user.id);
       setNotifications(data);
-    } catch { /* ignore */ }
+    } catch (err: any) {
+      if (err?.status === 403 || err?.message?.includes("403")) {
+        setError("Vous devez être désigné Responsable Pédagogique pour voir les réorientations.");
+      } else {
+        setError("Aucune notification de réorientation disponible.");
+      }
+    }
     setLoading(false);
-  }, [token]);
+  }, [token, user?.id]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -56,6 +66,11 @@ export default function TeacherReorientationPage() {
 
       {loading ? (
         <div className="text-center py-12 text-gray">Chargement...</div>
+      ) : error ? (
+        <div className="bg-white rounded-2xl shadow-sm border border-black/5 p-12 text-center">
+          <Bell className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+          <p className="text-gray">{error}</p>
+        </div>
       ) : notifications.length === 0 ? (
         <div className="bg-white rounded-2xl shadow-sm border border-black/5 p-12 text-center">
           <Bell className="w-12 h-12 text-gray-300 mx-auto mb-4" />

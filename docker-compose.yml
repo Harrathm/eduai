@@ -34,9 +34,6 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
-    command: >
-      sh -c "alembic upgrade head &&
-             gunicorn -w 4 -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:8000 --access-logfile - --error-logfile -"
 
   frontend:
     build:

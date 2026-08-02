@@ -7,6 +7,7 @@ from datetime import datetime, date, timezone, timedelta
 from decimal import Decimal
 from typing import Optional
 from functools import lru_cache
+from collections import OrderedDict
 import time
 
 from sqlalchemy.orm import Session
@@ -39,24 +40,56 @@ def get_status_message(status: str) -> str:
 
 
 # ============================================================
-# CACHE COURT EN MEMOIE (5 min max)
+# CACHE COURT EN MEMOIE (5 min max, bounded to 1000 entries)
 # ============================================================
 
-_status_cache: dict[int, tuple[str, float]] = {}
 _CACHE_TTL = 300  # 5 minutes
+_CACHE_MAX_SIZE = 1000
+
+
+class _TTLCache(OrderedDict):
+    """Bounded dict with per-entry TTL. Evicts oldest entries when full."""
+
+    def __init__(self, maxsize: int = _CACHE_MAX_SIZE, ttl: int = _CACHE_TTL):
+        super().__init__()
+        self._maxsize = maxsize
+        self._ttl = ttl
+
+    def get(self, key, default=None):
+        if key in self:
+            value, ts = super().__getitem__(key)
+            if time.time() - ts < self._ttl:
+                # Move to end (most recently accessed)
+                self.move_to_end(key)
+                return value
+            # Expired — remove
+            del self[key]
+        return default
+
+    def __setitem__(self, key, value):
+        if key in self:
+            del self[key]
+        elif len(self) >= self._maxsize:
+            # Evict oldest entry
+            self.popitem(last=False)
+        super().__setitem__(key, (value, time.time()))
+
+    def __getitem__(self, key):
+        result = self.get(key)
+        if result is None and key not in self:
+            raise KeyError(key)
+        return result
+
+
+_status_cache = _TTLCache()
 
 
 def _get_cached_status(goal_id: int) -> Optional[str]:
-    if goal_id in _status_cache:
-        status, ts = _status_cache[goal_id]
-        if time.time() - ts < _CACHE_TTL:
-            return status
-        del _status_cache[goal_id]
-    return None
+    return _status_cache.get(goal_id)
 
 
 def _set_cached_status(goal_id: int, status: str):
-    _status_cache[goal_id] = (status, time.time())
+    _status_cache[goal_id] = status
 
 
 # ============================================================
@@ -342,15 +375,57 @@ def generate_weekly_goal(user: User, db: Session, target_hours: float = 5.0) -> 
     return goal
 
 
+def generate_monthly_goal(user: User, db: Session) -> Optional[LearningGoal]:
+    """
+    Génère un objectif mensuel pour les paliers excellence/etablissement.
+    Retourne None pour decouverte.
+    Objectif par défaut : 10 leçons complétées + 20% de couverture curriculum.
+    """
+    tier = get_student_tier(user, db)
+    if tier == "decouverte":
+        return None
+
+    today = date.today()
+    period_start, period_end = get_period_for_horizon("monthly", today)
+
+    start_dt = datetime.combine(period_start, datetime.min.time())
+    end_dt = datetime.combine(period_end, datetime.max.time())
+    existing = db.query(LearningGoal).filter(
+        LearningGoal.user_id == user.id,
+        LearningGoal.horizon == GoalHorizon.MONTHLY.value,
+        LearningGoal.period_start >= start_dt,
+        LearningGoal.period_start <= end_dt,
+    ).first()
+    if existing:
+        return existing
+
+    goal = LearningGoal(
+        user_id=user.id,
+        matiere=None,
+        horizon=GoalHorizon.MONTHLY.value,
+        metric_type=GoalMetricType.LESSONS_COMPLETED.value,
+        target_value=Decimal("10"),
+        period_start=start_dt,
+        period_end=end_dt,
+        source=GoalSource.AUTO_GENERATED.value,
+    )
+    db.add(goal)
+    db.commit()
+    db.refresh(goal)
+    return goal
+
+
 def ensure_goals_exist(user: User, db: Session) -> dict:
     """
-    S'assure que les objectifs daily et weekly existent pour l'utilisateur.
+    S'assure que les objectifs daily, weekly et monthly existent pour l'utilisateur.
     Appelé au login ou au chargement du dashboard.
     Retourne les objectifs créés/récupérés.
     """
     daily = generate_daily_goal(user, db)
     weekly = generate_weekly_goal(user, db)
+    monthly = generate_monthly_goal(user, db)
     return {
         "daily": daily,
         "weekly": weekly,
+        "monthly": monthly,
     }

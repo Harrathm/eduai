@@ -23,7 +23,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("ErrorBoundary caught:", error, errorInfo);
+    console.error("[ErrorBoundary]", error, errorInfo.componentStack);
   }
 
   handleReset = () => {
@@ -42,14 +42,17 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <AlertTriangle className="w-8 h-8 text-red-600" />
             </div>
-            <h1 className="text-2xl font-bold text-navy mb-2">Something went wrong</h1>
+            <h1 className="text-2xl font-bold text-navy mb-2">Une erreur s'est produite</h1>
             <p className="text-gray mb-6">
-              An unexpected error occurred. Please try again or return to the dashboard.
+              Une erreur inattendue a eu lieu. Veuillez réessayer ou retourner au tableau de bord.
             </p>
             {this.state.error && (
-              <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-6 text-sm font-mono">
-                {this.state.error.message}
-              </div>
+              <details className="bg-red-50 text-red-700 p-3 rounded-lg mb-6 text-sm font-mono text-left">
+                <summary className="cursor-pointer font-semibold">Détails de l'erreur</summary>
+                <pre className="mt-2 whitespace-pre-wrap break-words text-xs">
+                  {this.state.error.message}
+                </pre>
+              </details>
             )}
             <div className="flex gap-3 justify-center">
               <button
@@ -57,14 +60,14 @@ export class ErrorBoundary extends Component<Props, State> {
                 className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-navy rounded-lg hover:bg-gray-200 transition-colors"
               >
                 <RefreshCw className="w-4 h-4" />
-                Try Again
+                Réessayer
               </button>
               <Link
                 to="/dashboard"
                 className="flex items-center gap-2 px-4 py-2 bg-orange text-white rounded-lg hover:bg-orange-dark transition-colors"
               >
                 <Home className="w-4 h-4" />
-                Dashboard
+                Tableau de bord
               </Link>
             </div>
           </div>

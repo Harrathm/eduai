@@ -59,6 +59,7 @@ class UserUpdate(BaseModel):
 
 class Token(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str
 
 
@@ -89,11 +90,21 @@ class SchoolRead(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     is_active: bool
+    pending_validation: Optional[bool] = False
     plan: Optional[str] = None
     invite_code: Optional[str] = None
     created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class RegisterSchoolRequest(BaseModel):
+    """Schema for public school registration (director self-registration)."""
+    school_name: str
+    school_domain: Optional[str] = None
+    email: EmailStr
+    password: str
+    full_name: Optional[str] = None
 
 
 class ClassCreate(BaseModel):

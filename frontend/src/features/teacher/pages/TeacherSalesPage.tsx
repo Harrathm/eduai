@@ -25,13 +25,13 @@ export default function TeacherSalesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const isIndependentTeacher = user?.role === "teacher" && !user?.school_id;
+  const isTeacher = user?.role?.toUpperCase() === "TEACHER";
 
   useEffect(() => {
-    if (isIndependentTeacher) {
+    if (isTeacher) {
       fetchSales();
     }
-  }, [token, isIndependentTeacher]);
+  }, [token, isTeacher]);
 
   const fetchSales = async () => {
     if (!token) return;
@@ -53,7 +53,7 @@ export default function TeacherSalesPage() {
     setLoading(false);
   };
 
-  if (!isIndependentTeacher) {
+  if (!isTeacher) {
     return (
       <div className="space-y-6">
         <div className="bg-white rounded-3xl p-8 shadow-sm border border-black/5">
@@ -66,7 +66,7 @@ export default function TeacherSalesPage() {
           <DollarSign className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-700 mb-2">Fonctionnalité réservée</h3>
           <p className="text-gray-500">
-            Cette page est uniquement disponible pour les enseignants indépendants.
+            Vous devez être enseignant pour accéder à cette page.
           </p>
         </div>
       </div>

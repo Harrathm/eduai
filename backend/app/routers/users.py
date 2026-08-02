@@ -31,6 +31,24 @@ def get_current_user_profile(current_user: User = Depends(get_current_user)):
     return current_user
 
 
+@router.put("/me", response_model=UserRead)
+def update_current_user_profile(
+    user_update: UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Update current user's own profile (niveau_scolaire, full_name, language)."""
+    if user_update.niveau_scolaire is not None:
+        current_user.niveau_scolaire = user_update.niveau_scolaire
+    if user_update.full_name is not None:
+        current_user.full_name = user_update.full_name
+    if user_update.language is not None:
+        current_user.language = user_update.language
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
 @router.get("", response_model=List[UserRead])
 def list_users(
     role: Optional[str] = None,

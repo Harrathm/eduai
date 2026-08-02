@@ -15,7 +15,8 @@ class Settings(BaseSettings):
     # JWT Security
     jwt_secret: str = Field(default="", description="JWT signing secret key")
     jwt_algorithm: str = Field(default="HS256", description="JWT algorithm")
-    jwt_expire_minutes: int = Field(default=1440, description="Token expiration in minutes")
+    jwt_expire_minutes: int = Field(default=30, description="Access token expiration in minutes")
+    jwt_refresh_expire_days: int = Field(default=7, description="Refresh token expiration in days")
     
     # OpenAI
     openai_api_key: str = Field(default="", description="OpenAI API key")
@@ -37,6 +38,11 @@ class Settings(BaseSettings):
     stripe_price_pro: str = Field(default="price_teacher_pro", description="Stripe price ID for Pro plan")
     stripe_price_school: str = Field(default="price_school", description="Stripe price ID for School plan")
     stripe_price_institution: str = Field(default="price_institution", description="Stripe price ID for Institution plan")
+
+    # Konnect (Tunisian payment gateway)
+    konnect_api_key: str = Field(default="", description="Konnect API key")
+    konnect_merchant_id: str = Field(default="", description="Konnect merchant ID")
+    konnect_webhook_secret: str = Field(default="", description="Konnect webhook HMAC-SHA256 secret")
     
     # CORS
     cors_origins: str = Field(default="http://localhost:5173", description="Allowed CORS origins (comma-separated)")

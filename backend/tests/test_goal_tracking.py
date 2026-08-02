@@ -17,11 +17,7 @@ import pytest
 from datetime import datetime, date, timedelta, timezone
 from decimal import Decimal
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
-from app.db import Base, get_db
 from app.main import app
 from app.models import (
     User, School, LearningGoal, ClassroomEnrollment, ClassRoom,
@@ -35,29 +31,13 @@ from app.services.goal_tracking import (
 )
 from app.services.school_calendar import get_current_trimester, get_period_for_horizon
 
-TEST_PASSWORD = "password123"
-TEST_HASH = get_password_hash(TEST_PASSWORD)
+from tests.conftest import TEST_PASSWORD, TEST_HASH, _login, _auth as _auth_header
 
 
 @pytest.fixture(scope="function")
-def test_db():
-    engine = create_engine(
-        "sqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    TestingSessionLocal = sessionmaker(bind=engine)
-    Base.metadata.create_all(bind=engine)
-
-    def override_get_db():
-        db = TestingSessionLocal()
-        try:
-            yield db
-        finally:
-            db.close()
-
-    app.dependency_overrides[get_db] = override_get_db
-    db = TestingSessionLocal()
+def test_db(_base_session):
+    """Custom test DB with admin, two students (excellence + decouverte), and a pack purchase."""
+    db = _base_session
 
     school = School(name="Test School", slug="test-school", subscription_tier="free")
     db.add(school)
@@ -80,7 +60,6 @@ def test_db():
     db.add_all([admin, student_exc, student_dec])
     db.commit()
 
-    # Create StudyPack + PackPurchase for student_exc to make them "excellence"
     pack = StudyPack(
         name="Excellence 2eme",
         niveau_scolaire="2eme_secondaire",
@@ -102,24 +81,11 @@ def test_db():
     db.commit()
 
     yield db, school, admin, student_exc, student_dec
-    db.close()
-    app.dependency_overrides.clear()
 
 
 @pytest.fixture(scope="function")
 def client(test_db):
     return TestClient(app)
-
-
-def _auth_header(token: str) -> dict:
-    return {"Authorization": f"Bearer {token}"}
-
-
-def _login(client, email):
-    resp = client.post("/auth/login", data={"username": email, "password": TEST_PASSWORD})
-    if resp.status_code == 200:
-        return resp.json().get("access_token", "")
-    return ""
 
 
 # ── Tests Enums ─────────────────────────────────────────────

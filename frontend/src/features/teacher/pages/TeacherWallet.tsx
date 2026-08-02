@@ -59,10 +59,10 @@ export default function TeacherWallet() {
   };
 
   const poolLabel = (p: string) =>
-    ({ trial: "Essai", subscription: "Abonnement", school_allocated: "École", purchased: "Acheté" })[p] || p;
+    ({ trial: "Essai", subscription: "Abonnement", school_allocated: "École", purchased: "Acheté", dt_purchased: "DT Achetés" })[p] || p;
 
   const poolColor = (p: string) =>
-    ({ trial: "bg-blue-100 text-blue-700", subscription: "bg-purple-100 text-purple-700", school_allocated: "bg-green-100 text-green-700", purchased: "bg-orange-100 text-orange-700" })[p] || "bg-gray-100 text-gray-700";
+    ({ trial: "bg-blue-100 text-blue-700", subscription: "bg-purple-100 text-purple-700", school_allocated: "bg-green-100 text-green-700", purchased: "bg-orange-100 text-orange-700", dt_purchased: "bg-yellow-100 text-yellow-700" })[p] || "bg-gray-100 text-gray-700";
 
   const getPoolData = (poolName: string): PoolEntry | undefined =>
     balance?.pools?.find((p) => p.pool === poolName);
@@ -75,6 +75,17 @@ export default function TeacherWallet() {
         </h1>
         <p className="text-gray mt-2">Crédits IA et historique d'utilisation</p>
       </div>
+
+      {/* Empty State */}
+      {!loading && balance && balance.total === 0 && history.length === 0 && (
+        <div className="bg-white rounded-2xl p-12 shadow-sm border border-black/5 text-center">
+          <Wallet className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-navy mb-2">Aucun crédit IA</h3>
+          <p className="text-gray">
+            Vous n'avez pas encore de crédits IA. Contactez votre école ou achetez des crédits.
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-gradient-to-br from-orange-p to-cream rounded-2xl p-6">
@@ -89,14 +100,14 @@ export default function TeacherWallet() {
             <Wallet className="w-5 h-5 text-yellow-600" />
             <span className="text-sm text-gray">Tokens</span>
           </div>
-          <div className="text-3xl font-[300] text-navy">{(balance?.total ?? 0) * 500}</div>
+          <div className="text-3xl font-[300] text-navy">{getPoolData("purchased")?.balance ?? 0}</div>
         </div>
       </div>
 
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
         <h2 className="text-lg font-semibold text-navy mb-4">Détail par source</h2>
         <div className="space-y-3">
-          {(["trial", "subscription", "school_allocated", "purchased"] as const).map((pool) => {
+          {(["trial", "subscription", "school_allocated", "purchased", "dt_purchased"] as const).map((pool) => {
             const data = getPoolData(pool);
             if (!data || data.balance === 0) return null;
             return (
@@ -112,7 +123,6 @@ export default function TeacherWallet() {
                 </div>
                 <div className="text-right">
                   <span className="font-semibold text-navy">{data.balance} crédits</span>
-                  <span className="text-xs text-gray ml-2">({data.balance * 500} tokens)</span>
                 </div>
               </div>
             );

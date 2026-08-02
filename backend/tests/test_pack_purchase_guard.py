@@ -7,13 +7,10 @@ os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 os.environ["ENVIRONMENT"] = "development"
 
 import pytest
+from decimal import Decimal
 from datetime import datetime, timezone, timedelta
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
-from app.db import Base, get_db
 from app.main import app
 from app.models import (
     User, School, StudyPack, PackPurchase, PackPurchaseStatus, PackStatus,
@@ -21,29 +18,13 @@ from app.models import (
 )
 from app.core.security import get_password_hash
 
-TEST_PASSWORD = "password123"
-TEST_HASH = get_password_hash(TEST_PASSWORD)
+from tests.conftest import TEST_PASSWORD, TEST_HASH, _login, _auth
 
 
 @pytest.fixture(scope="function")
-def test_db():
-    engine = create_engine(
-        "sqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    TestingSessionLocal = sessionmaker(bind=engine)
-    Base.metadata.create_all(bind=engine)
-
-    def override_get_db():
-        db = TestingSessionLocal()
-        try:
-            yield db
-        finally:
-            db.close()
-
-    app.dependency_overrides[get_db] = override_get_db
-    db = TestingSessionLocal()
+def test_db(_base_session):
+    """Custom test DB with two students (9eme + 7eme), packs, and a school purchase."""
+    db = _base_session
 
     school = School(name="Ecole Test", slug="ecole-test", subscription_tier="free")
     db.add(school)
@@ -64,7 +45,6 @@ def test_db():
     db.commit()
     db.refresh(student_9eme)
 
-    # Credit DT via WalletTransaction (append-only ledger)
     credit_9 = WalletTransaction(
         user_id=student_9eme.id, pool=WalletPool.DT_PURCHASED, amount=200,
         metadata_={"source": "test", "reason": "test seed"},
@@ -85,7 +65,6 @@ def test_db():
     db.commit()
     db.refresh(student_7eme)
 
-    # Credit DT via WalletTransaction (append-only ledger)
     credit_7 = WalletTransaction(
         user_id=student_7eme.id, pool=WalletPool.DT_PURCHASED, amount=200,
         metadata_={"source": "test", "reason": "test seed"},
@@ -134,9 +113,6 @@ def test_db():
 
     yield db, school, student_9eme, student_7eme, pack_9, pack_7
 
-    app.dependency_overrides.clear()
-    db.close()
-
 
 @pytest.fixture(scope="function")
 def client(test_db):
@@ -157,10 +133,6 @@ def student_7eme_token(client, test_db):
     data = resp.json()
     assert "access_token" in data, f"Login failed: {resp.status_code} {data}"
     return data["access_token"]
-
-
-def _auth(token: str) -> dict:
-    return {"Authorization": f"Bearer {token}"}
 
 
 class TestPackPurchaseGuard:
@@ -206,7 +178,7 @@ class TestPackPurchaseGuard:
         data = resp.json()
         assert data["amount_paid"] == 30.0
 
-        assert get_dt_balance(db, student_7eme.id) == balance_before - 30.0, (
+        assert get_dt_balance(db, student_7eme.id) == balance_before - Decimal("30.00"), (
             f"Solde debite. Avant: {balance_before}, Apres: {get_dt_balance(db, student_7eme.id)}"
         )
 

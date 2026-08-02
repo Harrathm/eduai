@@ -18,6 +18,8 @@ const POOL_LABELS: Record<string, { label: string; color: string }> = {
   school_allocated: { label: "École", color: "text-purple-600 bg-purple-50" },
   purchased: { label: "Achetés", color: "text-green-600 bg-green-50" },
   subscription: { label: "Abonnement", color: "text-orange-600 bg-orange-50" },
+  dt_purchased: { label: "Tokens", color: "text-emerald-600 bg-emerald-50" },
+  legacy: { label: "Crédits", color: "text-navy bg-navy/5" },
 };
 
 export default function WalletWidget({ compact = false }: { compact?: boolean }) {

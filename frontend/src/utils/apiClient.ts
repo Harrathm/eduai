@@ -80,7 +80,7 @@ class ApiClient {
     return result;
   }
 
-  async fetch(endpoint: string, options: RequestInit = {}): Promise<any> {
+  async fetch<T = unknown>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = endpoint.startsWith("http") ? endpoint : `${this.baseURL}${endpoint}`;
     const token = this.getToken();
 
@@ -118,43 +118,43 @@ class ApiClient {
 
       // Handle empty responses
       const text = await processedResponse.text();
-      return text ? JSON.parse(text) : null;
+      return text ? (JSON.parse(text) as T) : (null as T);
     } catch (error) {
       throw await this.runErrorInterceptors(error as Error);
     }
   }
 
   // Convenience methods
-  get(endpoint: string, options?: RequestInit): Promise<any> {
-    return this.fetch(endpoint, { ...options, method: "GET" });
+  get<T = unknown>(endpoint: string, options?: RequestInit): Promise<T> {
+    return this.fetch<T>(endpoint, { ...options, method: "GET" });
   }
 
-  post(endpoint: string, data?: any, options?: RequestInit): Promise<any> {
-    return this.fetch(endpoint, {
+  post<T = unknown>(endpoint: string, data?: unknown, options?: RequestInit): Promise<T> {
+    return this.fetch<T>(endpoint, {
       ...options,
       method: "POST",
-      body: JSON.stringify(data),
+      body: data ? JSON.stringify(data) : undefined,
     });
   }
 
-  put(endpoint: string, data?: any, options?: RequestInit): Promise<any> {
-    return this.fetch(endpoint, {
+  put<T = unknown>(endpoint: string, data?: unknown, options?: RequestInit): Promise<T> {
+    return this.fetch<T>(endpoint, {
       ...options,
       method: "PUT",
-      body: JSON.stringify(data),
+      body: data ? JSON.stringify(data) : undefined,
     });
   }
 
-  patch(endpoint: string, data?: any, options?: RequestInit): Promise<any> {
-    return this.fetch(endpoint, {
+  patch<T = unknown>(endpoint: string, data?: unknown, options?: RequestInit): Promise<T> {
+    return this.fetch<T>(endpoint, {
       ...options,
       method: "PATCH",
-      body: JSON.stringify(data),
+      body: data ? JSON.stringify(data) : undefined,
     });
   }
 
-  delete(endpoint: string, options?: RequestInit): Promise<any> {
-    return this.fetch(endpoint, { ...options, method: "DELETE" });
+  delete<T = unknown>(endpoint: string, options?: RequestInit): Promise<T> {
+    return this.fetch<T>(endpoint, { ...options, method: "DELETE" });
   }
 }
 

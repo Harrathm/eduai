@@ -351,6 +351,13 @@ def enroll_in_course(
     if existing:
         raise HTTPException(status_code=400, detail="Already enrolled")
 
+    is_paid = course.price and course.price > 0
+    if is_paid and not has_course_access(user, course, db):
+        raise HTTPException(
+            status_code=403,
+            detail="Cours payant — achetez ce cours ou le pack correspondant"
+        )
+
     enrollment = CourseEnrollment(
         student_id=user.id,
         course_id=course_id,
@@ -359,31 +366,19 @@ def enroll_in_course(
     db.add(enrollment)
     db.commit()
     db.refresh(enrollment)
-    
-    # Check if placement test should be recommended
-    from app.services.student_tier import get_student_tier
-    tier = get_student_tier(user, db)
-    placement_test_available = False
-    placement_test_id = None
-    if tier in ("excellence", "etablissement"):
-        test = db.query(PlacementTest).filter(
-            PlacementTest.matiere == course.matiere if hasattr(course, 'matiere') else True,
-            PlacementTest.is_active == True
-        ).first()
-        if test:
-            existing_result = db.query(PlacementTestResult).filter(
-                PlacementTestResult.user_id == user.id,
-                PlacementTestResult.placement_test_id == test.id
-            ).first()
-            if not existing_result:
-                placement_test_available = True
-                placement_test_id = test.id
-    
+
+    # Notify course author
+    try:
+        from app.services.notification_service import notify_enrollment
+        if course.author_id and course.author_id != user.id:
+            student_name = user.full_name or user.email
+            notify_enrollment(course.author_id, student_name, course.title, user.school_id or 1, db)
+    except Exception:
+        pass
+
     return {
         "id": enrollment.id,
         "status": enrollment.status,
-        "placement_test_available": placement_test_available,
-        "placement_test_id": placement_test_id
     }
 
 
@@ -483,6 +478,7 @@ def update_lesson_progress(
     user: User = Depends(require_authenticated)
 ):
     from datetime import datetime as dt, timezone
+    from app.deps import get_user_role
 
     lesson = db.query(Lesson).filter(Lesson.id == lesson_id).first()
     if not lesson:
@@ -491,11 +487,24 @@ def update_lesson_progress(
     module = db.query(Module).filter(Module.id == lesson.module_id).first()
     course = db.query(Course).filter(Course.id == module.course_id).first()
 
+    is_super = get_user_role(user) == "super_admin"
+    if not is_super and not lesson.is_free and not has_course_access(user, course, db):
+        raise HTTPException(
+            status_code=403,
+            detail="Accès non autorisé — achetez ce cours ou le pack correspondant"
+        )
+
     enrollment = db.query(CourseEnrollment).filter(
         CourseEnrollment.student_id == user.id,
         CourseEnrollment.course_id == course.id
     ).first()
     if not enrollment:
+        is_course_free = not course.price or course.price <= 0
+        if not is_course_free:
+            raise HTTPException(
+                status_code=403,
+                detail="Inscription requise — achetez ce cours ou le pack correspondant"
+            )
         enrollment = CourseEnrollment(
             student_id=user.id,
             course_id=course.id,
@@ -700,6 +709,7 @@ def submit_quiz_by_attempt(
 def _do_submit_attempt(attempt_id: int, answers: list, db: Session, user: User) -> dict:
     """Common submit logic"""
     from datetime import datetime as dt, timezone
+    from app.deps import get_user_role
 
     attempt = db.query(QuizAttempt).filter(
         QuizAttempt.id == attempt_id,
@@ -711,6 +721,18 @@ def _do_submit_attempt(attempt_id: int, answers: list, db: Session, user: User) 
         raise HTTPException(status_code=400, detail="Attempt already submitted")
 
     quiz = db.query(Quiz).filter(Quiz.id == attempt.quiz_id).first()
+
+    is_super = get_user_role(user) == "super_admin"
+    if not is_super:
+        lesson = db.query(Lesson).filter(Lesson.quiz_id == quiz.id).first()
+        if lesson:
+            module = db.query(Module).filter(Module.id == lesson.module_id).first()
+            course = db.query(Course).filter(Course.id == module.course_id).first()
+            if not lesson.is_free and not has_course_access(user, course, db):
+                raise HTTPException(
+                    status_code=403,
+                    detail="Accès non autorisé — achetez ce cours ou le pack correspondant"
+                )
     correct_count = 0
     total_points = 0
     earned_points = 0
@@ -887,6 +909,18 @@ def add_note(
     db: Session = Depends(get_db),
     user: User = Depends(require_authenticated)
 ):
+    from app.deps import get_user_role
+    lesson = db.query(Lesson).filter(Lesson.id == lesson_id).first()
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    module = db.query(Module).filter(Module.id == lesson.module_id).first()
+    course = db.query(Course).filter(Course.id == module.course_id).first()
+    is_super = get_user_role(user) == "super_admin"
+    if not is_super and not lesson.is_free and not has_course_access(user, course, db):
+        raise HTTPException(
+            status_code=403,
+            detail="Accès non autorisé — achetez ce cours ou le pack correspondant"
+        )
     note = Note(
         user_id=user.id,
         lesson_id=lesson_id,
@@ -905,6 +939,18 @@ def get_notes(
     db: Session = Depends(get_db),
     user: User = Depends(require_authenticated)
 ):
+    from app.deps import get_user_role
+    lesson = db.query(Lesson).filter(Lesson.id == lesson_id).first()
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    module = db.query(Module).filter(Module.id == lesson.module_id).first()
+    course = db.query(Course).filter(Course.id == module.course_id).first()
+    is_super = get_user_role(user) == "super_admin"
+    if not is_super and not lesson.is_free and not has_course_access(user, course, db):
+        raise HTTPException(
+            status_code=403,
+            detail="Accès non autorisé — achetez ce cours ou le pack correspondant"
+        )
     notes = db.query(Note).filter(
         Note.user_id == user.id,
         Note.lesson_id == lesson_id
@@ -924,6 +970,18 @@ def add_bookmark(
     db: Session = Depends(get_db),
     user: User = Depends(require_authenticated)
 ):
+    from app.deps import get_user_role
+    lesson = db.query(Lesson).filter(Lesson.id == lesson_id).first()
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    module = db.query(Module).filter(Module.id == lesson.module_id).first()
+    course = db.query(Course).filter(Course.id == module.course_id).first()
+    is_super = get_user_role(user) == "super_admin"
+    if not is_super and not lesson.is_free and not has_course_access(user, course, db):
+        raise HTTPException(
+            status_code=403,
+            detail="Accès non autorisé — achetez ce cours ou le pack correspondant"
+        )
     bookmark = Bookmark(
         user_id=user.id,
         lesson_id=lesson_id,
@@ -942,6 +1000,18 @@ def get_bookmarks(
     db: Session = Depends(get_db),
     user: User = Depends(require_authenticated)
 ):
+    from app.deps import get_user_role
+    lesson = db.query(Lesson).filter(Lesson.id == lesson_id).first()
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    module = db.query(Module).filter(Module.id == lesson.module_id).first()
+    course = db.query(Course).filter(Course.id == module.course_id).first()
+    is_super = get_user_role(user) == "super_admin"
+    if not is_super and not lesson.is_free and not has_course_access(user, course, db):
+        raise HTTPException(
+            status_code=403,
+            detail="Accès non autorisé — achetez ce cours ou le pack correspondant"
+        )
     bookmarks = db.query(Bookmark).filter(
         Bookmark.user_id == user.id,
         Bookmark.lesson_id == lesson_id

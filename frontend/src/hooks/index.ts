@@ -82,3 +82,5 @@ export function useClickOutside(
     };
   }, [ref, handler]);
 }
+
+export { useAIStream } from "./useAIStream";

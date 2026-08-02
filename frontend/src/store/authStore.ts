@@ -93,6 +93,11 @@ export const useAuthStore = create((set, get) => ({
     set({ token: null, user: null });
   },
 
+  setUser: (user: any) => {
+    localStorage.setItem("user", JSON.stringify(user));
+    set({ user });
+  },
+
   register: async (email, password, full_name, school_name, niveau_scolaire) => {
     set({ isLoading: true, error: null });
     try {

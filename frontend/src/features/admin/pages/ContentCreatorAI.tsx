@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sparkles, Loader2, Check, ChevronRight, BookOpen, FileText, Image, Video, Eye, Save, ArrowLeft, AlertCircle, Puzzle, RotateCcw } from "lucide-react";
+import { Sparkles, Loader2, Check, ChevronRight, BookOpen, FileText, Image, Video, Eye, Save, ArrowLeft, AlertCircle, Puzzle, RotateCcw, Upload, X, File } from "lucide-react";
 import { Modal } from "../components";
 import { adminAIFactory } from "../api";
 import type { AIFactoryPlan, AIFactoryBundle, AIPreviewInfo } from "../api";
@@ -27,6 +27,9 @@ export default function ContentCreatorAI() {
   const [previewLesson, setPreviewLesson] = useState<{ module_title: string; lesson_title: string } | null>(null);
   const [generatedImages, setGeneratedImages] = useState<Record<string, string>>({});
   const [generatingImage, setGeneratingImage] = useState<string | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<{ name: string; chunks: number }[]>([]);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [genProgress, setGenProgress] = useState<{
     current: number; total: number; lesson: string; status: string; streamingText: string;
@@ -194,6 +197,29 @@ export default function ContentCreatorAI() {
     setGeneratingImage(null);
   };
 
+  const handleUploadPDF = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.name.endsWith(".pdf")) {
+      setError("Only PDF files are supported");
+      return;
+    }
+    setUploadingFile(true);
+    setError(null);
+    try {
+      const res = await adminAIFactory.ingestPDF(file);
+      setUploadedFiles(prev => [...prev, { name: file.name, chunks: res.chunks_added }]);
+    } catch (err: any) {
+      setError(err.message || "Upload failed");
+    }
+    setUploadingFile(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleRemoveFile = (idx: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== idx));
+  };
+
   const resetAll = () => {
     setStep(0);
     setTopic("");
@@ -203,6 +229,7 @@ export default function ContentCreatorAI() {
     setPreviewInfo(null);
     setPublishResult(null);
     setGeneratedImages({});
+    setUploadedFiles([]);
     setError(null);
     setGenProgress({ current: 0, total: 0, lesson: "", status: "", streamingText: "" });
     if (streamRef.current) streamRef.current.abort();
@@ -273,6 +300,48 @@ export default function ContentCreatorAI() {
                 <p className="text-xs text-gray mt-0.5">The AI will reference your uploaded PDFs and documents for more relevant content</p>
               </div>
             </label>
+
+            {useRag && (
+              <div className="space-y-3">
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex flex-col items-center justify-center gap-2 px-6 py-8 border-2 border-dashed border-orange/30 rounded-2xl bg-orange/5 cursor-pointer hover:border-orange/50 hover:bg-orange/10 transition-colors"
+                >
+                  {uploadingFile ? (
+                    <Loader2 className="w-8 h-8 text-orange animate-spin" />
+                  ) : (
+                    <Upload className="w-8 h-8 text-orange" />
+                  )}
+                  <span className="text-sm font-medium text-navy">
+                    {uploadingFile ? "Uploading..." : "Click to upload a PDF"}
+                  </span>
+                  <span className="text-xs text-gray">PDF files only — content will be indexed for RAG</span>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf"
+                  onChange={handleUploadPDF}
+                  className="hidden"
+                />
+
+                {uploadedFiles.length > 0 && (
+                  <div className="space-y-2">
+                    <span className="text-xs font-medium text-gray uppercase tracking-wider">Uploaded documents</span>
+                    {uploadedFiles.map((f, i) => (
+                      <div key={i} className="flex items-center gap-3 px-4 py-2.5 bg-green-50 rounded-xl">
+                        <File className="w-4 h-4 text-green-600 flex-shrink-0" />
+                        <span className="flex-1 text-sm text-navy truncate">{f.name}</span>
+                        <span className="text-xs text-green-600 font-medium">{f.chunks} chunks</span>
+                        <button onClick={() => handleRemoveFile(i)} className="text-gray hover:text-red-500 transition-colors">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             <button
               onClick={handleGeneratePlan}

@@ -190,8 +190,9 @@ def purchase_pack(
         )
 
     # Débiter via WalletTransaction (append-only audit trail)
+    # commit=False : tout sera commité ensemble à la ligne 228
     try:
-        debit_dt(db, user.id, pack.price, source="purchase", reason=f"Achat pack: {pack.name}")
+        debit_dt(db, user.id, pack.price, source="purchase", reason=f"Achat pack: {pack.name}", commit=False)
     except InsufficientCreditsError:
         raise HTTPException(status_code=400, detail="Solde insuffisant lors du débit")
 

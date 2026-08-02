@@ -1,9 +1,15 @@
-"""Unified AI provider client supporting multiple providers via platform settings."""
+"""Unified AI provider client supporting multiple providers via platform settings.
+
+All external LLM calls are guarded by a circuit breaker to fail fast
+when the provider API is unreachable.
+"""
 
 import json
 import logging
 import os
 from typing import Optional
+
+from app.core.circuit_breaker import ai_provider_breaker, CircuitOpenError
 
 logger = logging.getLogger(__name__)
 
@@ -165,6 +171,8 @@ def generate_chat(
         else:
             raise ValueError(f"Fournisseur IA non supporté: {provider_id}")
 
+    except CircuitOpenError:
+        raise
     except Exception as e:
         logger.error(f"Provider {provider_id} error: {e}")
         raise
@@ -260,6 +268,8 @@ def generate_chat_stream(
         else:
             yield None, f"Fournisseur IA non supporté: {provider_id}"
 
+    except CircuitOpenError as e:
+        yield None, str(e)
     except Exception as e:
         logger.error(f"Stream provider {provider_id} error: {e}")
         yield None, str(e)
@@ -413,5 +423,7 @@ def test_connection(provider_id: str, config: dict) -> str:
         else:
             return f"Fournisseur non supporté: {provider_id}"
         return "ok"
+    except CircuitOpenError:
+        raise
     except Exception as e:
         raise RuntimeError(f"Échec de connexion à {provider_id}: {e}")

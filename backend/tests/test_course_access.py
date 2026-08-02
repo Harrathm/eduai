@@ -72,11 +72,11 @@ def _create_lesson(db, module_id, school_id, is_free=False):
 
 
 def _create_quiz(db, lesson_id):
-    quiz = Quiz(title="Quiz 1", lesson_id=lesson_id, passing_score_percent=50)
+    lesson = db.query(Lesson).filter(Lesson.id == lesson_id).first()
+    quiz = Quiz(title="Quiz 1", lesson_id=lesson_id, passing_score_percent=50, school_id=lesson.school_id)
     db.add(quiz)
     db.commit()
     db.refresh(quiz)
-    lesson = db.query(Lesson).filter(Lesson.id == lesson_id).first()
     lesson.quiz_id = quiz.id
     db.commit()
     return quiz
@@ -445,3 +445,159 @@ class TestCatalog:
         self.client.post(f"/api/learner/courses/{self.catalog_course.id}/enroll")
         resp = self.client.post(f"/api/learner/courses/{self.catalog_course.id}/enroll")
         assert resp.status_code == 400
+
+
+# ============================================================
+# CHANGEMENT DE NIVEAU — perte d'accès via pack
+# ============================================================
+
+class TestNiveauChange:
+    """
+    Vérifie qu'un élève qui change de niveau_scolaire perd l'accès
+    au pack acheté pour l'ancien niveau (étapes 6/7 de has_course_access).
+    """
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        engine = create_engine(
+            "sqlite:///:memory:",
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+        Base.metadata.drop_all(engine)
+        Base.metadata.create_all(engine)
+        TestingSessionLocal = sessionmaker(bind=engine)
+
+        def override_get_db():
+            db = TestingSessionLocal()
+            try:
+                yield db
+            finally:
+                db.close()
+
+        app.dependency_overrides[get_db] = override_get_db
+        db = TestingSessionLocal()
+
+        school = School(name="School B", slug="school-b", school_type="real")
+        db.add(school)
+        db.commit()
+        db.refresh(school)
+
+        teacher = _create_user(db, "teacher_niv@test.com", "teacher", school.id)
+
+        # Create a pack for "9eme de base"
+        from app.models import StudyPack, PackPurchase, PackPurchaseStatus
+        pack = StudyPack(
+            name="Pack 9eme",
+            niveau_scolaire="9eme de base",
+            school_id=school.id,
+            created_by=teacher.id,
+            price=100.0,
+            status="published",
+            validity_duration_days=365,
+        )
+        db.add(pack)
+        db.commit()
+        db.refresh(pack)
+
+        # Create a course for "9eme de base"
+        course = Course(
+            title="Cours 9eme", slug="cours-9eme",
+            school_id=school.id, author_id=teacher.id,
+            price=50.0, price_dt=50.0, price_tokens=0,
+            visibility="school_only", status=CourseStatus.PUBLISHED,
+            is_published=True, niveau_scolaire="9eme de base",
+        )
+        db.add(course)
+        db.commit()
+        db.refresh(course)
+
+        # Create module + lesson
+        module = _create_module(db, course.id)
+        lesson = _create_lesson(db, module.id, school.id, is_free=False)
+
+        # Create student in "9eme de base" with an active pack purchase
+        student = _create_user(db, "student_niv@test.com", "student", school.id, niveau_scolaire="9eme de base")
+        purchase = PackPurchase(
+            pack_id=pack.id,
+            purchaser_type="student",
+            student_id=student.id,
+            valid_from=datetime.now(timezone.utc),
+            valid_until=datetime(2099, 12, 31, tzinfo=timezone.utc),
+            status=PackPurchaseStatus.ACTIVE.value,
+            amount_paid=pack.price,
+            currency="TND",
+        )
+        db.add(purchase)
+        db.commit()
+
+        client = TestClient(app)
+        token = _login(client, student.email)
+        client.headers["Authorization"] = f"Bearer {token}"
+
+        self.client = client
+        self.db = db
+        self.student = student
+        self.course = course
+        self.lesson = lesson
+        self.pack = pack
+
+        yield
+
+        app.dependency_overrides.clear()
+        db.close()
+
+    def test_student_with_matching_niveau_has_access(self):
+        """Student with matching niveau_scolaire HAS access via pack."""
+        resp = self.client.get(f"/api/learner/lessons/{self.lesson.id}")
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}: {resp.text}"
+
+    def test_student_who_changes_niveau_loses_access(self):
+        """After changing niveau_scolaire, student LOSES pack-based access."""
+        # Change student's niveau_scolaire
+        self.student.niveau_scolaire = "1ere annee sciences"
+        self.db.commit()
+
+        # Access should now be denied
+        resp = self.client.get(f"/api/learner/lessons/{self.lesson.id}")
+        assert resp.status_code == 403, f"Expected 403 after niveau change, got {resp.status_code}: {resp.text}"
+
+    def test_student_who_changes_niveau_still_has_enrollment(self):
+        """Enrollment-based access is NOT affected by niveau change."""
+        # Create an enrollment for the student
+        from app.models import CourseEnrollment
+        enrollment = CourseEnrollment(
+            student_id=self.student.id,
+            course_id=self.course.id,
+            status="active",
+        )
+        self.db.add(enrollment)
+        self.db.commit()
+
+        # Change niveau
+        self.student.niveau_scolaire = "1ere annee sciences"
+        self.db.commit()
+
+        # Access should still work via enrollment (step 3)
+        resp = self.client.get(f"/api/learner/lessons/{self.lesson.id}")
+        assert resp.status_code == 200, f"Expected 200 via enrollment, got {resp.status_code}: {resp.text}"
+
+    def test_student_who_changes_niveau_still_has_course_purchase(self):
+        """CoursePurchase-based access is NOT affected by niveau change."""
+        from app.models import CoursePurchase
+        purchase = CoursePurchase(
+            student_id=self.student.id,
+            course_id=self.course.id,
+            amount_paid=50.0,
+            currency="TND",
+        )
+        self.db.add(purchase)
+        self.db.commit()
+
+        # Change niveau
+        self.student.niveau_scolaire = "1ere annee sciences"
+        self.db.commit()
+
+        # Access should still work via purchase (step 4)
+        resp = self.client.get(f"/api/learner/lessons/{self.lesson.id}")
+        assert resp.status_code == 200, f"Expected 200 via course purchase, got {resp.status_code}: {resp.text}"

@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from app.db import get_db
 from app.auth import get_current_user
+from app.deps import set_tenant_context, check_school_access
 from app.models import User, Course, Module, Lesson, Quiz, QuizQuestion, QuizOption, Attempt
 from app.schemas import (
     CourseCreate, CourseRead, CourseListRead,
@@ -20,7 +21,7 @@ router = APIRouter(tags=["Academy"])
 def create_course(
     course_in: CourseCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     if current_user.role not in ("admin_school", "teacher", "pedagogical_admin", "pedagogical_lead", "super_admin"):
         raise HTTPException(status_code=403, detail="Only teachers or admins can create courses")
@@ -45,7 +46,7 @@ def list_courses(
     skip: int = 0,
     limit: int = 20,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     query = db.query(Course).filter(Course.school_id == current_user.school_id)
     if published is not None:
@@ -61,7 +62,7 @@ def list_courses(
 def get_course(
     course_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     course = db.query(Course).filter(
         Course.id == course_id,
@@ -76,7 +77,7 @@ def get_course(
 def get_course_detail(
     course_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     course = db.query(Course).filter(
         Course.id == course_id,
@@ -84,6 +85,18 @@ def get_course_detail(
     ).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
+
+    from app.deps import get_user_role
+    is_super = get_user_role(current_user) == "super_admin"
+    is_teacher_or_admin = get_user_role(current_user) in ("teacher", "admin_school", "pedagogical_admin", "pedagogical_lead")
+
+    if not is_super and not is_teacher_or_admin:
+        from app.services.course_access import has_course_access
+        if not has_course_access(current_user, course, db):
+            raise HTTPException(
+                status_code=403,
+                detail="Accès non autorisé — achetez ce cours ou le pack correspondant"
+            )
 
     modules = db.query(Module).filter(Module.course_id == course_id).order_by(Module.order).all()
     module_list = []
@@ -140,7 +153,7 @@ def update_course(
     course_id: int,
     course_in: CourseCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     if current_user.role not in ("admin_school", "teacher", "pedagogical_admin", "pedagogical_lead", "super_admin"):
         raise HTTPException(status_code=403, detail="Only teachers or admins can update courses")
@@ -166,7 +179,7 @@ def toggle_publish(
     course_id: int,
     published: bool = True,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     if current_user.role not in ("admin_school", "teacher", "pedagogical_admin", "pedagogical_lead", "super_admin"):
         raise HTTPException(status_code=403, detail="Only teachers or admins can publish courses")
@@ -188,7 +201,7 @@ def toggle_publish(
 def delete_course(
     course_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     if current_user.role not in ("admin_school", "teacher", "pedagogical_admin", "pedagogical_lead", "super_admin"):
         raise HTTPException(status_code=403, detail="Only teachers or admins can delete courses")
@@ -211,7 +224,7 @@ def delete_course(
 def create_module(
     module_in: ModuleCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     if current_user.role not in ("admin_school", "teacher", "pedagogical_admin", "pedagogical_lead", "super_admin"):
         raise HTTPException(status_code=403, detail="Only teachers or admins can create modules")
@@ -242,7 +255,7 @@ def update_module(
     module_id: int,
     module_in: ModuleCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     if current_user.role not in ("admin_school", "teacher", "pedagogical_admin", "pedagogical_lead", "super_admin"):
         raise HTTPException(status_code=403, detail="Only teachers or admins can update modules")
@@ -270,7 +283,7 @@ def update_module(
 def delete_module(
     module_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     if current_user.role not in ("admin_school", "teacher", "pedagogical_admin", "pedagogical_lead", "super_admin"):
         raise HTTPException(status_code=403, detail="Only teachers or admins can delete modules")
@@ -295,7 +308,7 @@ def delete_module(
 def list_modules(
     course_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     course = db.query(Course).filter(
         Course.id == course_id,
@@ -313,7 +326,7 @@ def list_modules(
 def create_lesson(
     lesson_in: LessonCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     if current_user.role not in ("admin_school", "teacher", "pedagogical_admin", "pedagogical_lead", "super_admin"):
         raise HTTPException(status_code=403, detail="Only teachers or admins can create lessons")
@@ -350,7 +363,7 @@ def update_lesson(
     lesson_id: int,
     lesson_in: LessonCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     if current_user.role not in ("admin_school", "teacher", "pedagogical_admin", "pedagogical_lead", "super_admin"):
         raise HTTPException(status_code=403, detail="Only teachers or admins can update lessons")
@@ -385,7 +398,7 @@ def update_lesson(
 def delete_lesson(
     lesson_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     if current_user.role not in ("admin_school", "teacher", "pedagogical_admin", "pedagogical_lead", "super_admin"):
         raise HTTPException(status_code=403, detail="Only teachers or admins can delete lessons")
@@ -411,7 +424,7 @@ def delete_lesson(
 def get_lesson(
     lesson_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     lesson = db.query(Lesson).filter(Lesson.id == lesson_id).first()
     if not lesson:
@@ -432,7 +445,7 @@ def get_lesson(
 def get_lesson_quizzes(
     lesson_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     lesson = db.query(Lesson).filter(Lesson.id == lesson_id).first()
     if not lesson:
@@ -446,7 +459,7 @@ def get_lesson_quizzes(
 def create_quiz(
     quiz_in: QuizCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     if current_user.role not in ("admin_school", "teacher", "pedagogical_admin", "pedagogical_lead", "super_admin"):
         raise HTTPException(status_code=403, detail="Only teachers or admins can create quizzes")
@@ -464,12 +477,11 @@ def create_quiz(
             raise HTTPException(status_code=404, detail="Lesson does not belong to your school")
 
     quiz = Quiz(
+        school_id=current_user.school_id,
         lesson_id=quiz_in.lesson_id,
-        course_id=quiz_in.course_id,
         title=quiz_in.title,
         questions=quiz_in.questions,
         time_limit_minutes=quiz_in.time_limit_minutes,
-        school_id=current_user.school_id,
     )
     db.add(quiz)
     db.commit()
@@ -481,13 +493,19 @@ def create_quiz(
 def get_quiz(
     quiz_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
     if not quiz:
         raise HTTPException(status_code=404, detail="Quiz not found")
-    if quiz.school_id != current_user.school_id:
-        raise HTTPException(status_code=403, detail="Quiz does not belong to your school")
+    if quiz.lesson_id:
+        lesson = db.query(Lesson).filter(Lesson.id == quiz.lesson_id).first()
+        if lesson:
+            module = db.query(Module).filter(Module.id == lesson.module_id).first()
+            if module:
+                course = db.query(Course).filter(Course.id == module.course_id).first()
+                if course:
+                    check_school_access(current_user, course.school_id)
     return quiz
 
 
@@ -495,13 +513,19 @@ def get_quiz(
 def get_quiz_questions(
     quiz_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
     if not quiz:
         raise HTTPException(status_code=404, detail="Quiz not found")
-    if quiz.school_id != current_user.school_id:
-        raise HTTPException(status_code=403, detail="Quiz does not belong to your school")
+    if quiz.lesson_id:
+        lesson = db.query(Lesson).filter(Lesson.id == quiz.lesson_id).first()
+        if lesson:
+            module = db.query(Module).filter(Module.id == lesson.module_id).first()
+            if module:
+                course = db.query(Course).filter(Course.id == module.course_id).first()
+                if course:
+                    check_school_access(current_user, course.school_id)
     return db.query(QuizQuestion).filter(QuizQuestion.quiz_id == quiz_id).order_by(QuizQuestion.order).all()
 
 
@@ -509,7 +533,7 @@ def get_quiz_questions(
 def start_quiz_attempt(
     quiz_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
     if not quiz:
@@ -534,7 +558,7 @@ def submit_quiz_attempt(
     attempt_id: int,
     answers: list[dict],
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     attempt = db.query(Attempt).filter(
         Attempt.id == attempt_id,
@@ -574,11 +598,20 @@ def list_quiz_attempts(
     skip: int = 0,
     limit: int = 20,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
     if not quiz:
         raise HTTPException(status_code=404, detail="Quiz not found")
+
+    if quiz.lesson_id:
+        lesson = db.query(Lesson).filter(Lesson.id == quiz.lesson_id).first()
+        if lesson:
+            module = db.query(Module).filter(Module.id == lesson.module_id).first()
+            if module:
+                course = db.query(Course).filter(Course.id == module.course_id).first()
+                if course:
+                    check_school_access(current_user, course.school_id)
 
     query = db.query(Attempt).filter(Attempt.quiz_id == quiz_id)
     if current_user.role == "student":
@@ -593,7 +626,7 @@ def my_courses(
     skip: int = 0,
     limit: int = 20,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     if current_user.role == "student":
         courses_query = db.query(Course).filter(

@@ -31,6 +31,49 @@ SYSTEM_PROMPTS = {
     "exercise_generator": """You are an expert exercise generator for EDUAI Learning. Create practical exercises based on the provided content. Exercises should test understanding and application of concepts. Return JSON array: [{\"type\": \"fill_blank|mcq|coding|practical\", \"question\": \"...\", \"answer\": \"...\", \"difficulty\": \"easy|medium|hard\", \"hints\": [\"hint1\", \"hint2\"]}]. Vary difficulty levels.""",
 }
 
+# ---------------------------------------------------------------------------
+# Content moderation — blocks inappropriate student prompts
+# ---------------------------------------------------------------------------
+
+# Patterns that indicate cheating requests or inappropriate content
+_CHEATING_PATTERNS = [
+    r'(?i)donne[\s-]+moi\s+les?\s+réponses?',
+    r'(?i)(donne|give|envoie|send)\s+(moi|me)\s+(les?\s+)?réponses?\s+(du|de|des|to|for)',
+    r'(?i)(réponds|answer)\s+(à|to)\s+(ma|my)\s+(place|behalf)',
+    r'(?i)(triche|cheat|copie|copy)\s*(le|la|les|the|du|de|des)',
+    r'(?i)(je|j)\s+(veux|want)\s+(tricher|cheat)',
+    r'(?i)(fais|make|write)\s+(le|la|les|my|me|ton|ta|mes)\s+(devoir|homework|travail|assignment)',
+    r'(?i)(complète|complete|remplis|fill)\s+(le|la|les|my|me)\s+(devoir|homework|travail|assignment)',
+]
+
+_INSULT_PATTERNS = [
+    r'(?i)(idiot|stupide|stupid|débile|debile|imbécile|imbecile|nul|merde|putain|fuck|shit|damn|crétin|cretin)',
+    r'(?i)(ferme|shut)\s+(ta|your)\s+(gueule|mouth)',
+    r'(?i)(va\s+te\s+faire|go\s+fuck)',
+]
+
+_MODERATION_BLOCKED_MESSAGE = (
+    "Je ne peux pas répondre à ce type de question. "
+    "Concentrons-nous sur tes leçons."
+)
+
+
+def moderate_prompt(text: str) -> str | None:
+    """Check student prompt for inappropriate content.
+
+    Returns None if the prompt is acceptable.
+    Returns the blocked message string if the prompt should be refused.
+    """
+    import re
+    if not text or not isinstance(text, str):
+        return None
+
+    for pattern in _CHEATING_PATTERNS + _INSULT_PATTERNS:
+        if re.search(pattern, text):
+            return _MODERATION_BLOCKED_MESSAGE
+
+    return None
+
 
 def with_retry(max_retries: int = 3, base_delay: float = 1.0):
     """Decorator for retrying OpenAI calls with exponential backoff"""
@@ -155,7 +198,7 @@ class RAGService:
         return {"chunks_added": len(chunks), "school_id": school_id}
 
     def retrieve_context(
-        self, school_id: int, query: str, k: int = 5
+        self, school_id: int, query: str, k: int = 10
     ) -> List[str]:
         if not self.embeddings_service:
             return []
@@ -163,8 +206,8 @@ class RAGService:
             results = self.embeddings_service.similarity_search(school_id, query, k=k)
             contexts = [doc.page_content for doc in results]
             combined = "\n\n".join(contexts)
-            if len(combined) > 6000:
-                combined = combined[:6000] + "\n[...truncated...]"
+            if len(combined) > 12000:
+                combined = combined[:12000] + "\n[...truncated...]"
                 contexts = combined.split("\n\n")
             return contexts
         except Exception as e:
@@ -254,11 +297,11 @@ Return ONLY valid JSON array."""
 
         messages.append({"role": "user", "content": full_prompt})
         total_chars = sum(len(m["content"]) for m in messages)
-        if total_chars > 10000:
+        if total_chars > 15000:
             logger.warning(f"Request too large ({total_chars} chars), truncating context")
             for m in messages:
-                if m["role"] == "user" and len(m["content"]) > 3000:
-                    m["content"] = m["content"][:3000] + "\n[...contexte tronqué...]"
+                if m["role"] == "user" and len(m["content"]) > 8000:
+                    m["content"] = m["content"][:8000] + "\n[...contexte tronqué...]"
         return messages
 
     def generate(

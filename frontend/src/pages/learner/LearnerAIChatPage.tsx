@@ -179,6 +179,11 @@ export default function LearnerAIChatPage() {
       content: textToSend,
     };
     setMessages((prev) => [...prev, userMsg]);
+    const streamId = "stream-" + Date.now();
+    setMessages((prev) => [
+      ...prev,
+      { id: streamId, role: "assistant" as const, content: "" },
+    ]);
     setInput("");
 
     try {
@@ -195,11 +200,69 @@ export default function LearnerAIChatPage() {
           conversation_id: activeConvId,
         }),
       });
-      const data = await res.json();
-      const answer =
-        data.answer || data.response || data.message || "Je n'ai pas pu générer de réponse.";
 
-      const returnedConvId = data.conversation_id;
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || `HTTP ${res.status}`);
+      }
+
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
+      let answer = "";
+      let returnedConvId: string | null = null;
+
+      if (reader) {
+        let buffer = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            try {
+              const event = JSON.parse(line.slice(6));
+              if (event.error) {
+                answer = event.error;
+                break;
+              }
+              if (event.chunk) {
+                answer += event.chunk;
+                setMessages((prev) => {
+                  const updated = [...prev];
+                  const last = updated[updated.length - 1];
+                  if (last && last.role === "assistant" && last.id.startsWith("stream-")) {
+                    updated[updated.length - 1] = { ...last, content: answer };
+                  }
+                  return updated;
+                });
+              }
+              if (event.conversation_id) {
+                returnedConvId = event.conversation_id;
+              }
+            } catch {
+              // skip malformed lines
+            }
+          }
+        }
+      }
+
+      const streamMsgId = "stream-" + Date.now();
+      setMessages((prev) => {
+        const withoutPlaceholder = prev.filter(
+          (m) => !m.id.startsWith("stream-")
+        );
+        return [
+          ...withoutPlaceholder,
+          {
+            id: streamMsgId,
+            role: "assistant",
+            content: answer || "Je n'ai pas pu générer de réponse.",
+          },
+        ];
+      });
+
       if (returnedConvId && !activeConvId) {
         setActiveConvId(returnedConvId);
         setConversations((prev) => [
@@ -215,14 +278,6 @@ export default function LearnerAIChatPage() {
           ...prev,
         ]);
       }
-
-      const reply: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: answer,
-        sources: data.sources,
-      };
-      setMessages((prev) => [...prev, reply]);
 
       loadConversations();
     } catch {

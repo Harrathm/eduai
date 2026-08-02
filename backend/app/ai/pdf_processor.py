@@ -12,14 +12,14 @@ except ImportError:
 
 
 class PDFProcessor:
-    def __init__(self, chunk_size: int = 1000, chunk_overlap: int = 200):
+    def __init__(self, chunk_size: int = 500, chunk_overlap: int = 100):
         if not PDF_SUPPORT_AVAILABLE:
             raise ImportError("pdfplumber and langchain-text-splitters are required for PDF processing")
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
             length_function=len,
-            separators=["\n\n", "\n", " ", ""],
+            separators=["\n\n", "\n", "۔", "؛", ".", " ", ""],
         )
 
     def extract_text_from_pdf(self, pdf_path: str) -> str:
@@ -37,11 +37,15 @@ class PDFProcessor:
             for page in pdf.pages:
                 page_text = page.extract_text()
                 if page_text:
-                    text += page_text + "\n"
+                    text += page_text + "\n\n"
         return text
 
     def chunk_text(self, text: str) -> List[str]:
-        return self.text_splitter.split_text(text)
+        import re
+        text = re.sub(r'\n{3,}', '\n\n', text)
+        text = re.sub(r'[ \t]+', ' ', text)
+        chunks = self.text_splitter.split_text(text)
+        return [c.strip() for c in chunks if len(c.strip()) > 30]
 
     def process_pdf(self, pdf_path: str) -> List[dict]:
         text = self.extract_text_from_pdf(pdf_path)

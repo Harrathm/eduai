@@ -18,7 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db, tenant_unaware
-from app.deps import require_admin, require_platform_admin, get_current_user
+from app.deps import require_admin, require_platform_admin, get_current_user, set_tenant_context
 from app.models import (
     User, Notion, ContenuNotion, ProfilAssimilationEleve,
     NotificationReorientation, HistoriqueScoreEleve,
@@ -56,7 +56,7 @@ def get_profil_assimilation(
     eleve_id: int,
     chapitre_id: int = Query(..., description="Chapter ID"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     """Get the effective assimilation level for a student on a chapter."""
     # Students can only see their own profile; teachers/admins can see any
@@ -74,7 +74,7 @@ def get_profil_assimilation(
 def create_profil_assimilation(
     profil_in: ProfilAssimilationEleveCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     """Create an assimilation profile override (teacher/admin only)."""
     if current_user.role not in ("teacher", "admin_school", "super_admin", "pedagogical_admin", "pedagogical_lead"):
@@ -102,7 +102,7 @@ def valider_reorientation(
     profil_id: int,
     validation: ValidationReorientation,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     """Confirm or annul a reorientation (teacher only)."""
     if current_user.role not in ("teacher", "admin_school", "super_admin"):
@@ -145,7 +145,7 @@ def valider_reorientation(
 def get_notifications_reorientation(
     enseignant_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     """List pending reorientation notifications for a teacher."""
     if current_user.role not in ("teacher", "admin_school", "super_admin") and current_user.id != enseignant_id:
@@ -166,9 +166,14 @@ def get_notifications_reorientation(
 def get_statut_publication(
     notion_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
-    """Get publication status + missing levels for a notion (pedagogical admin)."""
+    """Get publication status + missing levels for a notion (teacher/admin only)."""
+    from app.deps import get_user_role
+    role = get_user_role(current_user)
+    if role not in ("teacher", "admin_school", "super_admin", "pedagogical_admin", "pedagogical_lead"):
+        raise HTTPException(status_code=403, detail="Seul un enseignant ou admin peut consulter le statut de publication")
+
     notion = db.query(Notion).filter(Notion.id == notion_id).first()
     if not notion:
         raise HTTPException(status_code=404, detail="Notion non trouvée")
@@ -186,7 +191,7 @@ def get_acces_effectif(
     matiere_id: int = Query(..., description="Matiere ID"),
     chapitre_id: int = Query(..., description="Chapter ID"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     """Resolve dynamic effective access for a student."""
     if current_user.role == "student" and current_user.id != eleve_id:
@@ -203,7 +208,7 @@ def get_acces_effectif(
 def record_score(
     score_in: HistoriqueScoreEleveCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     """Record a score for a student on a chapter. Auto-evaluates reorientation."""
     if current_user.role not in ("teacher", "admin_school", "super_admin",
@@ -248,7 +253,7 @@ def trigger_evaluer_reorientation(
     chapitre_id: int = Query(...),
     enseignant_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     """Manually trigger reorientation evaluation for a student/chapter."""
     if current_user.role not in ("teacher", "admin_school", "super_admin", "pedagogical_admin"):
@@ -268,7 +273,7 @@ def get_contenu_a_servir(
     notion_id: int,
     eleve_id: int = Query(...),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     """Get the content to serve for a notion, given the student's level."""
     if current_user.role == "student" and current_user.id != eleve_id:
@@ -625,7 +630,7 @@ from app.models import (
 @router.get("/catalog")
 def pathway_catalog(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     """List available pathways (NiveauEtude + Matieres) with pack info and access status."""
     with tenant_unaware():
@@ -730,7 +735,7 @@ def pathway_catalog(
 @router.get("/mon-parcours")
 def mon_parcours(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     """Get the student's full pathway with progression per chapter."""
     now = datetime.now(timezone.utc)
@@ -868,7 +873,7 @@ def mon_parcours(
 @router.post("/auto-enroll-from-test")
 def auto_enroll_from_test(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     """Auto-enroll student in pathway based on most recent placement test result.
     No pack required — creates ProfilAssimilationEleve for all chapters of matched niveau."""
@@ -951,7 +956,7 @@ def auto_enroll_from_test(
 def enroll_pathway(
     body: dict,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     """Enroll in a pathway after pack purchase — creates initial profiles for all chapters."""
     niveau_id = body.get("niveau_id")
@@ -1093,9 +1098,33 @@ def assign_responsable(
     current_user: User = Depends(require_platform_admin),
 ):
     """Assigne un responsable pédagogique à une spécialité."""
+    user_id = body.get("user_id")
+    specialite_id = body.get("specialite_id")
+    if not user_id or not specialite_id:
+        raise HTTPException(status_code=400, detail="user_id et specialite_id requis")
+
+    # Vérifier si l'assignation existe déjà
+    existing = db.query(ResponsablePedagogique).filter(
+        ResponsablePedagogique.user_id == user_id,
+        ResponsablePedagogique.specialite_id == specialite_id,
+    ).first()
+    if existing:
+        # Mettre à jour les niveaux_etude_scope si fournis
+        niveaux_ids = body.get("niveaux_etude_ids", [])
+        if niveaux_ids:
+            from app.models import NiveauEtude
+            existing.niveaux_etude_scope.clear()
+            for niv_id in niveaux_ids:
+                niv = db.query(NiveauEtude).filter(NiveauEtude.id == niv_id).first()
+                if niv:
+                    existing.niveaux_etude_scope.append(niv)
+            db.commit()
+            db.refresh(existing)
+        return {"id": existing.id, "message": "Responsable déjà assigné, niveaux mis à jour"}
+
     resp = ResponsablePedagogique(
-        user_id=body["user_id"],
-        specialite_id=body["specialite_id"],
+        user_id=user_id,
+        specialite_id=specialite_id,
     )
     db.add(resp)
     db.flush()
@@ -1116,7 +1145,7 @@ def assign_responsable(
 def get_responsable_contenus(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     """Retourne les contenus filtrés par spécialité et niveaux_etude_scope du responsable."""
     from app.services.adaptive_pathway import get_contenus_for_responsable
@@ -1139,7 +1168,7 @@ def get_responsable_contenus(
 def valider_contenu_endpoint(
     contenu_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     """Valide un contenu par un responsable pédagogique."""
     contenu = db.query(ContenuNotion).filter(ContenuNotion.id == contenu_id).first()
@@ -1159,7 +1188,7 @@ def rejeter_contenu_endpoint(
     contenu_id: int,
     body: dict,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(set_tenant_context),
 ):
     """Rejette un contenu avec commentaire."""
     contenu = db.query(ContenuNotion).filter(ContenuNotion.id == contenu_id).first()

@@ -600,6 +600,22 @@ export const adminAIFactory = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+
+  ingestPDF: async (file: File) => {
+    const token = getToken();
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`${API_URL}/ai/ingest/pdf`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    return res.json() as Promise<{ chunks_added: number; school_id: number }>;
+  },
 };
 
 // ─── Settings & Logs ────────────────────────────────────────────────────

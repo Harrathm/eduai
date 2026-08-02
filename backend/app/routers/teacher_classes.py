@@ -254,6 +254,43 @@ def remove_course_from_class(
 
 # ─── Teacher Class → Students ────────────────────────────────────────
 
+@teacher_router.get("/students/search")
+def search_students_for_class(
+    q: str = Query("", min_length=0, max_length=100),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_require_teacher),
+):
+    """Search for students within the teacher's school by name or email.
+
+    Returns up to 20 matching students that are not already enrolled
+    in the specified class (if class_id is provided).
+    """
+    if not current_user.school_id:
+        raise HTTPException(status_code=400, detail="No school associated with your account")
+
+    query = db.query(User).filter(
+        User.role == "student",
+        User.school_id == current_user.school_id,
+        User.is_active == True,
+    )
+    if q.strip():
+        like_q = f"%{q.strip()}%"
+        query = query.filter(
+            (User.full_name.ilike(like_q)) | (User.email.ilike(like_q))
+        )
+    students = query.order_by(User.full_name).limit(20).all()
+
+    return [
+        {
+            "id": s.id,
+            "full_name": s.full_name,
+            "email": s.email,
+            "niveau_scolaire": s.niveau_scolaire,
+        }
+        for s in students
+    ]
+
+
 @teacher_router.get("/classes/{class_id}/students", response_model=List[StudentEnrollmentRead])
 def list_class_students(
     class_id: int,

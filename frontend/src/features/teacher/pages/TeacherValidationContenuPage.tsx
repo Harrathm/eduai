@@ -16,6 +16,7 @@ export default function TeacherValidationContenuPage() {
   const { token, user } = useAuthStore();
   const [contenus, setContenus] = useState<ContenuItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [rejectModal, setRejectModal] = useState<{ contenuId: number; contenuNom: string } | null>(null);
   const [commentaire, setCommentaire] = useState("");
   const [filter, setFilter] = useState<"all" | "en_attente" | "valide" | "rejete">("all");
@@ -30,16 +31,26 @@ export default function TeacherValidationContenuPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      const payload = JSON.parse(atob(token?.split(".")[1] || ""));
-      const userId = parseInt(payload.sub);
-      const res = await fetch(`/api/pathway/responsables-pedagogiques/${userId}/contenus`, { headers });
+      if (!user?.id) {
+        setError("Chargement en cours...");
+        setLoading(false);
+        return;
+      }
+      const res = await fetch(`/api/pathway/responsables-pedagogiques/${user.id}/contenus`, { headers });
       if (res.ok) {
         setContenus(await res.json());
+      } else if (res.status === 403) {
+        setError("Vous devez être désigné Responsable Pédagogique pour valider des contenus.");
+      } else {
+        setError("Aucun contenu à valider dans votre périmètre pédagogique.");
       }
-    } catch { /* ignore */ }
+    } catch {
+      setError("Erreur de connexion. Veuillez réessayer.");
+    }
     setLoading(false);
-  }, [token]);
+  }, [token, user?.id]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -122,13 +133,13 @@ export default function TeacherValidationContenuPage() {
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          { label: "Total", value: stats.total, color: "navy" },
-          { label: "En attente", value: stats.en_attente, color: "yellow-600" },
-          { label: "Validés", value: stats.valide, color: "green-600" },
-          { label: "Rejetés", value: stats.rejete, color: "red-600" },
+          { label: "Total", value: stats.total, className: "text-navy" },
+          { label: "En attente", value: stats.en_attente, className: "text-yellow-600" },
+          { label: "Validés", value: stats.valide, className: "text-green-600" },
+          { label: "Rejetés", value: stats.rejete, className: "text-red-600" },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-xl shadow-sm border border-black/5 p-4">
-            <div className={`text-2xl font-bold font-display text-${s.color}`}>{s.value}</div>
+            <div className={`text-2xl font-bold font-display ${s.className}`}>{s.value}</div>
             <div className="text-xs text-gray mt-0.5">{s.label}</div>
           </div>
         ))}
@@ -154,6 +165,11 @@ export default function TeacherValidationContenuPage() {
       {/* Contenus */}
       {loading ? (
         <div className="text-center py-12 text-gray">Chargement...</div>
+      ) : error ? (
+        <div className="bg-white rounded-2xl shadow-sm border border-black/5 p-12 text-center">
+          <Eye className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+          <p className="text-gray">{error}</p>
+        </div>
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-2xl shadow-sm border border-black/5 p-12 text-center">
           <Eye className="w-12 h-12 text-gray-300 mx-auto mb-4" />

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Body
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict
 from app.db import get_db
@@ -19,6 +20,9 @@ from app.core.rate_limiter import check_ai_rate_limit
 import os
 import logging
 import uuid
+import json
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["AI"])
 
@@ -62,6 +66,24 @@ def _detect_language(text: str) -> str:
     if total == 0:
         return "fr"
     return "ar" if arabic / total > 0.3 else "fr"
+
+
+def _safe_refund(db: Session, user_id: int, debits: list):
+    """Refund debited credits safely — never let refund errors mask the original exception."""
+    if not debits:
+        return
+    try:
+        from app.services.wallet import add_credits
+        for d in debits:
+            amount = int(d["amount"]) if not isinstance(d["amount"], int) else d["amount"]
+            add_credits(db, user_id, d["pool"], amount, commit=False)
+        db.commit()
+    except Exception as refund_err:
+        logger.error(f"Refund failed for user_id={user_id}: {refund_err}")
+        try:
+            db.rollback()
+        except Exception:
+            pass
 
 
 def _save_chat_message(db: Session, conversation_id: int, role: str, content: str, user_id: int) -> AIChatMessage:
@@ -110,13 +132,25 @@ def _load_conversation_history(db: Session, conversation_id: int, max_messages: 
     return [{"role": m.role, "content": m.content} for m in messages]
 
 
-@router.post("/ask", response_model=AIResult)
-def ask_tutor(
+@router.post("/ask")
+async def ask_tutor(
     query: AIQuery,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    """Streaming SSE endpoint — streams LLM chunks to the client in real-time.
+
+    Flow:
+    1. Rate-limit + credit pre-check
+    2. Content moderation on the prompt
+    3. Consume estimated credits
+    4. Stream chunks via SSE (data: {...}\n\n)
+    5. On completion: exact token cost, save messages, check low balance
+    6. On error: refund consumed credits
+    """
     from app.ai import RAGService
+    from app.ai.rag_service import moderate_prompt, _MODERATION_BLOCKED_MESSAGE
+    from app.ai.provider_client import generate_chat_stream
 
     # Rate limit check
     check_ai_rate_limit(current_user.id, "ai_ask")
@@ -124,7 +158,21 @@ def ask_tutor(
     # Validate school_id
     school_id = _validate_school_id(current_user)
 
-    # Pre-check: verify sufficient credits
+    # ── Content moderation ──────────────────────────────────────────────
+    blocked = moderate_prompt(query.question)
+    if blocked:
+        async def _moderation_stream():
+            # Save user message but return blocked response
+            conv_id = query.conversation_id
+            if not conv_id:
+                conv = _get_or_create_conversation(db, current_user.id, query.question[:255])
+                conv_id = conv.id
+            _save_chat_message(db, conv_id, "user", query.question, current_user.id)
+            _save_chat_message(db, conv_id, "assistant", blocked, current_user.id)
+            yield f"data: {json.dumps({'chunk': blocked, 'done': True, 'conversation_id': conv_id})}\n\n"
+        return StreamingResponse(_moderation_stream(), media_type="text/event-stream")
+
+    # ── Credit pre-check ───────────────────────────────────────────────
     feature = BillableFeature.AI_ASK
     estimated = wallet_estimate_cost(feature, len(query.question))
     balance = get_total_balance(db, current_user.id)
@@ -139,43 +187,67 @@ def ask_tutor(
     request_id = str(uuid.uuid4())
     debits = consume_credits(db, current_user.id, estimated, feature, request_id)
 
-    try:
-        rag = RAGService(db=db)
+    # ── Prepare conversation + messages ─────────────────────────────────
+    rag = RAGService(db=db)
 
-        # Auto-créer la conversation si aucune fournie
-        conv_id = query.conversation_id
-        if not conv_id:
-            conv = _get_or_create_conversation(db, current_user.id, query.question[:255])
-            conv_id = conv.id
+    conv_id = query.conversation_id
+    if not conv_id:
+        conv = _get_or_create_conversation(db, current_user.id, query.question[:255])
+        conv_id = conv.id
 
-        # Charger l'historique pour le contexte RAG
-        history = _load_conversation_history(db, conv_id)
+    history = _load_conversation_history(db, conv_id)
+    messages = rag._build_messages(
+        school_id=school_id,
+        prompt=query.question,
+        mode="tutor",
+        conversation_history=history,
+    )
 
-        answer = rag.ask_tutor(
-            school_id=school_id,
-            question=query.question,
-            conversation_history=history,
-        )
-        tokens = len(answer) // 4
-        cost_usd = estimate_cost(rag.model, tokens)
-        log_ai_usage(db, current_user, "ask_tutor", tokens, cost_usd)
+    # ── SSE streaming generator ─────────────────────────────────────────
+    async def _stream_generator():
+        full_answer = []
+        try:
+            # Stream chunks from the LLM provider
+            for chunk_text, error in generate_chat_stream(db, messages):
+                if error:
+                    yield f"data: {json.dumps({'error': error, 'done': True})}\n\n"
+                    return
+                full_answer.append(chunk_text)
+                yield f"data: {json.dumps({'chunk': chunk_text, 'done': False})}\n\n"
 
-        # Sauvegarder les messages avec détection de langue
-        _save_chat_message(db, conv_id, "user", query.question, current_user.id)
-        _save_chat_message(db, conv_id, "assistant", answer, current_user.id)
+            # Streaming complete — finalize
+            answer = "".join(full_answer)
+            tokens = len(answer) // 4
+            cost_usd = estimate_cost(rag.model, tokens)
+            log_ai_usage(db, current_user, "ask_tutor", tokens, cost_usd)
 
-        # Check low balance alert after consumption
-        alert = check_low_balance_alert(db, current_user.id)
+            # Save messages
+            _save_chat_message(db, conv_id, "user", query.question, current_user.id)
+            _save_chat_message(db, conv_id, "assistant", answer, current_user.id)
 
-        result = AIResult(answer=answer, sources=[], conversation_id=conv_id)
-        return result
-    except Exception as e:
-        # Refund on failure
-        for d in debits:
-            from app.services.wallet import add_credits
-            from app.models import WalletPool
-            add_credits(db, current_user.id, d["pool"], d["amount"])
-        raise
+            # Check low balance
+            check_low_balance_alert(db, current_user.id)
+
+            # Send final done signal
+            yield f"data: {json.dumps({'done': True, 'conversation_id': conv_id, 'tokens': tokens})}\n\n"
+
+        except HTTPException:
+            _safe_refund(db, current_user.id, debits)
+            yield f"data: {json.dumps({'error': 'Service IA indisponible', 'done': True})}\n\n"
+        except Exception as e:
+            logger.error("AI ask_tutor stream error: %s: %s", type(e).__name__, e)
+            _safe_refund(db, current_user.id, debits)
+            yield f"data: {json.dumps({'error': 'Service IA temporairement indisponible', 'done': True})}\n\n"
+
+    return StreamingResponse(
+        _stream_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # Disable nginx buffering
+        },
+    )
 
 
 @router.post("/explain", response_model=AIResult)
@@ -210,10 +282,7 @@ def explain_concept(
         log_ai_usage(db, current_user, "explain_concept", tokens, cost_usd)
         return AIResult(answer=answer, sources=[])
     except Exception as e:
-        for d in debits:
-            from app.services.wallet import add_credits
-            from app.models import WalletPool
-            add_credits(db, current_user.id, d["pool"], d["amount"])
+        _safe_refund(db, current_user.id, debits)
         raise
 
 
@@ -254,10 +323,7 @@ def correct_assignment(
         log_ai_usage(db, current_user, "auto_correct", tokens, cost_usd)
         return result
     except Exception as e:
-        for d in debits:
-            from app.services.wallet import add_credits
-            from app.models import WalletPool
-            add_credits(db, current_user.id, d["pool"], d["amount"])
+        _safe_refund(db, current_user.id, debits)
         raise
 
 
@@ -298,10 +364,7 @@ def generate_quiz(
         log_ai_usage(db, current_user, "generate_quiz", tokens, cost_usd)
         return questions
     except Exception as e:
-        for d in debits:
-            from app.services.wallet import add_credits
-            from app.models import WalletPool
-            add_credits(db, current_user.id, d["pool"], d["amount"])
+        _safe_refund(db, current_user.id, debits)
         raise
 
 
@@ -352,10 +415,7 @@ def generate_exercises(
         log_ai_usage(db, current_user, "generate_exercises", tokens, cost_usd)
         return exercises
     except Exception as e:
-        for d in debits:
-            from app.services.wallet import add_credits
-            from app.models import WalletPool
-            add_credits(db, current_user.id, d["pool"], d["amount"])
+        _safe_refund(db, current_user.id, debits)
         raise
 
 
@@ -392,19 +452,17 @@ async def ingest_pdf(
         contents = await file.read()
         chunks = processor.process_pdf_bytes(contents, file.filename or "upload")
         texts = [c["content"] for c in chunks]
+        effective_school_id = current_user.school_id or 0
         metadatas = [
-            {"source": c["source"], "chunk_index": c["index"], "school_id": current_user.school_id}
+            {"source": c["source"], "chunk_index": c["index"], "school_id": effective_school_id}
             for c in chunks
         ]
         es = EmbeddingsService()
-        es.add_to_index(current_user.school_id, texts, metadatas)
+        es.add_to_index(effective_school_id, texts, metadatas)
         log_ai_usage(db, current_user, "ingest_pdf", 0, 0.0)
-        return {"chunks_added": len(texts), "school_id": current_user.school_id}
+        return {"chunks_added": len(texts), "school_id": effective_school_id}
     except Exception as e:
-        for d in debits:
-            from app.services.wallet import add_credits
-            from app.models import WalletPool
-            add_credits(db, current_user.id, d["pool"], d["amount"])
+        _safe_refund(db, current_user.id, debits)
         raise
 
 
@@ -450,10 +508,7 @@ def ingest_text(
         log_ai_usage(db, current_user, "ingest_text", len(text) // 4, 0.0)
         return {"chunks_added": len(chunks), "school_id": current_user.school_id}
     except Exception as e:
-        for d in debits:
-            from app.services.wallet import add_credits
-            from app.models import WalletPool
-            add_credits(db, current_user.id, d["pool"], d["amount"])
+        _safe_refund(db, current_user.id, debits)
         raise
 
 
@@ -544,12 +599,15 @@ def generate_content(
     from app.ai import RAGService
 
     # Tier check: generate requires curriculum_aligned (etablissement only)
-    ai_level = get_ai_feature_level(current_user, db)
-    if ai_level != "curriculum_aligned":
-        raise HTTPException(
-            status_code=403,
-            detail="Génération de contenu personnalisé réservée au palier Établissement. Contactez votre admin d'école.",
-        )
+    # Teachers and admins are exempt — they create content for students
+    teacher_admin_roles = {"teacher", "admin_school", "super_admin", "pedagogical_admin", "pedagogical_lead"}
+    if current_user.role not in teacher_admin_roles:
+        ai_level = get_ai_feature_level(current_user, db)
+        if ai_level != "curriculum_aligned":
+            raise HTTPException(
+                status_code=403,
+                detail="Génération de contenu personnalisé réservée au palier Établissement. Contactez votre admin d'école.",
+            )
 
     # Rate limit check
     check_ai_rate_limit(current_user.id, "ai_generate")
@@ -597,15 +655,10 @@ def generate_content(
     try:
         pid, pconf = get_enabled_provider(db)
         if not pid or not pconf:
-            # Refund on early return
-            for d in debits:
-                from app.services.wallet import add_credits
-                add_credits(db, current_user.id, d["pool"], d["amount"])
+            _safe_refund(db, current_user.id, debits)
             return {"content": "Aucun fournisseur IA Configurez un fournisseur dans Parametres -> Fournisseurs IA."}
     except Exception:
-        for d in debits:
-            from app.services.wallet import add_credits
-            add_credits(db, current_user.id, d["pool"], d["amount"])
+        _safe_refund(db, current_user.id, debits)
         return {"content": "Aucun fournisseur IA Configurez un fournisseur dans Parametres -> Fournisseurs IA."}
 
     try:
@@ -623,11 +676,7 @@ def generate_content(
 
         return {"content": content}
     except Exception as e:
-        # Refund on failure
-        for d in debits:
-            from app.services.wallet import add_credits
-            add_credits(db, current_user.id, d["pool"], d["amount"])
-        logger = logging.getLogger(__name__)
+        _safe_refund(db, current_user.id, debits)
         logger.error(f"AI generate error: {e}")
         raise HTTPException(status_code=503, detail=f"Service IA temporairement indisponible : {str(e)}")
 

@@ -22,16 +22,24 @@ settings = get_settings()
 
 SYSTEM_PROMPTS = {
     "plan_generator": (
-        "You are an expert curriculum designer. Generate a comprehensive course plan as JSON. "
+        "You are an expert curriculum designer for the Tunisian education system. "
+        "Generate a comprehensive course plan as JSON. "
         "The JSON must have: title, subtitle, description, level (beginner/intermediate/advanced), "
         "category, estimated_duration_hours, and modules array. Each module has: title, description, "
         "order, and lessons array. Each lesson has: title, description, order, duration_minutes. "
         "Generate 3-5 modules with 3-5 lessons each."
     ),
     "lesson_generator": (
-        "You are an expert teacher. Write detailed, engaging lesson content in French. "
-        "Include learning objectives, key concepts, examples, exercises, and a summary. "
-        "Format with clear headings and paragraphs."
+        "You are an expert teacher for the Tunisian education system. Write detailed, engaging lesson content. "
+        "CRITICAL RULES:\n"
+        "1. You MUST use the REFERENCE MATERIALS provided below as your PRIMARY source.\n"
+        "2. Base your entire lesson content on the reference materials. Do NOT invent or fabricate content.\n"
+        "3. If the reference materials contain specific examples, exercises, definitions, or explanations — USE THEM DIRECTLY.\n"
+        "4. Structure the lesson following the same order and sections as the reference materials.\n"
+        "5. You may add brief supplementary explanations to clarify concepts, but the CORE content must come from the reference materials.\n"
+        "6. Write in the SAME LANGUAGE as the reference materials (Arabic, French, or English).\n"
+        "7. Include learning objectives, key concepts, examples from the reference materials, and a summary.\n"
+        "8. Format with clear headings and paragraphs."
     ),
     "quiz_generator": (
         "You are an expert assessment designer. Generate a quiz as JSON with: "
@@ -65,14 +73,19 @@ class AIFactoryService:
             self._client = OpenAI(api_key=self._api_key)
         return self._client
 
-    def _get_rag_context(self, school_id: int, query: str, k: int = 5) -> str:
+    def _get_rag_context(self, school_id: int, query: str, k: int = 10) -> str:
         try:
             from app.ai.rag_service import RAGService
             if self._rag_service is None:
                 self._rag_service = RAGService()
             docs = self._rag_service.retrieve_context(school_id, query, k=k)
             if docs:
+                logger.info(f"RAG retrieved {len(docs)} chunks, total {sum(len(d) for d in docs)} chars")
+                for i, doc in enumerate(docs[:3]):
+                    logger.info(f"  chunk[{i}]: {doc[:150]}...")
                 return "\n\n".join(docs)
+            else:
+                logger.warning(f"RAG returned 0 chunks for school_id={school_id}, query={query[:100]}")
         except Exception as e:
             logger.warning(f"RAG context retrieval failed: {e}")
         return ""
@@ -131,17 +144,31 @@ class AIFactoryService:
 
     def generate_course_plan(self, topic: str, school_id: int = 0, use_rag: bool = False) -> dict:
         context = ""
-        if use_rag and school_id:
-            context = self._get_rag_context(school_id, topic)
+        if use_rag:
+            effective_school_id = school_id if school_id else 0
+            context = self._get_rag_context(effective_school_id, topic)
+            if context:
+                logger.info(f"RAG context retrieved: {len(context)} chars for school_id={effective_school_id}")
+            else:
+                logger.warning(f"No RAG context found for school_id={effective_school_id}, topic={topic}")
         system_prompt = SYSTEM_PROMPTS["plan_generator"]
         user_prompt = f"Generate a comprehensive course plan about: {topic}"
         if context:
-            user_prompt = f"""Based on the following reference materials, generate a comprehensive course plan about: {topic}
+            user_prompt = f"""=== REFERENCE MATERIALS FROM TEXTBOOK ===
+The following content was extracted from the official textbook. You MUST use these materials as the foundation for the course plan.
 
-REFERENCE MATERIALS:
 {context}
 
-Use these materials to inform the course structure and content."""
+=== END REFERENCE MATERIALS ===
+
+Based EXCLUSIVELY on the reference materials above, generate a comprehensive course plan about: {topic}
+
+IMPORTANT:
+- Structure the modules and lessons around the topics covered in the reference materials
+- Use the same terminology and section names from the reference materials
+- Ensure each lesson maps to specific content in the reference materials
+- Write in the same language as the reference materials (Arabic if the materials are in Arabic)
+- Do NOT add topics that are not covered in the reference materials"""
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
@@ -154,8 +181,13 @@ Use these materials to inform the course structure and content."""
         module_title: str = "", school_id: int = 0, use_rag: bool = False
     ) -> AsyncGenerator[str, None]:
         context = ""
-        if use_rag and school_id:
-            context = self._get_rag_context(school_id, f"{topic} {lesson_title}")
+        if use_rag:
+            effective_school_id = school_id if school_id else 0
+            context = self._get_rag_context(effective_school_id, f"{topic} {lesson_title} {module_title}")
+            if context:
+                logger.info(f"RAG lesson context: {len(context)} chars for school_id={effective_school_id}")
+            else:
+                logger.warning(f"No RAG lesson context for school_id={effective_school_id}, query={topic} {lesson_title}")
 
         system_prompt = SYSTEM_PROMPTS["lesson_generator"]
         user_prompt = f"""Course Topic: {topic}
@@ -165,16 +197,27 @@ Lesson Description: {lesson_description}
 
 Write comprehensive, engaging lesson content for this lesson."""
         if context:
-            user_prompt = f"""Course Topic: {topic}
+            user_prompt = f"""=== REFERENCE MATERIALS FROM TEXTBOOK ===
+The following content was extracted from the official textbook for this lesson.
+You MUST use these materials as the PRIMARY source for the lesson content.
+
+{context}
+
+=== END REFERENCE MATERIALS ===
+
+Course Topic: {topic}
 Module: {module_title}
 Lesson Title: {lesson_title}
 Lesson Description: {lesson_description}
 
-REFERENCE MATERIALS:
-{context}
-
-Write comprehensive, engaging lesson content for this lesson, incorporating insights from the reference materials."""
-
+INSTRUCTIONS:
+1. Write the lesson content BASED EXCLUSIVELY on the reference materials above
+2. Use the exact definitions, examples, and explanations from the reference materials
+3. Structure the lesson following the same order as the reference materials
+4. Include the learning objectives, key concepts, examples, and exercises from the reference materials
+5. Write in the SAME LANGUAGE as the reference materials (if Arabic, write in Arabic)
+6. Do NOT invent content that is not in the reference materials
+7. Add brief clarifying explanations only when necessary to help student understanding"""
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
@@ -404,6 +447,7 @@ Description: {lesson_description}"""
                 # Save quiz if generated
                 if quiz_data and isinstance(quiz_data.get("questions"), list) and quiz_data.get("questions"):
                     db_quiz = Quiz(
+                        school_id=school_id or author.school_id,
                         lesson_id=db_lesson.id,
                         title=quiz_data.get("title", f"Quiz: {les.get('title', '')}"),
                         description=quiz_data.get("description", ""),

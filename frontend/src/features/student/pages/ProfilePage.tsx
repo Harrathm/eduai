@@ -39,16 +39,18 @@ export default function ProfilePage() {
     try {
       if (token) {
         await apiClient.put(`/auth/me/language?language=${language}`);
-        if (niveau) {
-          await apiClient.put("/users/me", { niveau_scolaire: niveau });
-        }
+        await apiClient.put("/users/me", {
+          niveau_scolaire: niveau || undefined,
+          full_name: fullName || undefined,
+        });
         if (user) {
-          setUser({ ...user, language, niveau_scolaire: niveau, full_name: fullName } as any);
+          setUser({ ...user, language, niveau_scolaire: niveau, full_name: fullName });
         }
       }
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-    } catch {
+    } catch (e) {
+      console.error("Profile save error:", e);
     } finally {
       setSaving(false);
     }

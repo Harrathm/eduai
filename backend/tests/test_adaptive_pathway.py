@@ -30,31 +30,14 @@ from app.services.adaptive_pathway import (
     contenu_a_servir, acces_effectif,
 )
 
-TEST_PASSWORD = "password123"
-TEST_HASH = get_password_hash(TEST_PASSWORD)
+from tests.conftest import TEST_PASSWORD, TEST_HASH, _auth
 
 
 @pytest.fixture(scope="function")
-def test_db():
-    engine = create_engine(
-        "sqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    TestingSessionLocal = sessionmaker(bind=engine)
-    Base.metadata.create_all(bind=engine)
+def test_db(_base_session):
+    """Custom test DB with arborescence pédagogique, pack, and purchase."""
+    db = _base_session
 
-    def override_get_db():
-        db = TestingSessionLocal()
-        try:
-            yield db
-        finally:
-            db.close()
-
-    app.dependency_overrides[get_db] = override_get_db
-    db = TestingSessionLocal()
-
-    # --- School + Users ---
     school = School(name="Ecole Test", slug="ecole-test", subscription_tier="free")
     db.add(school)
     db.commit()
@@ -85,7 +68,6 @@ def test_db():
     db.refresh(teacher)
     db.refresh(student)
 
-    # --- Arborescence pédagogique ---
     niveau = NiveauEtude(nom="9ème de base", ordre=9)
     db.add(niveau)
     db.commit()
@@ -106,7 +88,6 @@ def test_db():
     db.commit()
     db.refresh(notion)
 
-    # --- Pack pour accès ---
     pack = StudyPack(
         name="Pack 9eme", niveau_scolaire="9eme de base",
         matieres=["Mathématiques"],
@@ -131,17 +112,10 @@ def test_db():
 
     yield db, school, admin, teacher, student, niveau, matiere, chapitre, notion, pack, purchase
 
-    app.dependency_overrides.clear()
-    db.close()
-
 
 @pytest.fixture(scope="function")
 def client(test_db):
     return TestClient(app)
-
-
-def _auth(token: str) -> dict:
-    return {"Authorization": f"Bearer {token}"}
 
 
 # ============================================================

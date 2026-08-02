@@ -314,3 +314,33 @@ def preview_course(
         "total_lessons": total_lessons,
         "lessons": lessons_detail,
     })
+
+
+@router.get("/rag-debug")
+def rag_debug(
+    current_user: User = Depends(require_platform_admin),
+    db: Session = Depends(get_db),
+):
+    """Debug: check RAG index status for current user's school."""
+    from app.ai.embeddings_service import EmbeddingsService
+    es = EmbeddingsService()
+    effective_school_id = current_user.school_id or 0
+    stats = es.get_stats(effective_school_id)
+
+    docs_preview = []
+    existing = es.load_index(effective_school_id)
+    if existing:
+        _, docs = existing
+        for d in docs[:5]:
+            docs_preview.append({
+                "content_preview": d.page_content[:200],
+                "source": d.metadata.get("source", "unknown"),
+                "chunk_index": d.metadata.get("chunk_index", -1),
+            })
+
+    return {
+        "school_id": effective_school_id,
+        "user_school_id": current_user.school_id,
+        "stats": stats,
+        "docs_preview": docs_preview,
+    }

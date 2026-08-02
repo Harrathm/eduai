@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../../store/authStore";
 import { Search, BookOpen, Clock, User } from "lucide-react";
 
@@ -23,40 +24,45 @@ interface Training {
   author_id: number;
 }
 
-interface Enrollment {
-  enrollment_id: number;
-  course_id: number;
-  title: string;
-  thumbnail_url: string;
-  cover_url: string;
-  progress_percent: number;
-  status: string;
-}
-
 export default function MyLearning() {
   const { token } = useAuthStore();
-  const [trainings, setTrainings] = useState<Training[]>([]);
-  const [myEnrollments, setMyEnrollments] = useState<Enrollment[]>([]);
-  const [enrolledIds, setEnrolledIds] = useState<number[]>([]);
+  const navigate = useNavigate();
+  const [myCourses, setMyCourses] = useState<Training[]>([]);
+  const [catalog, setCatalog] = useState<Training[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
 
   useEffect(() => {
-    fetchTrainings();
-    fetchMyEnrollments();
+    fetchMyCourses();
+    fetchCatalog();
   }, [token]);
 
-  const fetchTrainings = async () => {
+  const fetchMyCourses = async () => {
     if (!token) return;
-    setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/learner/catalog`, {
+      const res = await fetch(`${API_URL}/api/courses/my-courses`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
         const data = await res.json();
-        setTrainings(data.items || []);
+        setMyCourses(data.items || data || []);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchCatalog = async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/courses`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCatalog(data.items || data || []);
       }
     } catch (err) {
       console.error(err);
@@ -64,39 +70,7 @@ export default function MyLearning() {
     setLoading(false);
   };
 
-  const fetchMyEnrollments = async () => {
-    if (!token) return;
-    try {
-      const res = await fetch(`${API_URL}/api/learner/my-courses`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const items = data.items || [];
-        setMyEnrollments(items);
-        setEnrolledIds(items.map((e: Enrollment) => e.course_id));
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const enroll = async (courseId: number) => {
-    if (!token) return;
-    try {
-      const res = await fetch(`${API_URL}/api/learner/courses/${courseId}/enroll`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        fetchMyEnrollments();
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const filtered = trainings.filter((t) => {
+  const filtered = catalog.filter((t) => {
     const matches = search
       ? t.title.toLowerCase().includes(search.toLowerCase())
       : true;
@@ -110,28 +84,25 @@ export default function MyLearning() {
           Mon <span className="italic text-orange">Apprentissage</span>
         </h1>
         <p className="text-gray mt-2">
-          Inscrivez-vous aux formations disponibles
+          Vos cours créés et le catalogue disponible
         </p>
       </div>
 
-      {/* My Enrollments */}
+      {/* My Courses (Teacher's own) */}
       <div className="bg-gradient-to-r from-navy to-navy-m rounded-3xl p-8">
         <h2 className="text-xl font-semibold text-white mb-4">
-          Mes formations inscrites
+          Mes Cours Créés
         </h2>
-        {myEnrollments.length === 0 ? (
-          <p className="text-white/50">Aucune inscription</p>
+        {myCourses.length === 0 ? (
+          <p className="text-white/50">Vous n'avez pas encore créé de cours</p>
         ) : (
           <div className="flex gap-3 flex-wrap">
-            {myEnrollments.map((e) => (
+            {myCourses.map((c) => (
               <div
-                key={e.course_id}
+                key={c.id}
                 className="bg-white/10 text-white px-4 py-2 rounded-xl text-sm"
               >
-                {e.title}
-                {e.progress_percent > 0 && (
-                  <span className="ml-2 text-white/60">({e.progress_percent}%)</span>
-                )}
+                {c.title}
               </div>
             ))}
           </div>
@@ -166,7 +137,7 @@ export default function MyLearning() {
         </div>
       </div>
 
-      {/* Training Grid */}
+      {/* Catalog Grid */}
       <div className="grid gap-4">
         {loading ? (
           <div className="bg-white rounded-3xl p-12 text-center text-gray">
@@ -188,11 +159,6 @@ export default function MyLearning() {
                     <h3 className="text-lg font-semibold text-navy">
                       {training.title}
                     </h3>
-                    {enrolledIds.includes(training.id) && (
-                      <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">
-                        Inscrit
-                      </span>
-                    )}
                   </div>
                   <p className="text-sm text-gray mb-3">{training.short_description || training.description}</p>
                   <div className="flex items-center gap-6 text-sm text-gray">
@@ -220,18 +186,12 @@ export default function MyLearning() {
                       {training.price_dt} DT
                     </div>
                   )}
-                  {enrolledIds.includes(training.id) ? (
-                    <button className="px-4 py-2 bg-green-100 text-green-700 rounded-xl text-sm font-medium">
-                      Commencer
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => enroll(training.id)}
-                      className="px-4 py-2 bg-orange text-white rounded-xl text-sm font-medium"
-                    >
-                      S'inscrire
-                    </button>
-                  )}
+                  <button
+                    onClick={() => navigate(`/dashboard/courses/${training.id}`)}
+                    className="px-4 py-2 bg-orange text-white rounded-xl text-sm font-medium"
+                  >
+                    Voir le cours
+                  </button>
                 </div>
               </div>
             </div>

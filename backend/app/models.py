@@ -245,6 +245,7 @@ class School(Base):
     
     # Settings
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    pending_validation: Mapped[bool] = mapped_column(Boolean, default=False)
     maintenance_mode: Mapped[bool] = mapped_column(Boolean, default=False)
     allow_teacher_registration: Mapped[bool] = mapped_column(Boolean, default=True)
     allow_new_signups: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -309,9 +310,12 @@ class User(Base):
     verification_reviewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
     verification_rejection_reason: Mapped[Optional[str]] = mapped_column(Text)
 
-    # Dual-Economy Balances
+    # Dual-Economy Balances (DEPRECATED — use wallet service functions instead)
+    # These columns are kept for backward compatibility but should be treated as read-only.
+    # All mutations MUST go through app.services.wallet (credit_balance/debit_balance/credit_dt/debit_dt).
+    # Balance is also computed from WalletTransaction ledger via get_dt_balance()/get_total_balance().
     token_balance: Mapped[int] = mapped_column(Integer, default=0)
-    dt_balance: Mapped[float] = mapped_column(Float, default=0.0)
+    dt_balance: Mapped[float] = mapped_column(Numeric(10, 2), default=0.0)
 
     # Stripe
     stripe_customer_id: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
@@ -471,9 +475,9 @@ class Course(Base):
     owner_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # school_id ou teacher_id selon owner_type
     
     # Pricing (monnaie réelle, distinct des crédits IA)
-    price: Mapped[Optional[float]] = mapped_column(Float, nullable=True)  # null = gratuit/inclus dans contrat
+    price: Mapped[Optional[float]] = mapped_column(Numeric(10, 2), nullable=True)  # null = gratuit/inclus dans contrat
     currency: Mapped[str] = mapped_column(String(10), default="TND")
-    commission_rate: Mapped[Optional[float]] = mapped_column(Float, nullable=True)  # % gardé par EDUAI (independent_teacher seulement)
+    commission_rate: Mapped[Optional[float]] = mapped_column(Numeric(5, 2), nullable=True)  # % gardé par EDUAI (independent_teacher seulement)
     
     # Pricing (crédits IA, système existant)
     price_tokens: Mapped[int] = mapped_column(Integer, default=0)
@@ -689,11 +693,11 @@ class CoursePurchase(Base):
     course_id: Mapped[int] = mapped_column(ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
     
     # Montants
-    amount_paid: Mapped[float] = mapped_column(Float, nullable=False)  # montant total payé par l'élève
+    amount_paid: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)  # montant total payé par l'élève
     currency: Mapped[str] = mapped_column(String(10), default="TND")
-    platform_fee: Mapped[float] = mapped_column(Float, default=0.0)   # commission EDUAI
-    teacher_revenue: Mapped[float] = mapped_column(Float, default=0.0) # montant dû à l'enseignant
-    commission_rate_applied: Mapped[Optional[float]] = mapped_column(Float, nullable=True)  # taux appliqué lors de l'achat
+    platform_fee: Mapped[float] = mapped_column(Numeric(10, 2), default=0.0)   # commission EDUAI
+    teacher_revenue: Mapped[float] = mapped_column(Numeric(10, 2), default=0.0) # montant dû à l'enseignant
+    commission_rate_applied: Mapped[Optional[float]] = mapped_column(Numeric(5, 2), nullable=True)  # taux appliqué lors de l'achat
     
     # Transaction
     transaction_id: Mapped[Optional[str]] = mapped_column(String(255))
@@ -744,7 +748,7 @@ class StudyPack(Base):
     matieres: Mapped[Optional[str]] = mapped_column(JSON, nullable=True)  # null = toutes les matières, sinon liste ["Mathématiques","Sciences"]
 
     # Prix
-    price: Mapped[float] = mapped_column(Float, nullable=False)
+    price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     currency: Mapped[str] = mapped_column(String(10), default="TND")
 
     # Validité
@@ -794,7 +798,7 @@ class PackPurchase(Base):
     status: Mapped[str] = mapped_column(String(20), default=PackPurchaseStatus.ACTIVE.value)
 
     # Paiement
-    amount_paid: Mapped[float] = mapped_column(Float, nullable=False)
+    amount_paid: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     currency: Mapped[str] = mapped_column(String(10), default="TND")
     transaction_id: Mapped[Optional[str]] = mapped_column(String(255))  # référence vers transaction de paiement
 
@@ -1135,13 +1139,15 @@ Tenant = School
 # ============================================================
 
 class Quiz(Base):
-    """Quiz attached to a lesson"""
+    """Quiz attached to a lesson. Direct school_id for tenant filter isolation."""
     __tablename__ = "quizzes"
     __table_args__ = (
         Index("ix_quizzes_lesson_id", "lesson_id"),
+        Index("ix_quizzes_school_id", "school_id"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    school_id: Mapped[Optional[int]] = mapped_column(ForeignKey("schools.id", ondelete="CASCADE"), nullable=True)
     lesson_id: Mapped[Optional[int]] = mapped_column(ForeignKey("lessons.id", ondelete="SET NULL"), nullable=True)
 
     title: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -1428,7 +1434,7 @@ class SchoolCourseAccess(Base):
     purchased_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     granted_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    price_paid_dt: Mapped[Optional[float]] = mapped_column(Float, default=0.0)
+    price_paid_dt: Mapped[Optional[float]] = mapped_column(Numeric(10, 2), default=0.0)
 
     school: Mapped["School"] = relationship("School", foreign_keys=[school_id])
     course: Mapped["Course"] = relationship("Course", foreign_keys=[course_id])
@@ -1520,7 +1526,7 @@ class Payment(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    amount: Mapped[float] = mapped_column(Float, nullable=False)  # in TND
+    amount: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)  # in TND
     currency: Mapped[str] = mapped_column(String(3), default="TND")
     status: Mapped[PaymentStatus] = mapped_column(SQLEnum(PaymentStatus), default=PaymentStatus.PENDING)
     stripe_session_id: Mapped[Optional[str]] = mapped_column(String(500), nullable=True, unique=True)
@@ -1554,7 +1560,7 @@ class WalletTransaction(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     pool: Mapped[WalletPool] = mapped_column(SQLEnum(WalletPool), nullable=False)
-    amount: Mapped[int] = mapped_column(Integer, nullable=False)  # +credit, -debit
+    amount: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)  # +credit, -debit
     feature: Mapped[Optional[BillableFeature]] = mapped_column(SQLEnum(BillableFeature))  # null for credit ops
     related_request_id: Mapped[Optional[str]] = mapped_column(String(200))  # trace AI call
     expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime)  # trial/school_allocated only
@@ -2122,3 +2128,54 @@ Subscription = Subscription
 
 # Import AI conversation models to register them with the mapper
 from app.models_ai_conversations import AIConversation, AIChatMessage
+
+
+# ---------------------------------------------------------------------------
+# Password Reset Token
+# ---------------------------------------------------------------------------
+
+class PasswordResetToken(Base):
+    """Secure token for password reset flow. Expires after 1 hour."""
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    school_id: Mapped[Optional[int]] = mapped_column(ForeignKey("schools.id", ondelete="CASCADE"), nullable=True)
+    token: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    used: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
+
+    __table_args__ = (
+        Index("ix_password_reset_user", "user_id"),
+        Index("ix_password_reset_school_id", "school_id"),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Refresh Token (JWT rotation)
+# ---------------------------------------------------------------------------
+
+class RefreshToken(Base):
+    """Opaque refresh token stored server-side for JWT rotation.
+
+    When the access token expires, the client sends the refresh token to
+    POST /auth/refresh-token.  The server validates it, issues a new
+    access+refresh pair, and invalidates the old refresh token (rotation).
+    """
+    __tablename__ = "refresh_tokens"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    token_hash: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    revoked: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
+
+    __table_args__ = (
+        Index("ix_refresh_tokens_user_id", "user_id"),
+    )

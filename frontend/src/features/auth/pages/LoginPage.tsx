@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuthStore } from "../../../store/authStore";
 
@@ -7,6 +7,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const { login, isLoading, error } = useAuthStore();
   const navigate = useNavigate();
+  const [stats, setStats] = useState<{ teachers: number; courses: number }>({ teachers: 0, courses: 0 });
+
+  useEffect(() => {
+    fetch("/catalog/stats")
+      .then((r) => r.json())
+      .then(setStats)
+      .catch(() => {});
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -19,6 +27,8 @@ export default function LoginPage() {
         navigate("/dashboard/admin");
       } else if (role === "ADMIN_SCHOOL" || role === "PEDAGOGICAL_LEAD") {
         navigate("/dashboard/school");
+      } else if (role === "PARENT") {
+        navigate("/dashboard/parent");
       } else {
         navigate("/dashboard");
       }
@@ -59,12 +69,12 @@ export default function LoginPage() {
           
           <div className="flex gap-12 mt-16">
             <div>
-              <div className="text-4xl font-[300] text-orange-l">5</div>
-              <div className="text-white/30 text-xs tracking-[2px] uppercase mt-2">Modules</div>
+              <div className="text-4xl font-[300] text-orange-l">{stats.teachers}+</div>
+              <div className="text-white/30 text-xs tracking-[2px] uppercase mt-2">Enseignant</div>
             </div>
             <div>
-              <div className="text-4xl font-[300] text-orange-l">3</div>
-              <div className="text-white/30 text-xs tracking-[2px] uppercase mt-2">Revenus</div>
+              <div className="text-4xl font-[300] text-orange-l">{stats.courses}+</div>
+              <div className="text-white/30 text-xs tracking-[2px] uppercase mt-2">Cours</div>
             </div>
             <div>
               <div className="text-4xl font-[300] text-orange-l">24/7</div>
@@ -122,6 +132,12 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   required
                 />
+              </div>
+
+              <div className="flex justify-end">
+                <Link to="/forgot-password" className="text-sm text-orange hover:underline">
+                  Mot de passe oublié ?
+                </Link>
               </div>
               
               <button

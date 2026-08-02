@@ -150,6 +150,36 @@ def regenerate_invite_code(school_id: int, db: Session = Depends(get_db), admin=
     return {"invite_code": school.invite_code}
 
 
+@router.post("/schools/{school_id}/approve")
+def approve_school(
+    school_id: int,
+    db: Session = Depends(get_db),
+    admin=Depends(require_super_admin),
+):
+    """Super-admin approves a self-registered school.
+
+    Sets is_active=True and pending_validation=False.
+    Only super_admin can approve schools.
+    """
+    school = db.query(School).filter(School.id == school_id).first()
+    if not school:
+        raise HTTPException(status_code=404, detail="School not found")
+
+    if not school.pending_validation and school.is_active:
+        raise HTTPException(status_code=400, detail="School is already active and validated")
+
+    school.is_active = True
+    school.pending_validation = False
+    db.commit()
+    db.refresh(school)
+
+    audit_log(db, admin.id, admin.email or "unknown", "school.approve",
+        target_type="school", target_id=school.id,
+        details=f"approved school '{school.name}'")
+
+    return {"status": "approved", "school_id": school.id, "is_active": school.is_active}
+
+
 # ---- Users ----
 
 @router.get("/users", response_model=PaginatedResponse)
@@ -710,12 +740,19 @@ def create_transaction(trans_in: TransactionCreate, db: Session = Depends(get_db
     )
     db.add(transaction)
     
+    from app.services.wallet import credit_balance, debit_balance, InsufficientCreditsError
+    from app.models import WalletPool
+
     if trans_in.type == "token_purchase":
-        user.token_balance += int(trans_in.amount)
+        credit_balance(db, user.id, int(trans_in.amount), WalletPool.PURCHASED,
+                       source="admin_transaction", reason=trans_in.description or "Transaction")
     elif trans_in.type == "token_spend":
-        user.token_balance -= int(trans_in.amount)
-    
-    db.commit()
+        try:
+            debit_balance(db, user.id, int(trans_in.amount), WalletPool.PURCHASED,
+                          source="admin_transaction", reason=trans_in.description or "Transaction")
+        except InsufficientCreditsError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
     db.refresh(transaction)
     return transaction
 
@@ -2397,6 +2434,7 @@ def purchase_school_pack(
         )
 
     # Débiter le solde de l'école via WalletTransaction (append-only audit trail)
+    # commit=False : tout sera commité ensemble à la ligne 2459
     from app.services.wallet import get_dt_balance, debit_dt, InsufficientCreditsError
     current_dt = get_dt_balance(db, admin.id)
     if current_dt < pack.price:
@@ -2406,7 +2444,7 @@ def purchase_school_pack(
         )
 
     try:
-        debit_dt(db, admin.id, pack.price, source="purchase", reason=f"Achat pack école: {pack.name}")
+        debit_dt(db, admin.id, pack.price, source="purchase", reason=f"Achat pack école: {pack.name}", commit=False)
     except InsufficientCreditsError:
         raise HTTPException(status_code=400, detail="Solde insuffisant lors du débit")
 
@@ -2543,6 +2581,7 @@ def pack_revenue_report(
     Rapport de revenus : packs vs cours à l'unité.
     Comparaison sur les N derniers jours.
     """
+    from datetime import timedelta
     from app.models import PackPurchase, CoursePurchase, StudyPack
     from sqlalchemy import func
 

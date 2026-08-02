@@ -1,6 +1,6 @@
 """Simple seed for EDUAI - works with SQLAlchemy created tables"""
 from app.db import SessionLocal
-from app.models import School, User, Course, Module, Lesson, SubscriptionTier, CourseStatus
+from app.models import School, User, Course, Module, Lesson, SubscriptionTier, CourseStatus, UserRole
 from app.core.security import get_password_hash
 
 def seed():
@@ -36,7 +36,7 @@ def seed():
             email="admin@eduai.platform",
             hashed_password=get_password_hash("password123"),
             full_name="Platform Admin",
-            role="SUPER_ADMIN",
+            role=UserRole.SUPER_ADMIN.value,
             is_active=True,
             is_approved=True,
             token_balance=100000,
@@ -60,7 +60,7 @@ def seed():
                 email=email,
                 hashed_password=get_password_hash("password123"),
                 full_name=name,
-                role="ADMIN",
+                role=UserRole.ADMIN_SCHOOL.value,
                 is_active=True,
                 is_approved=True,
                 token_balance=5000,
@@ -85,7 +85,7 @@ def seed():
                 email=email,
                 hashed_password=get_password_hash("password123"),
                 full_name=name,
-                role="TEACHER",
+                role=UserRole.TEACHER.value,
                 is_active=True,
                 is_approved=True,
                 token_balance=2000,
@@ -103,7 +103,7 @@ def seed():
                 email=f"student{i}@pro-school.edu",
                 hashed_password=get_password_hash("password123"),
                 full_name=f"Student {i}",
-                role="STUDENT",
+                role=UserRole.STUDENT.value,
                 is_active=True,
                 is_approved=True,
                 token_balance=500,

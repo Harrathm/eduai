@@ -52,6 +52,7 @@ export default function TeacherAIStudio() {
   const [history, setHistory] = useState<{ id: number; prompt: string; type: string }[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
+  const [balanceData, setBalanceData] = useState<{ total: number; pools: { pool: string; balance: number }[] } | null>(null);
 
   useEffect(() => {
     fetchHistory();
@@ -73,8 +74,22 @@ export default function TeacherAIStudio() {
   };
 
   const fetchBalance = async () => {
-    // Balance is fetched via auth/me
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/api/wallet/balance`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setBalanceData(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
+
+  const totalTokens = balanceData?.total ?? 0;
+  const totalDT = balanceData?.pools?.find((p) => p.pool === "dt_purchased")?.balance ?? 0;
 
   const generateContent = async () => {
     if (!token || !prompt) return;
@@ -138,12 +153,12 @@ export default function TeacherAIStudio() {
             <div className="flex items-center gap-2 bg-orange-p px-4 py-2 rounded-xl">
               <Coins className="w-5 h-5 text-orange" />
               <span className="font-semibold text-orange">
-                {user?.role === "teacher" ? "100" : "0"} tokens
+                {totalTokens} tokens
               </span>
             </div>
             <div className="flex items-center gap-2 bg-yellow-50 px-4 py-2 rounded-xl">
               <span className="font-semibold text-yellow-700">
-                {user?.role === "teacher" ? "500" : "0"} DT
+                {totalDT} DT
               </span>
             </div>
           </div>
@@ -286,7 +301,12 @@ export default function TeacherAIStudio() {
                     )}
                     DOCX
                   </button>
-                  <button className="text-white/70 hover:text-white text-sm ml-2">
+                  <button
+                    onClick={() => {
+                      if (result) navigator.clipboard.writeText(result);
+                    }}
+                    className="text-white/70 hover:text-white text-sm ml-2"
+                  >
                     Copier
                   </button>
                 </div>

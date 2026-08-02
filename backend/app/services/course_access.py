@@ -11,8 +11,9 @@ from sqlalchemy.orm import Session
 
 from app.models import (
     User, Course, CourseEnrollment, StudyPack, PackPurchase,
-    PackPurchaseStatus, SchoolCourseAccess,
+    PackPurchaseStatus, SchoolCourseAccess, CoursePurchase,
 )
+from app.db.session import _tenant_filter_suppressed
 
 logger = logging.getLogger(__name__)
 
@@ -24,9 +25,10 @@ def has_course_access(user: User, course: Course, db: Session) -> bool:
       1. Cours gratuit (price=None ou 0) ou déjà acheté individuellement
       2. L'utilisateur est l'auteur du cours
       3. Inscription existante (CourseEnrollment)
-      4. Accès école via SchoolCourseAccess
-      5. Pack individuel actif (student) — niveau + matières correspondent
-      6. Pack école actif (school) — niveau de l'ÉLÈVE + matières correspondent
+      4. Achat individuel du cours (CoursePurchase)
+      5. Accès école via SchoolCourseAccess
+      6. Pack individuel actif (student) — niveau + matières correspondent
+      7. Pack école actif (school) — niveau de l'ÉLÈVE + matières correspondent
     """
     # 1. Cours gratuit
     if course.price is None or course.price == 0:
@@ -44,7 +46,15 @@ def has_course_access(user: User, course: Course, db: Session) -> bool:
     if enrollment and enrollment.status == "active":
         return True
 
-    # 4. Accès école via SchoolCourseAccess
+    # 4. Achat individuel du cours (CoursePurchase)
+    purchase = db.query(CoursePurchase).filter(
+        CoursePurchase.student_id == user.id,
+        CoursePurchase.course_id == course.id,
+    ).first()
+    if purchase:
+        return True
+
+    # 5. Accès école via SchoolCourseAccess
     if user.school_id:
         sca = db.query(SchoolCourseAccess).filter(
             SchoolCourseAccess.school_id == user.school_id,
@@ -54,30 +64,41 @@ def has_course_access(user: User, course: Course, db: Session) -> bool:
         if sca:
             return True
 
-    # 5. Pack individuel actif (student)
+    # 6. Pack individuel actif (student)
+    #    Suppress tenant filter — student-level PackPurchase has school_id=None
+    #    which would be excluded by the automatic school_id filter.
     now = datetime.now(timezone.utc)
-    individual_pack = db.query(PackPurchase).join(StudyPack).filter(
-        PackPurchase.student_id == user.id,
-        PackPurchase.purchaser_type == "student",
-        PackPurchase.status == PackPurchaseStatus.ACTIVE.value,
-        PackPurchase.valid_until > now,
-        StudyPack.niveau_scolaire == user.niveau_scolaire,
-        StudyPack.status == "published",
-    ).first()
-
-    if individual_pack and _pack_covers_course(individual_pack.pack, course):
-        return True
-
-    # 6. Pack école actif (school) — vérifie le niveau de l'ÉLÈVE
-    if user.school_id and user.niveau_scolaire:
-        school_pack = db.query(PackPurchase).join(StudyPack).filter(
-            PackPurchase.school_id == user.school_id,
-            PackPurchase.purchaser_type == "school",
+    token = _tenant_filter_suppressed.set(True)
+    try:
+        individual_pack = db.query(PackPurchase).join(StudyPack).filter(
+            PackPurchase.student_id == user.id,
+            PackPurchase.purchaser_type == "student",
             PackPurchase.status == PackPurchaseStatus.ACTIVE.value,
             PackPurchase.valid_until > now,
             StudyPack.niveau_scolaire == user.niveau_scolaire,
             StudyPack.status == "published",
         ).first()
+    finally:
+        _tenant_filter_suppressed.reset(token)
+
+    if individual_pack and _pack_covers_course(individual_pack.pack, course):
+        return True
+
+    # 7. Pack école actif (school) — vérifie le niveau de l'ÉLÈVE
+    #    Suppress tenant filter — explicit school_id filter already scopes correctly.
+    if user.school_id and user.niveau_scolaire:
+        token = _tenant_filter_suppressed.set(True)
+        try:
+            school_pack = db.query(PackPurchase).join(StudyPack).filter(
+                PackPurchase.school_id == user.school_id,
+                PackPurchase.purchaser_type == "school",
+                PackPurchase.status == PackPurchaseStatus.ACTIVE.value,
+                PackPurchase.valid_until > now,
+                StudyPack.niveau_scolaire == user.niveau_scolaire,
+                StudyPack.status == "published",
+            ).first()
+        finally:
+            _tenant_filter_suppressed.reset(token)
 
         if school_pack and _pack_covers_course(school_pack.pack, course):
             return True

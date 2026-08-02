@@ -6,6 +6,7 @@ import json
 import time
 import logging
 import sys
+from collections import OrderedDict
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any
@@ -17,7 +18,6 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.staticfiles import StaticFiles
 
 from app.db import engine, Base, current_tenant_id
-from app.models_lms import LmsBase
 from app.core.config import get_settings
 
 TESTING = os.environ.get("TESTING", "").lower() == "true"
@@ -40,6 +40,7 @@ from app.routers.ai_factory import router as ai_factory_router
 from app.routers.logs import router as logs_router
 from app.routers.teacher_classes import teacher_router, admin_teacher_router
 from app.routers.payments.stripe import router as payments_router
+from app.routers.payments.konnect import router as konnect_router
 from app.routers.wallet import router as wallet_router
 from app.routers.conversations import router as conversations_router
 from app.routers.pedagogical import router as pedagogical_router
@@ -84,28 +85,103 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
+# ---------------------------------------------------------------------------
+# Rate Limiter — Redis-backed with in-memory fallback
+# ---------------------------------------------------------------------------
+
 class RateLimiter(BaseHTTPMiddleware):
+    """IP-based rate limiter for path-prefix rules.
+
+    Uses Redis for distributed rate limiting when REDIS_URL is set.
+    Falls back to an in-memory bounded dict for local development.
+    """
+
+    _MEMORY_MAX_KEYS = 4096
+
     def __init__(self, app, rates: dict):
         super().__init__(app)
         self.rates = rates
+        self._redis = None
+        self._memory_store: _BoundedDict = _BoundedDict(maxsize=self._MEMORY_MAX_KEYS)
+        self._backend = "memory"
+
+        redis_url = os.getenv("REDIS_URL", "")
+        if redis_url:
+            try:
+                import redis.asyncio as aioredis
+                self._redis = aioredis.from_url(redis_url, decode_responses=True)
+                self._backend = "redis"
+                logger.info("RateLimiter: using Redis backend (%s)", redis_url.split("@")[-1])
+            except Exception as exc:
+                logger.warning("RateLimiter: Redis unavailable, falling back to memory — %s", exc)
 
     async def dispatch(self, request: Request, call_next):
-        # Only bypass rate limiting when explicitly in test mode (not production)
         if TESTING and os.environ.get("ENVIRONMENT", "development") != "production":
             return await call_next(request)
+
         client_ip = request.client.host if request.client else "unknown"
         for path_pattern, (max_req, window) in self.rates.items():
             if request.url.path.startswith(path_pattern):
-                key = f"{client_ip}:{path_pattern}"
-                now = time.time()
-                self.requests[key] = [t for t in self.requests.get(key, []) if now - t < window]
-                if len(self.requests[key]) >= max_req:
+                key = f"rl:{client_ip}:{path_pattern}"
+                try:
+                    allowed = await self._check(key, max_req, window)
+                except Exception:
+                    # If Redis dies mid-request, don't block the user
+                    allowed = True
+                if not allowed:
                     return JSONResponse(status_code=429, content={"error": "rate_limit_exceeded"})
-                self.requests[key].append(now)
                 break
+
         return await call_next(request)
 
-    requests: dict = {}
+    # -- Redis path (async) -------------------------------------------------
+
+    async def _check(self, key: str, max_req: int, window: int) -> bool:
+        if self._redis and self._backend == "redis":
+            return await self._check_redis(key, max_req, window)
+        return self._check_memory(key, max_req, window)
+
+    async def _check_redis(self, key: str, max_req: int, window: int) -> bool:
+        pipe = self._redis.pipeline()
+        now = time.time()
+        window_start = now - window
+        pipe.zremrangebyscore(key, 0, window_start)
+        pipe.zadd(key, {str(now): now})
+        pipe.zcard(key)
+        pipe.expire(key, window)
+        results = await pipe.execute()
+        count = results[2]
+        return count <= max_req
+
+    # -- Memory fallback (sync, bounded) ------------------------------------
+
+    def _check_memory(self, key: str, max_req: int, window: int) -> bool:
+        now = time.time()
+        timestamps = self._memory_store.get(key)
+        if timestamps is None:
+            timestamps = []
+            self._memory_store[key] = timestamps
+        # Prune expired
+        self._memory_store[key] = [t for t in timestamps if now - t < window]
+        if len(self._memory_store[key]) >= max_req:
+            return False
+        self._memory_store[key].append(now)
+        return True
+
+
+class _BoundedDict(OrderedDict):
+    """Dict with a hard max size; evicts oldest entries when full."""
+
+    def __init__(self, maxsize: int = 4096):
+        super().__init__()
+        self._maxsize = maxsize
+
+    def __setitem__(self, key, value):
+        if key in self:
+            del self[key]
+        elif len(self) >= self._maxsize:
+            self.popitem(last=False)
+        super().__setitem__(key, value)
 
 
 RATE_LIMITS = {
@@ -127,12 +203,44 @@ ALLOWED_ORIGINS = [
 ]
 
 
+# ---------------------------------------------------------------------------
+# Maintenance mode — cached check (TTL 60 s)
+# ---------------------------------------------------------------------------
+
+_MAINTENANCE_TTL = 60  # seconds
+_maintenance_cache: dict[str, tuple[bool, float]] = {}
+
+
+def _is_maintenance_mode() -> bool:
+    """Return True if global maintenance mode is ON, with a 60 s in-memory cache."""
+    now = time.time()
+    cached = _maintenance_cache.get("global")
+    if cached:
+        value, ts = cached
+        if now - ts < _MAINTENANCE_TTL:
+            return value
+
+    try:
+        from app.db import SessionLocal
+        from app.models import PlatformSettings
+        db = SessionLocal()
+        setting = db.query(PlatformSettings).filter(
+            PlatformSettings.key == "maintenance_mode",
+            PlatformSettings.school_id == None,
+        ).first()
+        db.close()
+
+        value = bool(setting and setting.value and setting.value.lower() in ("true", "1", "yes"))
+    except Exception:
+        value = False
+
+    _maintenance_cache["global"] = (value, now)
+    return value
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting EDUAI Learning Backend...")
-    Base.metadata.create_all(bind=engine)
-    LmsBase.metadata.create_all(bind=engine)
-    logger.info("Database tables created")
 
     # Démarrer le scheduler d'expiration des packs
     from app.services.course_access import start_pack_expiration_scheduler
@@ -182,39 +290,33 @@ async def security_headers_middleware(request: Request, call_next):
 
 @app.middleware("http")
 async def maintenance_mode_middleware(request: Request, call_next):
-    """Block non-admin requests when maintenance mode is enabled."""
+    """Block non-admin requests when maintenance mode is enabled.
+
+    The maintenance flag is cached in-memory for 60 s to avoid a DB round-trip
+    on every single request.  The cache is process-local (fine for single-worker
+    dev; in multi-worker prod the worst case is a 60 s propagation delay).
+    """
     path = request.url.path
     if path.startswith("/api/admin/") or path in ("/", "/health", "/docs", "/openapi.json"):
         return await call_next(request)
 
-    try:
-        from app.db import SessionLocal
-        db = SessionLocal()
-        from app.models import PlatformSettings
-        setting = db.query(PlatformSettings).filter(
-            PlatformSettings.key == "maintenance_mode",
-            PlatformSettings.school_id == None,
-        ).first()
-        db.close()
-        if setting and setting.value and setting.value.lower() in ("true", "1", "yes"):
-            from fastapi.responses import JSONResponse
-            origin = request.headers.get("origin", "")
-            headers = {}
-            if origin in ALLOWED_ORIGINS:
-                headers["Access-Control-Allow-Origin"] = origin
-                headers["Access-Control-Allow-Credentials"] = "true"
-                headers["Access-Control-Allow-Methods"] = "*"
-                headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, X-Tenant-ID"
-            return JSONResponse(
-                status_code=503,
-                content={
-                    "error": "maintenance_mode",
-                    "message": "Platform is under maintenance. Please check back later.",
-                },
-                headers=headers,
-            )
-    except Exception:
-        pass
+    if _is_maintenance_mode():
+        origin = request.headers.get("origin", "")
+        headers = {}
+        if origin in ALLOWED_ORIGINS:
+            headers["Access-Control-Allow-Origin"] = origin
+            headers["Access-Control-Allow-Credentials"] = "true"
+            headers["Access-Control-Allow-Methods"] = "*"
+            headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, X-Tenant-ID"
+        return JSONResponse(
+            status_code=503,
+            content={
+                "error": "maintenance_mode",
+                "message": "Platform is under maintenance. Please check back later.",
+            },
+            headers=headers,
+        )
+
     return await call_next(request)
 
 
@@ -286,6 +388,7 @@ app.include_router(logs_router)
 app.include_router(teacher_router, prefix="/api/teacher")
 app.include_router(admin_teacher_router, prefix="/api/admin")
 app.include_router(payments_router, prefix="/api/payments")
+app.include_router(konnect_router, prefix="/api")
 app.include_router(wallet_router, prefix="/api/wallet")
 app.include_router(conversations_router)
 app.include_router(pedagogical_router, prefix="/api")

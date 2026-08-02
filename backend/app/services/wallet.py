@@ -9,6 +9,7 @@ Design principles:
 """
 
 from datetime import datetime, timezone
+from decimal import Decimal, ROUND_HALF_UP
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Optional
@@ -60,7 +61,7 @@ def tokens_to_credits(input_tokens: int, output_tokens: int) -> int:
 
 class InsufficientCreditsError(Exception):
     """Raised when user has insufficient credits across all pools."""
-    def __init__(self, required: int, available: int):
+    def __init__(self, required: Decimal, available: Decimal):
         self.required = required
         self.available = available
         super().__init__(f"Insufficient credits: need {required}, have {available}")
@@ -70,7 +71,7 @@ def _now_utc():
     return datetime.now(timezone.utc)
 
 
-def get_balance_by_pool(db: Session, user_id: int) -> dict[WalletPool, int]:
+def get_balance_by_pool(db: Session, user_id: int) -> dict[WalletPool, Decimal]:
     """Compute current balance per pool (only non-expired transactions)."""
     now = _now_utc()
     results = (
@@ -85,24 +86,24 @@ def get_balance_by_pool(db: Session, user_id: int) -> dict[WalletPool, int]:
         .group_by(WalletTransaction.pool)
         .all()
     )
-    # Build dict with all pools (default 0)
-    balances = {pool: 0 for pool in WalletPool}
+    # Build dict with all pools (default Decimal 0)
+    balances: dict[WalletPool, Decimal] = {pool: Decimal("0") for pool in WalletPool}
     for pool, total in results:
-        balances[pool] = max(0, total)  # Never negative
+        balances[pool] = max(Decimal("0"), Decimal(str(total)))  # Never negative
     return balances
 
 
-def get_total_balance(db: Session, user_id: int) -> int:
+def get_total_balance(db: Session, user_id: int) -> Decimal:
     """Compute total balance across all pools (non-expired only)."""
     balances = get_balance_by_pool(db, user_id)
-    return sum(balances.values())
+    return sum(balances.values(), Decimal("0"))
 
 
 # ---------------------------------------------------------------------------
 # DT (real-money) balance — unified with WalletTransaction ledger
 # ---------------------------------------------------------------------------
 
-def get_dt_balance(db: Session, user_id: int) -> float:
+def get_dt_balance(db: Session, user_id: int) -> Decimal:
     """Compute current DT balance from WalletTransaction ledger (append-only).
 
     Replaces the legacy mutable User.dt_balance column.
@@ -115,52 +116,62 @@ def get_dt_balance(db: Session, user_id: int) -> float:
         )
         .scalar()
     )
-    return float(max(0, total))
+    return max(Decimal("0"), Decimal(str(total)))
 
 
 def debit_dt(
     db: Session,
     user_id: int,
-    amount: float,
+    amount: Decimal,
     source: str = "purchase",
     reason: str = "",
+    commit: bool = True,
 ) -> WalletTransaction:
     """Debit DT from user via WalletTransaction (append-only audit trail).
 
     Raises InsufficientCreditsError if DT balance < amount.
+    When commit=False, caller is responsible for committing the transaction.
     """
-    current = get_dt_balance(db, user_id)
+    amount = Decimal(str(amount))
+    current = Decimal(str(get_dt_balance(db, user_id)))
     if current < amount:
-        raise InsufficientCreditsError(required=int(amount), available=int(current))
+        raise InsufficientCreditsError(required=amount, available=current)
     tx = WalletTransaction(
         user_id=user_id,
         pool=WalletPool.DT_PURCHASED,
-        amount=-int(amount),
+        amount=-amount,
         metadata_={"source": source, "reason": reason},
     )
     db.add(tx)
-    db.commit()
-    db.refresh(tx)
+    if commit:
+        db.commit()
+        db.refresh(tx)
     return tx
 
 
 def credit_dt(
     db: Session,
     user_id: int,
-    amount: float,
+    amount: Decimal,
     source: str = "admin",
     reason: str = "",
+    commit: bool = True,
 ) -> WalletTransaction:
-    """Credit DT to user via WalletTransaction (append-only audit trail)."""
+    """Credit DT to user via WalletTransaction (append-only audit trail).
+
+    When commit=False, caller is responsible for committing the transaction.
+    """
+    amount = Decimal(str(amount))
     tx = WalletTransaction(
         user_id=user_id,
         pool=WalletPool.DT_PURCHASED,
-        amount=int(amount),
+        amount=amount,
         metadata_={"source": source, "reason": reason},
     )
     db.add(tx)
-    db.commit()
-    db.refresh(tx)
+    if commit:
+        db.commit()
+        db.refresh(tx)
     return tx
 
 
@@ -180,21 +191,58 @@ def consume_credits(
     Priority: subscription → school_allocated → trial → purchased
     (consume most perishable first, save purchased — never expires — for last)
 
+    Uses SELECT ... FOR UPDATE to lock wallet rows for this user, preventing
+    concurrent double-spend. PostgreSQL forbids FOR UPDATE with GROUP BY,
+    so we lock rows first, then aggregate in a subquery.
+
     Returns list of debits actually applied (one per pool touched).
     Raises InsufficientCreditsError if total balance < amount.
     """
-    from sqlalchemy import select
+    from sqlalchemy import select, and_
 
-    # Use SELECT FOR UPDATE to lock rows and prevent race conditions
-    stmt = (
-        select(WalletTransaction)
+    now = _now_utc()
+
+    # Step 1: Lock all relevant rows for this user with FOR UPDATE.
+    # PostgreSQL requires FOR UPDATE on the base query, not on GROUP BY.
+    lock_stmt = (
+        select(WalletTransaction.id)
         .where(WalletTransaction.user_id == user_id)
+        .where(
+            (WalletTransaction.pool.in_([WalletPool.PURCHASED, WalletPool.SUBSCRIPTION]))
+            |
+            ((WalletTransaction.expires_at == None) | (WalletTransaction.expires_at > now))
+        )
         .with_for_update()
     )
-    db.execute(stmt)
+    db.execute(lock_stmt)
 
-    total = get_total_balance(db, user_id)
+    # Step 2: Compute balance per pool from the now-locked rows.
+    balance_stmt = (
+        select(
+            WalletTransaction.pool,
+            func.coalesce(func.sum(WalletTransaction.amount), 0).label("pool_balance"),
+        )
+        .where(WalletTransaction.user_id == user_id)
+        .where(
+            (WalletTransaction.pool.in_([WalletPool.PURCHASED, WalletPool.SUBSCRIPTION]))
+            |
+            ((WalletTransaction.expires_at == None) | (WalletTransaction.expires_at > now))
+        )
+        .group_by(WalletTransaction.pool)
+    )
+    rows = db.execute(balance_stmt).all()
+
+    # Build pool balance dict (default 0 for pools with no transactions)
+    balances: dict[WalletPool, Decimal] = {pool: Decimal("0") for pool in WalletPool}
+    total = Decimal("0")
+    for pool, pool_balance in rows:
+        safe_balance = max(Decimal("0"), Decimal(str(pool_balance)))
+        balances[pool] = safe_balance
+        total += safe_balance
+
     if total < amount:
+        # Rollback releases the FOR UPDATE locks without committing any debits
+        db.rollback()
         raise InsufficientCreditsError(required=amount, available=total)
 
     # Priority order (most perishable first)
@@ -205,18 +253,17 @@ def consume_credits(
         WalletPool.PURCHASED,         # Never expires — save for last
     ]
 
-    balances = get_balance_by_pool(db, user_id)
     remaining = amount
     debits = []
 
     for pool in consumption_order:
         if remaining <= 0:
             break
-        pool_balance = balances.get(pool, 0)
+        pool_balance = balances.get(pool, Decimal("0"))
         if pool_balance <= 0:
             continue
 
-        debit_amount = min(pool_balance, remaining)
+        debit_amount = min(pool_balance, Decimal(str(remaining)))
         tx = WalletTransaction(
             user_id=user_id,
             pool=pool,
@@ -228,10 +275,11 @@ def consume_credits(
         remaining -= debit_amount
         debits.append({"pool": pool, "amount": debit_amount})
 
+    # Commit — releases FOR UPDATE locks
     db.commit()
 
     # Check low balance after consumption
-    alert = check_low_balance_alert(db, user_id)
+    check_low_balance_alert(db, user_id)
 
     return debits
 
@@ -386,7 +434,7 @@ def check_low_balance_alert(db: Session, user_id: int) -> Optional[dict]:
         user_id=user_id,
         pool=WalletPool.TRIAL,  # Dummy — no balance change
         amount=0,
-        metadata_={"alert_type": f"low_balance_{threshold}", "balance": total, "pct": pct},
+        metadata_={"alert_type": f"low_balance_{threshold}", "balance": float(total), "pct": float(pct)},
     )
     db.add(alert_tx)
     db.commit()

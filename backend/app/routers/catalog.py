@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 
 from app.db import get_db
-from app.models import Course, CourseStatus, Module, Lesson
+from app.models import Course, CourseStatus, Module, Lesson, User, UserRole
 
 router = APIRouter()
 
@@ -119,6 +119,22 @@ def get_course_detail(slug: str, db: Session = Depends(get_db)):
         "total_lessons": course.total_lessons or 0,
         "estimated_duration_minutes": course.total_duration_minutes or 0,
         "chapters": chapters
+    }
+
+
+@router.get("/stats")
+def platform_stats(db: Session = Depends(get_db)):
+    """Public platform stats: teacher count, course count."""
+    teacher_count = db.query(User).filter(
+        User.role == UserRole.TEACHER,
+        User.is_active == True,
+    ).count()
+    course_count = db.query(Course).filter(
+        Course.status == CourseStatus.PUBLISHED,
+    ).count()
+    return {
+        "teachers": teacher_count,
+        "courses": course_count,
     }
 
 

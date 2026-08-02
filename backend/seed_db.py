@@ -1,165 +1,389 @@
-"""Seed database with initial data"""
-import sys
+"""
+EDUAI Learning — Seed Script
+============================
+Populates the database with realistic test data for full-platform testing.
+Idempotent: checks existence by email/slug before inserting.
+
+Usage:
+    cd backend
+    python seed_db.py
+"""
+from __future__ import annotations
+
 import os
+import sys
+import secrets
+from datetime import datetime, timedelta, timezone
 
-# Ensure we're in the right directory
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from app.models import Base, School, User, Course, Module, Lesson, TokenPackage
-from app.db.session import engine, SessionLocal
-from app.models import UserRole, SubscriptionTier, CourseStatus
+if not os.environ.get("DATABASE_URL"):
+    os.environ["DATABASE_URL"] = "postgresql+pg8000://postgres:gill4264@localhost:5432/eduai"
+
+from sqlalchemy.orm import sessionmaker
 from app.core.security import get_password_hash
+from app.models import (
+    Base, School, User, Course, Module, Lesson, Quiz, QuizQuestion, QuizOption,
+    WalletTransaction, CourseEnrollment, StudyPack, PackPurchase,
+    NiveauEtude, Matiere, ChapterPathway, ParentEnfant,
+    UserRole, SubscriptionTier, SchoolType, WalletPool,
+    CourseStatus, PedagogicalStatus, CourseOwnerType, CourseVisibility,
+    EnrollmentStatus, PackStatus, PackPurchaseStatus, PurchaserType,
+)
+
+HASHED_PASSWORD = get_password_hash("passeword123")
+NOW = datetime.now(timezone.utc)
 
 
-def seed_database():
-    """Create all tables and seed initial data"""
-    
-    print("Creating database tables...")
-    
-    # Import all models to register them with Base
-    from app.models import (
-        School, User, Course, Module, Lesson, ClassRoom,
-        Assignment, Submission, Transaction, TokenPackage,
-        CourseEnrollment, ClassroomEnrollment, CoursePurchase,
-        Document, Message, PlatformSetting, TeacherRegistration
-    )
-    
-    # Create all tables
+def _lbl(created: bool) -> str:
+    return "[NEW]" if created else "[EXISTS]"
+
+
+def get_or_create(session, model, defaults=None, **kwargs):
+    instance = session.query(model).filter_by(**kwargs).first()
+    if instance:
+        return instance, False
+    params = {**kwargs}
+    if defaults:
+        params.update(defaults)
+    instance = model(**params)
+    session.add(instance)
+    session.flush()
+    return instance, True
+
+
+def seed():
+    from app.db.session import engine, SessionLocal
+
+    print("=" * 60)
+    print("  EDUAI Learning — Seed Script")
+    print("=" * 60)
+
+    print("\n[1/9] Creating tables ...")
     Base.metadata.create_all(bind=engine)
-    print("Tables created!")
-    
-    db = SessionLocal()
-    
+
+    session = SessionLocal()
+
     try:
-        # Check if demo school exists
-        school = db.query(School).filter(School.slug == "demo-academy").first()
-        if school:
-            print("Demo data already exists!")
-            return
-        
-        # Create demo school
-        print("Creating demo school...")
-        school = School(
-            name="Demo Academy",
-            slug="demo-academy",
-            subscription_tier=SubscriptionTier.SCHOOL,
-            is_active=True
+        # ── SCHOOLS ────────────────────────────────────────────────────
+        print("\n[2/9] Creating schools ...")
+
+        school_a, created = get_or_create(
+            session, School, slug="carthage",
+            defaults=dict(name="Lycee Carthage", school_type=SchoolType.REAL.value,
+                          subscription_tier=SubscriptionTier.SCHOOL.value,
+                          is_active=True, max_users=200),
         )
-        db.add(school)
-        db.commit()
-        db.refresh(school)
-        
-        # Create admin user
-        print("Creating admin user...")
-        admin = User(
-            school_id=school.id,
-            email="admin@demo-academy.edu",
-            hashed_password=get_password_hash("password123"),
-            full_name="Admin User",
-            role=UserRole.ADMIN_SCHOOL,
-            is_active=True,
-            is_approved=True,
-            token_balance=10000,
-            dt_balance=1000.0
+        print("  %s Lycee Carthage (id=%d)" % (_lbl(created), school_a.id))
+
+        school_b, created = get_or_create(
+            session, School, slug="el-jem",
+            defaults=dict(name="Lycee El Jem", school_type=SchoolType.REAL.value,
+                          subscription_tier=SubscriptionTier.SCHOOL.value,
+                          is_active=True, max_users=200),
         )
-        db.add(admin)
-        
-        # Create teacher user
-        print("Creating teacher user...")
-        teacher = User(
-            school_id=school.id,
-            email="teacher@demo-academy.edu",
-            hashed_password=get_password_hash("password123"),
-            full_name="Mohamed Trabelsi",
-            role=UserRole.TEACHER,
-            is_active=True,
-            is_approved=True,
-            token_balance=5000,
-            dt_balance=500.0
-        )
-        db.add(teacher)
-        
-        # Create student user
-        print("Creating student user...")
-        student = User(
-            school_id=school.id,
-            email="student@demo-academy.edu",
-            hashed_password=get_password_hash("password123"),
-            full_name="Ahmed Ben Ali",
-            role=UserRole.STUDENT,
-            is_active=True,
-            is_approved=True,
-            token_balance=1000,
-            dt_balance=100.0
-        )
-        db.add(student)
-        
-        db.commit()
-        
-        # Create a demo course
-        print("Creating demo course...")
-        course = Course(
-            school_id=school.id,
-            author_id=teacher.id,
-            title="Python pour les débutants",
-            description="Apprenez les bases de Python depuis zéro.",
-            price_tokens=50,
-            price_dt=25,
-            status=CourseStatus.PUBLISHED,
-            is_published=True,
-            total_modules=3,
-            total_lessons=15
-        )
-        db.add(course)
-        db.commit()
-        db.refresh(course)
-        
-        # Create modules
-        print("Creating course modules...")
-        modules = [
-            Module(course_id=course.id, title="Introduction à Python", order=1),
-            Module(course_id=course.id, title="Les variables et types", order=2),
-            Module(course_id=course.id, title="Les boucles et conditions", order=3),
+        print("  %s Lycee El Jem (id=%d)" % (_lbl(created), school_b.id))
+        session.flush()
+
+        # ── USERS ──────────────────────────────────────────────────────
+        print("\n[3/9] Creating users ...")
+
+        users_data = [
+            dict(email="superadmin@eduai.tn", full_name="Super Admin EDUAI",
+                 role=UserRole.SUPER_ADMIN.value, school_id=None),
+            dict(email="pedagogical.admin@eduai.tn", full_name="Admin Pedagogique Global",
+                 role=UserRole.PEDAGOGICAL_ADMIN.value, school_id=None),
+            dict(email="admin.carthage@eduai.tn", full_name="Directeur Carthage",
+                 role=UserRole.ADMIN_SCHOOL.value, school_id=school_a.id),
+            dict(email="pedago.lead.carthage@eduai.tn", full_name="Resp Pedagogique Carthage",
+                 role=UserRole.PEDAGOGICAL_LEAD.value, school_id=school_a.id),
+            dict(email="prof.maths.carthage@eduai.tn", full_name="Prof Maths Carthage",
+                 role=UserRole.TEACHER.value, school_id=school_a.id, is_approved=True),
+            dict(email="prof.physique.carthage@eduai.tn", full_name="Prof Physique Carthage",
+                 role=UserRole.TEACHER.value, school_id=school_a.id, is_approved=True),
+            dict(email="eleve1.carthage@eduai.tn", full_name="Ahmed Ben Ali",
+                 role=UserRole.STUDENT.value, school_id=school_a.id, niveau_scolaire="9eme de base"),
+            dict(email="eleve2.carthage@eduai.tn", full_name="Fatma Trabelsi",
+                 role=UserRole.STUDENT.value, school_id=school_a.id, niveau_scolaire="2eme annee sciences"),
+            dict(email="eleve3.carthage@eduai.tn", full_name="Youssef Khelifi",
+                 role=UserRole.STUDENT.value, school_id=school_a.id, niveau_scolaire="9eme de base"),
+            dict(email="parent.carthage@eduai.tn", full_name="Parent Ben Ali",
+                 role=UserRole.PARENT.value, school_id=school_a.id),
+            dict(email="admin.eljem@eduai.tn", full_name="Directeur El Jem",
+                 role=UserRole.ADMIN_SCHOOL.value, school_id=school_b.id),
+            dict(email="pedago.lead.eljem@eduai.tn", full_name="Resp Pedagogique El Jem",
+                 role=UserRole.PEDAGOGICAL_LEAD.value, school_id=school_b.id),
+            dict(email="prof.maths.eljem@eduai.tn", full_name="Prof Maths El Jem",
+                 role=UserRole.TEACHER.value, school_id=school_b.id, is_approved=True),
+            dict(email="prof.arabe.eljem@eduai.tn", full_name="Prof Arabe El Jem",
+                 role=UserRole.TEACHER.value, school_id=school_b.id, is_approved=True),
+            dict(email="eleve1.eljem@eduai.tn", full_name="Amira Bouazizi",
+                 role=UserRole.STUDENT.value, school_id=school_b.id, niveau_scolaire="9eme de base"),
+            dict(email="eleve2.eljem@eduai.tn", full_name="Omar Mansour",
+                 role=UserRole.STUDENT.value, school_id=school_b.id, niveau_scolaire="1ere annee secondaire"),
+            dict(email="eleve3.eljem@eduai.tn", full_name="Nour Haddad",
+                 role=UserRole.STUDENT.value, school_id=school_b.id, niveau_scolaire="9eme de base"),
+            dict(email="parent.eljem@eduai.tn", full_name="Parent Bouazizi",
+                 role=UserRole.PARENT.value, school_id=school_b.id),
         ]
-        for m in modules:
-            db.add(m)
-        db.commit()
-        
-        # Create token packages
-        print("Creating token packages...")
-        packages = [
-            TokenPackage(school_id=school.id, name="Starter", tokens=100, price_dt=5, bonus_tokens=10),
-            TokenPackage(school_id=school.id, name="Standard", tokens=500, price_dt=20, bonus_tokens=50),
-            TokenPackage(school_id=school.id, name="Pro", tokens=1000, price_dt=35, bonus_tokens=100),
+
+        U = {}
+        for ud in users_data:
+            user, is_new = get_or_create(
+                session, User, email=ud["email"],
+                defaults=dict(full_name=ud["full_name"], role=ud["role"],
+                              school_id=ud.get("school_id"), hashed_password=HASHED_PASSWORD,
+                              is_active=True, onboarding_complete=True,
+                              niveau_scolaire=ud.get("niveau_scolaire"),
+                              is_approved=ud.get("is_approved")),
+            )
+            U[ud["email"]] = user
+            print("  %s %s (%s)" % (_lbl(is_new), ud["email"], ud["role"]))
+        session.flush()
+
+        # ── PARENT–STUDENT LINKS ───────────────────────────────────────
+        print("\n[4/9] Linking parent -> students ...")
+
+        parent_a = U["parent.carthage@eduai.tn"]
+        for child_email in ["eleve1.carthage@eduai.tn", "eleve3.carthage@eduai.tn"]:
+            link, is_new = get_or_create(
+                session, ParentEnfant,
+                parent_user_id=parent_a.id, eleve_id=U[child_email].id,
+            )
+            print("  %s parent.carthage -> %s" % (_lbl(is_new), U[child_email].full_name))
+
+        parent_b = U["parent.eljem@eduai.tn"]
+        link, is_new = get_or_create(
+            session, ParentEnfant,
+            parent_user_id=parent_b.id, eleve_id=U["eleve1.eljem@eduai.tn"].id,
+        )
+        print("  %s parent.eljem -> %s" % (_lbl(is_new), U["eleve1.eljem@eduai.tn"].full_name))
+        session.flush()
+
+        # ── WALLET TRANSACTIONS ────────────────────────────────────────
+        print("\n[5/9] Creating wallet transactions ...")
+
+        wallet_emails = [
+            "eleve1.carthage@eduai.tn", "eleve2.carthage@eduai.tn", "eleve3.carthage@eduai.tn",
+            "eleve1.eljem@eduai.tn", "eleve2.eljem@eduai.tn", "eleve3.eljem@eduai.tn",
+            "prof.maths.carthage@eduai.tn", "prof.physique.carthage@eduai.tn",
+            "prof.maths.eljem@eduai.tn", "prof.arabe.eljem@eduai.tn",
         ]
-        for p in packages:
-            db.add(p)
-        
-        db.commit()
-        
-        print("\n" + "="*50)
-        print("DEMO DATA CREATED SUCCESSFULLY!")
-        print("="*50)
-        print("\nLOGIN CREDENTIALS:")
-        print("-"*30)
-        print("ADMIN:")
-        print("  Email: admin@demo-academy.edu")
-        print("  Password: password123")
-        print("\nTEACHER:")
-        print("  Email: teacher@demo-academy.edu")
-        print("  Password: password123")
-        print("\nSTUDENT:")
-        print("  Email: student@demo-academy.edu")
-        print("  Password: password123")
-        print("="*50)
-        
+
+        for email in wallet_emails:
+            uid = U[email].id
+            existing = session.query(WalletTransaction).filter_by(user_id=uid).first()
+            if existing:
+                print("  [EXISTS] Wallet for %s" % email)
+                continue
+            session.add(WalletTransaction(
+                user_id=uid, pool=WalletPool.TRIAL, amount=100.0,
+                expires_at=NOW + timedelta(days=30)))
+            session.add(WalletTransaction(
+                user_id=uid, pool=WalletPool.DT_PURCHASED, amount=50.0))
+            print("  [NEW] Wallet for %s: 100 tokens (trial) + 50.00 DT" % email)
+        session.flush()
+
+        # ── ADAPTIVE PATHWAY ───────────────────────────────────────────
+        print("\n[6/9] Creating adaptive pathway ...")
+
+        niveau, is_new = get_or_create(
+            session, NiveauEtude, nom="9eme de base", defaults=dict(ordre=9))
+        print("  %s NiveauEtude: 9eme de base (id=%d)" % (_lbl(is_new), niveau.id))
+
+        matiere, is_new = get_or_create(
+            session, Matiere, nom="Mathematiques",
+            defaults=dict(niveau_etude_id=niveau.id, remediation_threshold=40,
+                          standard_threshold=75, avance_threshold=75))
+        print("  %s Matiere: Mathematiques (id=%d)" % (_lbl(is_new), matiere.id))
+
+        chapitre, is_new = get_or_create(
+            session, ChapterPathway, nom="Algebre",
+            defaults=dict(matiere_id=matiere.id, ordre=1))
+        print("  %s ChapterPathway: Algebre (id=%d)" % (_lbl(is_new), chapitre.id))
+        session.flush()
+
+        # ── COURSES + LMS ──────────────────────────────────────────────
+        print("\n[7/9] Creating courses with LMS content ...")
+
+        t_a1 = U["prof.maths.carthage@eduai.tn"]
+        t_a2 = U["prof.physique.carthage@eduai.tn"]
+        t_b1 = U["prof.maths.eljem@eduai.tn"]
+        t_b2 = U["prof.arabe.eljem@eduai.tn"]
+        superadmin = U["superadmin@eduai.tn"]
+
+        courses_data = [
+            dict(title="Algebre - 9eme de base", slug="algebre-9eme-carthage",
+                 school_id=school_a.id, author_id=t_a1.id,
+                 owner_type=CourseOwnerType.SCHOOL.value, niveau_scolaire="9eme de base",
+                 price=None, visibility=CourseVisibility.SCHOOL_ONLY.value),
+            dict(title="Physique - 2eme annee sciences", slug="physique-2eme-carthage",
+                 school_id=school_a.id, author_id=t_a2.id,
+                 owner_type=CourseOwnerType.SCHOOL.value, niveau_scolaire="2eme annee sciences",
+                 price=None, visibility=CourseVisibility.SCHOOL_ONLY.value),
+            dict(title="Algebre - 9eme (El Jem)", slug="algebre-9eme-eljem",
+                 school_id=school_b.id, author_id=t_b1.id,
+                 owner_type=CourseOwnerType.SCHOOL.value, niveau_scolaire="9eme de base",
+                 price=None, visibility=CourseVisibility.SCHOOL_ONLY.value),
+            dict(title="Arabe - 9eme (El Jem)", slug="arabe-9eme-eljem",
+                 school_id=school_b.id, author_id=t_b2.id,
+                 owner_type=CourseOwnerType.SCHOOL.value, niveau_scolaire="9eme de base",
+                 price=None, visibility=CourseVisibility.SCHOOL_ONLY.value),
+            dict(title="Cours Particulier Maths - 3eme", slug="cours-particulier-maths-3eme",
+                 school_id=school_a.id, author_id=t_a1.id,
+                 owner_type=CourseOwnerType.INDEPENDENT_TEACHER.value,
+                 niveau_scolaire="3eme annee mathematiques",
+                 price=15.0, visibility=CourseVisibility.PUBLIC_CATALOG.value),
+        ]
+
+        created_courses = []
+        for cd in courses_data:
+            course, is_new = get_or_create(
+                session, Course, slug=cd["slug"],
+                defaults=dict(
+                    title=cd["title"], school_id=cd["school_id"], author_id=cd["author_id"],
+                    owner_type=cd["owner_type"], niveau_scolaire=cd["niveau_scolaire"],
+                    price=cd["price"], visibility=cd["visibility"],
+                    status=CourseStatus.PUBLISHED.value,
+                    pedagogical_status=PedagogicalStatus.APPROVED_LOCAL.value,
+                    is_published=True, total_modules=1, total_lessons=2,
+                    description="Cours de %s pour le programme tunisien." % cd["title"]),
+            )
+            created_courses.append(course)
+            print("  %s Course: %s (id=%d)" % (_lbl(is_new), cd["title"], course.id))
+        session.flush()
+
+        # LMS content per course
+        for course in created_courses:
+            existing_mod = session.query(Module).filter_by(course_id=course.id).first()
+            if existing_mod:
+                print("    [EXISTS] LMS for course %d" % course.id)
+                continue
+
+            mod = Module(course_id=course.id, title="Module 1 - %s" % course.title,
+                         description="Module principal", order=1)
+            session.add(mod)
+            session.flush()
+
+            lt = Lesson(module_id=mod.id, school_id=course.school_id, teacher_id=course.author_id,
+                        title="Lecon 1 - Introduction", lesson_type="text", content_type="text",
+                        content_text="Contenu de %s. Concepts fondamentaux." % course.title,
+                        order=1, duration_minutes=15, is_free=True)
+            session.add(lt)
+            session.flush()
+
+            lv = Lesson(module_id=mod.id, school_id=course.school_id, teacher_id=course.author_id,
+                        title="Lecon 2 - Video", lesson_type="video", content_type="video",
+                        video_url="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                        video_duration_seconds=600, order=2, duration_minutes=10)
+            session.add(lv)
+            session.flush()
+
+            quiz = Quiz(lesson_id=lt.id, title="Quiz - %s" % course.title,
+                        description="Quiz de validation", passing_score_percent=70, total_points=2,
+                        school_id=course.school_id)
+            session.add(quiz)
+            session.flush()
+
+            q1 = QuizQuestion(quiz_id=quiz.id, question_text="Solution de x + 3 = 7 ?",
+                              question_type="mcq", points=1, order_index=1)
+            session.add(q1)
+            session.flush()
+            session.add_all([
+                QuizOption(question_id=q1.id, option_text="x = 3", is_correct=False, order_index=1),
+                QuizOption(question_id=q1.id, option_text="x = 4", is_correct=True, order_index=2),
+                QuizOption(question_id=q1.id, option_text="x = 5", is_correct=False, order_index=3),
+                QuizOption(question_id=q1.id, option_text="x = 10", is_correct=False, order_index=4),
+            ])
+
+            q2 = QuizQuestion(quiz_id=quiz.id, question_text="Que vaut 2^5 ?",
+                              question_type="mcq", points=1, order_index=2)
+            session.add(q2)
+            session.flush()
+            session.add_all([
+                QuizOption(question_id=q2.id, option_text="16", is_correct=False, order_index=1),
+                QuizOption(question_id=q2.id, option_text="32", is_correct=True, order_index=2),
+                QuizOption(question_id=q2.id, option_text="64", is_correct=False, order_index=3),
+                QuizOption(question_id=q2.id, option_text="10", is_correct=False, order_index=4),
+            ])
+
+            print("    [NEW] Module + 2 Lessons + Quiz for course %d" % course.id)
+        session.flush()
+
+        # ── STUDY PACK ─────────────────────────────────────────────────
+        print("\n[8/9] Creating study packs ...")
+
+        pack, is_new = get_or_create(
+            session, StudyPack, name="Pack 9eme de base - Toutes matieres",
+            defaults=dict(description="Acces a tous les cours du 9eme de base (2025-2026).",
+                          niveau_scolaire="9eme de base", price=30.0, currency="TND",
+                          validity_duration_days=365, status=PackStatus.PUBLISHED.value,
+                          owner_type="eduai_catalog", created_by=superadmin.id))
+        print("  %s StudyPack: Pack 9eme (id=%d)" % (_lbl(is_new), pack.id))
+
+        student_a1 = U["eleve1.carthage@eduai.tn"]
+        existing_purchase = session.query(PackPurchase).filter_by(
+            pack_id=pack.id, student_id=student_a1.id).first()
+        if not existing_purchase:
+            session.add(PackPurchase(
+                pack_id=pack.id, purchaser_type=PurchaserType.STUDENT.value,
+                student_id=student_a1.id, valid_from=NOW, valid_until=NOW + timedelta(days=30),
+                status=PackPurchaseStatus.ACTIVE.value, amount_paid=30.0, currency="TND",
+                transaction_id="seed_%s" % secrets.token_hex(6)))
+            print("  [NEW] PackPurchase: eleve1.carthage -> Pack 9eme (30 TND)")
+        else:
+            print("  [EXISTS] PackPurchase: eleve1.carthage -> Pack 9eme")
+        session.flush()
+
+        # ── ENROLLMENTS ────────────────────────────────────────────────
+        print("\n[9/9] Creating enrollments ...")
+
+        course_a = created_courses[0]
+        existing = session.query(CourseEnrollment).filter_by(
+            student_id=student_a1.id, course_id=course_a.id).first()
+        if not existing:
+            session.add(CourseEnrollment(
+                student_id=student_a1.id, course_id=course_a.id,
+                status=EnrollmentStatus.ACTIVE.value, progress_percent=0))
+            print("  [NEW] Enrollment: eleve1.carthage -> %s" % course_a.title)
+        else:
+            print("  [EXISTS] Enrollment: eleve1.carthage -> %s" % course_a.title)
+
+        student_b1 = U["eleve1.eljem@eduai.tn"]
+        course_b = created_courses[2]
+        existing2 = session.query(CourseEnrollment).filter_by(
+            student_id=student_b1.id, course_id=course_b.id).first()
+        if not existing2:
+            session.add(CourseEnrollment(
+                student_id=student_b1.id, course_id=course_b.id,
+                status=EnrollmentStatus.ACTIVE.value, progress_percent=0))
+            print("  [NEW] Enrollment: eleve1.eljem -> %s" % course_b.title)
+        else:
+            print("  [EXISTS] Enrollment: eleve1.eljem -> %s" % course_b.title)
+        session.flush()
+
+        # ── DONE ───────────────────────────────────────────────────────
+        session.commit()
+
+        print("\n" + "=" * 60)
+        print("  Seed complete!")
+        print("=" * 60)
+        print("  Schools:         2 (Carthage, El Jem)")
+        print("  Users:           %d" % len(U))
+        print("  Courses:         %d" % len(created_courses))
+        print("  Wallet entries:  %d" % (len(wallet_emails) * 2))
+        print("  Study Packs:     1")
+        print("  Enrollments:     2")
+        print("  Password:        passeword123")
+        print("=" * 60)
+
     except Exception as e:
-        print(f"Error seeding database: {e}")
-        import traceback
-        traceback.print_exc()
-        db.rollback()
+        session.rollback()
+        print("\n  ERROR: %s" % e)
+        raise
     finally:
-        db.close()
+        session.close()
+
 
 if __name__ == "__main__":
-    seed_database()
+    seed()

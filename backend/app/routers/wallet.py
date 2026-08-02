@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime, timezone, timedelta
 from typing import Optional
+from decimal import Decimal
 
 from app.db import get_db
 from app.auth import get_current_user
@@ -21,12 +22,17 @@ def get_balance(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Get detailed balance per pool."""
+    """Get detailed balance per pool.
+
+    Includes both the modern WalletTransaction ledger AND the legacy
+    User.token_balance field (shown as 'legacy' pool) so that existing
+    balances are not lost during the migration.
+    """
     balances = get_balance_by_pool(db, current_user.id)
     now = datetime.now(timezone.utc)
     result = []
+
     for pool, amount in balances.items():
-        # Get earliest expiry for this pool
         earliest_expiry = (
             db.query(func.min(WalletTransaction.expires_at))
             .filter(
@@ -39,13 +45,27 @@ def get_balance(
             .scalar()
         )
         result.append({
-            "pool": pool,
-            "balance": amount,
+            "pool": pool.value if hasattr(pool, 'value') else str(pool),
+            "balance": float(amount),
             "expires_at": earliest_expiry.isoformat() if earliest_expiry else None,
         })
+
+    legacy_tokens = getattr(current_user, "token_balance", 0) or 0
+    legacy_dt = getattr(current_user, "dt_balance", 0) or 0
+    legacy_total = float(Decimal(str(legacy_tokens)) + Decimal(str(legacy_dt)))
+
+    if legacy_total > 0:
+        has_wallet_tx = any(r["balance"] > 0 for r in result)
+        if not has_wallet_tx:
+            result.append({
+                "pool": "legacy",
+                "balance": legacy_total,
+                "expires_at": None,
+            })
+
     return {
         "user_id": current_user.id,
-        "total": sum(r["balance"] for r in result),
+        "total": float(sum(r["balance"] for r in result)),
         "pools": result,
     }
 

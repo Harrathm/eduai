@@ -24,6 +24,14 @@ export default function RegisterPage() {
   const [submitted, setSubmitted] = useState(false);
   const { register, registerTrialTeacher, registerTeacher, isLoading, error } = useAuthStore();
   const navigate = useNavigate();
+  const [stats, setStats] = useState<{ teachers: number; courses: number }>({ teachers: 0, courses: 0 });
+
+  useEffect(() => {
+    fetch("/catalog/stats")
+      .then((r) => r.json())
+      .then(setStats)
+      .catch(() => {});
+  }, []);
 
   // School search state
   const [schoolQuery, setSchoolQuery] = useState("");
@@ -168,12 +176,12 @@ export default function RegisterPage() {
 
           <div className="flex gap-12 mt-16">
             <div>
-              <div className="text-4xl font-[300] text-orange-l">5</div>
-              <div className="text-white/30 text-xs tracking-[2px] uppercase mt-2">Modules</div>
+              <div className="text-4xl font-[300] text-orange-l">{stats.teachers}+</div>
+              <div className="text-white/30 text-xs tracking-[2px] uppercase mt-2">Enseignant</div>
             </div>
             <div>
-              <div className="text-4xl font-[300] text-orange-l">3</div>
-              <div className="text-white/30 text-xs tracking-[2px] uppercase mt-2">Revenus</div>
+              <div className="text-4xl font-[300] text-orange-l">{stats.courses}+</div>
+              <div className="text-white/30 text-xs tracking-[2px] uppercase mt-2">Cours</div>
             </div>
             <div>
               <div className="text-4xl font-[300] text-orange-l">24/7</div>
