@@ -502,23 +502,19 @@ def list_messages(
     db: Session = Depends(get_db),
 ):
     """List messages visible to the parent (direct + broadcasts)."""
-    from sqlalchemy import union_all, select
+    from sqlalchemy import or_
 
-    direct_q = db.query(Message).filter(
-        Message.receiver_id == current_user.id,
-        Message.school_id == current_user.school_id,
+    base_filters = [Message.school_id == current_user.school_id]
+    inbox_filter = or_(
+        and_(Message.receiver_id == current_user.id, *base_filters),
+        and_(
+            Message.receiver_id.is_(None),
+            Message.target_audience.in_(["all", "parents"]),
+            *base_filters,
+        ),
     )
-    broadcast_q = db.query(Message).filter(
-        Message.receiver_id.is_(None),
-        Message.target_audience.in_(["all", "parents"]),
-        Message.school_id == current_user.school_id,
-    )
 
-    direct_stmt = direct_q.with_entities(Message.id)
-    broadcast_stmt = broadcast_q.with_entities(Message.id)
-    combined = direct_stmt.union(broadcast_stmt).subquery()
-
-    query = db.query(Message).filter(Message.id.in_(select(combined.c.id)))
+    query = db.query(Message).filter(inbox_filter)
     if unread_only:
         query = query.filter(Message.is_read == False)
 

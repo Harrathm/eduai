@@ -411,15 +411,28 @@ def my_progress(
     db: Session = Depends(get_db),
     current_user: User = Depends(set_tenant_context),
 ):
-    query = db.query(Progress).filter(
-        Progress.school_id == current_user.school_id,
+    query = db.query(Progress).join(Lesson, Progress.lesson_id == Lesson.id).filter(
         Progress.user_id == current_user.id,
     )
+    if current_user.role not in ("super_admin", "pedagogical_admin"):
+        query = query.filter(Lesson.course.has(Course.school_id == current_user.school_id))
     if course_id:
-        query = query.filter(Progress.course_id == course_id)
+        query = query.filter(Lesson.course_id == course_id)
     total = query.count()
     items = query.offset(skip).limit(limit).all()
-    return {"total": total, "skip": skip, "limit": limit, "items": items}
+    return {"total": total, "skip": skip, "limit": limit, "items": [
+        {
+            "id": p.id,
+            "user_id": p.user_id,
+            "lesson_id": p.lesson_id,
+            "status": p.status,
+            "time_spent_seconds": p.time_spent_seconds,
+            "score": p.score,
+            "started_at": p.started_at.isoformat() if p.started_at else None,
+            "completed_at": p.completed_at.isoformat() if p.completed_at else None,
+        }
+        for p in items
+    ]}
 
 
 @router.post("/progress", response_model=ProgressRead)

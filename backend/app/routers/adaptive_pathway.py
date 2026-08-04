@@ -215,7 +215,10 @@ def record_score(
                                   "student") and current_user.id != score_in.eleve_id:
         raise HTTPException(status_code=403, detail="Accès refusé")
 
-    # Resolve enseignant_id for notification (if teacher is recording)
+    from app.models import ChapterPathway
+    if not db.query(ChapterPathway).filter(ChapterPathway.id == score_in.chapitre_id).first():
+        raise HTTPException(status_code=404, detail="Chapter pathway not found")
+
     enseignant_id = None
     if current_user.role == "teacher":
         enseignant_id = current_user.id

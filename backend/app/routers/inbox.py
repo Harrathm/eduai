@@ -2,6 +2,7 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from app.db import get_db
@@ -9,6 +10,22 @@ from app.auth import get_current_user
 from app.models import Message, User
 
 router = APIRouter(prefix="/inbox", tags=["inbox"])
+
+
+def _inbox_filter(current_user: User):
+    """Build OR filter: direct messages + broadcasts matching role."""
+    role = current_user.role
+    base_filters = []
+    if role not in ("super_admin", "pedagogical_admin"):
+        base_filters.append(Message.school_id == current_user.school_id)
+
+    direct = and_(Message.receiver_id == current_user.id, *base_filters)
+    broadcast = and_(
+        Message.receiver_id.is_(None),
+        Message.target_audience.in_(["all", f"{role}s", role]),
+        *base_filters,
+    )
+    return or_(direct, broadcast)
 
 
 @router.get("/messages")
@@ -19,34 +36,8 @@ def list_inbox_messages(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Return messages visible to the current user.
-    - Direct messages (receiver_id = current user)
-    - Broadcasts matching the user's role (target_audience in ['all', role])
-    """
-    role = current_user.role
-
-    # Direct messages to this user
-    direct_q = db.query(Message).filter(Message.receiver_id == current_user.id)
-
-    # Broadcasts matching role
-    broadcast_q = db.query(Message).filter(
-        Message.receiver_id.is_(None),
-        Message.target_audience.in_(["all", f"{role}s", role]),
-    )
-
-    # Same school only for non-super-admin
-    if role not in ("super_admin", "pedagogical_admin"):
-        direct_q = direct_q.filter(Message.school_id == current_user.school_id)
-        broadcast_q = broadcast_q.filter(Message.school_id == current_user.school_id)
-
-    from sqlalchemy import union_all, select, literal
-
-    # Combine with union
-    direct_stmt = direct_q.with_entities(Message.id)
-    broadcast_stmt = broadcast_q.with_entities(Message.id)
-    combined = direct_stmt.union(broadcast_stmt).subquery()
-
-    query = db.query(Message).filter(Message.id.in_(select(combined.c.id)))
+    """Return messages visible to the current user."""
+    query = db.query(Message).filter(_inbox_filter(current_user))
 
     if unread_only:
         query = query.filter(Message.is_read == False)
@@ -69,8 +60,7 @@ def list_inbox_messages(
         })
 
     return {"total": total, "unread": db.query(Message).filter(
-        Message.id.in_(select(combined.c.id)),
-        Message.is_read == False,
+        _inbox_filter(current_user), Message.is_read == False,
     ).count(), "items": result}
 
 
@@ -107,27 +97,7 @@ def unread_count(
     current_user: User = Depends(get_current_user),
 ):
     """Return the count of unread messages for the current user."""
-    role = current_user.role
-
-    direct_q = db.query(Message).filter(
-        Message.receiver_id == current_user.id,
-        Message.is_read == False,
-    )
-    broadcast_q = db.query(Message).filter(
-        Message.receiver_id.is_(None),
-        Message.target_audience.in_(["all", f"{role}s", role]),
-        Message.is_read == False,
-    )
-
-    if role not in ("super_admin", "pedagogical_admin"):
-        direct_q = direct_q.filter(Message.school_id == current_user.school_id)
-        broadcast_q = broadcast_q.filter(Message.school_id == current_user.school_id)
-
-    from sqlalchemy import select
-
-    direct_stmt = direct_q.with_entities(Message.id)
-    broadcast_stmt = broadcast_q.with_entities(Message.id)
-    combined = direct_stmt.union(broadcast_stmt).subquery()
-
-    count = db.query(Message).filter(Message.id.in_(select(combined.c.id))).count()
+    count = db.query(Message).filter(
+        _inbox_filter(current_user), Message.is_read == False,
+    ).count()
     return {"unread_count": count}

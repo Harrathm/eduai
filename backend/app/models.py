@@ -1659,6 +1659,20 @@ class TeacherReassignment(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
+class Plan(Base):
+    """Stripe subscription plan (Free, Basic, Pro, School, Institution)."""
+    __tablename__ = "plans"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    stripe_price_id: Mapped[Optional[str]] = mapped_column(String(255))
+    price: Mapped[float] = mapped_column(Float, default=0)
+    interval: Mapped[str] = mapped_column(String(50), default="month")
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    features: Mapped[Optional[dict]] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
 class Subscription(Base):
     """Abonnement d'une école à un plan payant."""
     __tablename__ = "subscriptions"
