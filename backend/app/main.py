@@ -53,6 +53,12 @@ from app.routers.goals import pedagogical_lead_router as goals_pedagogical_route
 from app.routers.adaptive_pathway import router as adaptive_pathway_router
 from app.routers.gamification import router as gamification_router
 from app.routers.parent import router as parent_router
+from app.routers.parcours import router as parcours_router
+from app.routers.elements import router as elements_router
+from app.routers.bibliotheque import router as bibliotheque_router
+from app.routers.abonnements import router as abonnements_router
+from app.routers.famille import router as famille_router
+from app.routers.licences import router as licences_router
 
 # Import models_lms to register its models with Base metadata
 import app.models_lms
@@ -401,6 +407,12 @@ app.include_router(goals_pedagogical_router, prefix="/api")
 app.include_router(adaptive_pathway_router, prefix="/api/pathway")
 app.include_router(gamification_router, prefix="/api/gamification")
 app.include_router(parent_router, prefix="/api")
+app.include_router(parcours_router, prefix="/api")
+app.include_router(elements_router, prefix="/api")
+app.include_router(bibliotheque_router, prefix="/api")
+app.include_router(abonnements_router, prefix="/api")
+app.include_router(famille_router, prefix="/api")
+app.include_router(licences_router, prefix="/api")
 
 
 # Add file logging for error log viewer

@@ -574,7 +574,7 @@ export default function LearnerAIChatPage() {
                 );
               })}
 
-              {loading && <TypingIndicator />}
+              {loading && !messages.some((m) => m.id.startsWith("stream-")) && <TypingIndicator />}
               <div ref={messagesEndRef} />
             </div>
           )}

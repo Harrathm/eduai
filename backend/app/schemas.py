@@ -1033,3 +1033,387 @@ class StudentRankingRead(BaseModel):
     rang: Optional[int] = None
     date_calcul: datetime
     model_config = ConfigDict(from_attributes=True)
+
+
+# ============================================================
+# MODULE A — PÉDAGOGIQUE
+# ============================================================
+
+
+class CompetenceCreate(BaseModel):
+    nom: str
+    matiere: str
+    niveau_scolaire: str
+    description: Optional[str] = None
+
+
+class CompetenceRead(BaseModel):
+    id: int
+    nom: str
+    matiere: str
+    niveau_scolaire: str
+    description: Optional[str] = None
+    created_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ParcoursCreate(BaseModel):
+    titre: str
+    description: Optional[str] = None
+    matiere: str
+    niveau_scolaire: str
+    difficulte: Optional[str] = "moyen"
+    objectifs: Optional[dict] = None
+    est_publique: Optional[bool] = True
+
+
+class ParcoursRead(BaseModel):
+    id: int
+    titre: str
+    description: Optional[str] = None
+    matiere: str
+    niveau_scolaire: str
+    difficulte: str
+    objectifs: Optional[dict] = None
+    auteur_id: Optional[int] = None
+    est_publique: bool
+    est_actif: bool
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ParcoursUpdate(BaseModel):
+    titre: Optional[str] = None
+    description: Optional[str] = None
+    matiere: Optional[str] = None
+    niveau_scolaire: Optional[str] = None
+    difficulte: Optional[str] = None
+    objectifs: Optional[dict] = None
+    est_publique: Optional[bool] = None
+    est_actif: Optional[bool] = None
+
+
+class ChapitreCreate(BaseModel):
+    titre: str
+    description: Optional[str] = None
+    objectifs: Optional[dict] = None
+    ordre: Optional[int] = 0
+
+
+class ChapitreRead(BaseModel):
+    id: int
+    parcours_id: int
+    titre: str
+    description: Optional[str] = None
+    objectifs: Optional[dict] = None
+    ordre: int
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ChapitreUpdate(BaseModel):
+    titre: Optional[str] = None
+    description: Optional[str] = None
+    objectifs: Optional[dict] = None
+    ordre: Optional[int] = None
+
+
+class LeconCreate(BaseModel):
+    titre: str
+    description: Optional[str] = None
+    duree_minutes: Optional[int] = 0
+    objectifs: Optional[dict] = None
+    ordre: Optional[int] = 0
+
+
+class LeconRead(BaseModel):
+    id: int
+    chapitre_id: int
+    titre: str
+    description: Optional[str] = None
+    duree_minutes: int
+    objectifs: Optional[dict] = None
+    ordre: int
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class LeconUpdate(BaseModel):
+    titre: Optional[str] = None
+    description: Optional[str] = None
+    duree_minutes: Optional[int] = None
+    objectifs: Optional[dict] = None
+    ordre: Optional[int] = None
+
+
+class ParagrapheCreate(BaseModel):
+    contenu: str
+    type: Optional[str] = "texte"
+    ordre: Optional[int] = 0
+    parent_id: Optional[int] = None
+
+
+class ParagrapheRead(BaseModel):
+    id: int
+    lecon_id: int
+    parent_id: Optional[int] = None
+    contenu: str
+    type: str
+    ordre: int
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ParagrapheUpdate(BaseModel):
+    contenu: Optional[str] = None
+    type: Optional[str] = None
+    ordre: Optional[int] = None
+    parent_id: Optional[int] = None
+
+
+class ElementPedagogiqueCreate(BaseModel):
+    type: str
+    titre: str
+    description: Optional[str] = None
+    lecon_id: Optional[int] = None
+    paragraphe_id: Optional[int] = None
+    matiere_id: Optional[int] = None
+    niveau_etude_id: Optional[int] = None
+    difficulte: Optional[str] = "moyen"
+    metadonnees: Optional[dict] = None
+    est_global: Optional[bool] = False
+    est_libre: Optional[bool] = False
+
+
+class ElementPedagogiqueRead(BaseModel):
+    id: int
+    type: str
+    titre: str
+    description: Optional[str] = None
+    lecon_id: Optional[int] = None
+    paragraphe_id: Optional[int] = None
+    matiere_id: Optional[int] = None
+    niveau_etude_id: Optional[int] = None
+    auteur_id: Optional[int] = None
+    statut: str
+    difficulte: str
+    metadonnees: Optional[dict] = None
+    est_global: bool
+    est_libre: bool
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ElementPedagogiqueUpdate(BaseModel):
+    titre: Optional[str] = None
+    description: Optional[str] = None
+    matiere_id: Optional[int] = None
+    niveau_etude_id: Optional[int] = None
+    difficulte: Optional[str] = None
+    metadonnees: Optional[dict] = None
+    est_global: Optional[bool] = None
+    est_libre: Optional[bool] = None
+
+
+class ElementTexteCreate(BaseModel):
+    corps: str
+
+
+class ElementTexteRead(BaseModel):
+    id: int
+    element_id: int
+    corps: str
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ElementVideoCreate(BaseModel):
+    url: str
+    duree_secondes: Optional[int] = None
+    thumbnail_url: Optional[str] = None
+
+
+class ElementVideoRead(BaseModel):
+    id: int
+    element_id: int
+    url: str
+    duree_secondes: Optional[int] = None
+    thumbnail_url: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ElementImageCreate(BaseModel):
+    url: str
+    alt_text: Optional[str] = None
+
+
+class ElementImageRead(BaseModel):
+    id: int
+    element_id: int
+    url: str
+    alt_text: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ElementQuizCreate(BaseModel):
+    questions_json: dict
+    score_reussite: Optional[float] = 0.6
+
+
+class ElementQuizRead(BaseModel):
+    id: int
+    element_id: int
+    questions_json: dict
+    score_reussite: float
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ElementPdfCreate(BaseModel):
+    url: str
+    pages: Optional[int] = None
+    taille_octets: Optional[int] = None
+
+
+class ElementPdfRead(BaseModel):
+    id: int
+    element_id: int
+    url: str
+    pages: Optional[int] = None
+    taille_octets: Optional[int] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ContentWorkflowRead(BaseModel):
+    id: int
+    element_id: int
+    ancien_statut: str
+    nouveau_statut: str
+    commentaires: Optional[str] = None
+    auteur_id: Optional[int] = None
+    created_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ContentPromotionRead(BaseModel):
+    id: int
+    element_source_id: int
+    parcours_destination_id: Optional[int] = None
+    snapshot_json: dict
+    effectuee_par_id: Optional[int] = None
+    created_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ============================================================
+# MODULE B — COMMERCIAL
+# ============================================================
+
+
+class PackDefinitionCreate(BaseModel):
+    nom: str
+    description: Optional[str] = None
+    tier: str
+    niveau_scolaire: str
+    matieres: Optional[dict] = None
+    prix_tnd: Optional[float] = 0
+    features: Optional[dict] = None
+    est_actif: Optional[bool] = True
+
+
+class PackDefinitionRead(BaseModel):
+    id: int
+    nom: str
+    description: Optional[str] = None
+    tier: str
+    niveau_scolaire: str
+    matieres: Optional[dict] = None
+    prix_tnd: float
+    features: Optional[dict] = None
+    est_actif: bool
+    created_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PackDefinitionUpdate(BaseModel):
+    nom: Optional[str] = None
+    description: Optional[str] = None
+    tier: Optional[str] = None
+    niveau_scolaire: Optional[str] = None
+    matieres: Optional[dict] = None
+    prix_tnd: Optional[float] = None
+    features: Optional[dict] = None
+    est_actif: Optional[bool] = None
+
+
+class AbonnementCreate(BaseModel):
+    pack_id: int
+
+
+class AbonnementRead(BaseModel):
+    id: int
+    user_id: int
+    pack_id: int
+    statut: str
+    debut: datetime
+    fin: datetime
+    grace_fin: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CompteFamilleRead(BaseModel):
+    id: int
+    parent_id: int
+    max_enfants: int
+    rang_famille: int
+    created_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class FamilleEnfantCreate(BaseModel):
+    eleve_id: int
+
+
+class FamilleEnfantRead(BaseModel):
+    id: int
+    compte_famille_id: int
+    eleve_id: int
+    rang: int
+    remise_pct: float
+    date_ajout: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class LicenceEcoleCreate(BaseModel):
+    pack_id: int
+    quantite: int
+
+
+class LicenceEcoleRead(BaseModel):
+    id: int
+    ecole_id: int
+    pack_id: int
+    quantite: int
+    quantite_disponible: int
+    date_achat: Optional[datetime] = None
+    expires_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class LicenceAssignationCreate(BaseModel):
+    user_id: int
+
+
+class LicenceAssignationRead(BaseModel):
+    id: int
+    licence_id: int
+    user_id: int
+    affecte_par_id: Optional[int] = None
+    date_affectation: Optional[datetime] = None
+    desaffecte_a: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)

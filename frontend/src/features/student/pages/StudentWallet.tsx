@@ -59,7 +59,7 @@ export default function StudentWallet() {
   };
 
   const poolLabel = (p: string) =>
-    ({ trial: "Essai", subscription: "Abonnement", school_allocated: "École", purchased: "Acheté" })[p] || p;
+    ({ trial: "Essai", subscription: "Abonnement", school_allocated: "École", purchased: "Acheté", dt_purchased: "DT Achetés" })[p] || p;
 
   const getPoolData = (poolName: string): PoolEntry | undefined =>
     balance?.pools?.find((p) => p.pool === poolName);
@@ -96,7 +96,7 @@ export default function StudentWallet() {
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
         <h2 className="text-lg font-semibold text-navy mb-4">Détail par source</h2>
         <div className="space-y-3">
-          {(["trial", "subscription", "school_allocated", "purchased"] as const).map((pool) => {
+          {(["trial", "subscription", "school_allocated", "purchased", "dt_purchased"] as const).map((pool) => {
             const data = getPoolData(pool);
             if (!data || data.balance === 0) return null;
             return (

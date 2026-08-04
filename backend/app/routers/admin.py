@@ -60,7 +60,8 @@ def audit_log(db: Session, admin_id: int, admin_email: str, action: str, target_
 
 
 def _is_super(admin: User) -> bool:
-    return get_user_role(admin) == "super_admin"
+    """Platform-wide roles that see all schools (not limited to their school_id)."""
+    return get_user_role(admin) in ("super_admin", "pedagogical_admin")
 
 
 def _super_or_school_filter(query, admin: User, school_field):

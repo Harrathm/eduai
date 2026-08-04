@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../../store/authStore";
 import { BookOpen, Users, Wallet, ArrowRight } from "lucide-react";
+import { TeacherStateBadge } from "../../../components/TeacherStateGuard";
 
 const API_URL = "";
 
@@ -113,8 +114,9 @@ export default function TeacherDashboard() {
         <h1 className="text-4xl font-[300] text-white">
           Tableau de <span className="italic text-orange-l">Bord</span>
         </h1>
-        <p className="text-white/50 mt-2">
+        <p className="text-white/50 mt-2 flex items-center gap-2">
           Bienvenue, {user?.full_name}
+          <TeacherStateBadge />
         </p>
       </div>
 

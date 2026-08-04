@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { parentAPI, DashboardData } from "../api";
 import ParentMessaging from "./ParentMessaging";
+import { Wallet, Package, Users } from "lucide-react";
 
 export default function ParentDashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -64,26 +65,35 @@ export default function ParentDashboardPage() {
       </div>
 
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
-        <h2 className="text-lg font-medium text-navy mb-4">Mes Enfants</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-medium text-navy">Mes Enfants</h2>
+          <Link to="/dashboard/parent/famille" className="text-xs text-orange hover:text-orange-l flex items-center gap-1">
+            <Users className="w-3.5 h-3.5" /> Ma Famille
+          </Link>
+        </div>
         {data.enfants.length === 0 ? (
           <p className="text-gray-400">Aucun enfant rattache. Ajoutez-en un ci-dessous.</p>
         ) : (
           <div className="space-y-3">
             {data.enfants.map((enfant) => (
-              <Link
-                key={enfant.eleve_id}
-                to={`/dashboard/parent/enfant/${enfant.eleve_id}`}
-                className="flex items-center justify-between p-4 rounded-xl border border-black/5 hover:border-orange/30 hover:bg-orange/5 transition-all"
-              >
-                <div>
+              <div key={enfant.eleve_id} className="flex items-center justify-between p-4 rounded-xl border border-black/5 hover:border-orange/30 hover:bg-orange/5 transition-all">
+                <Link to={`/dashboard/parent/enfant/${enfant.eleve_id}`} className="flex-1">
                   <div className="font-medium text-navy">{enfant.full_name}</div>
                   <div className="text-sm text-gray-500">{enfant.niveau_scolaire || "Non defini"}</div>
+                </Link>
+                <div className="flex items-center gap-2">
+                  <Link to={`/dashboard/parent/enfant/${enfant.eleve_id}/wallet`} className="p-2 text-gray-400 hover:text-orange rounded-lg hover:bg-orange/5 transition-colors" title="Portefeuille">
+                    <Wallet className="w-4 h-4" />
+                  </Link>
+                  <Link to={`/dashboard/parent/enfant/${enfant.eleve_id}/pack`} className="p-2 text-gray-400 hover:text-navy rounded-lg hover:bg-navy/5 transition-colors" title="Pack">
+                    <Package className="w-4 h-4" />
+                  </Link>
+                  <div className="text-right ml-2">
+                    <div className="text-sm font-medium text-navy">{enfant.dt_balance} DT</div>
+                    <div className="text-xs text-gray-400">{enfant.packs_actifs_count} pack{enfant.packs_actifs_count !== 1 ? "s" : ""}</div>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-sm font-medium text-navy">{enfant.dt_balance} DT</div>
-                  <div className="text-xs text-gray-400">{enfant.packs_actifs_count} pack{enfant.packs_actifs_count !== 1 ? "s" : ""}</div>
-                </div>
-              </Link>
+              </div>
             ))}
           </div>
         )}

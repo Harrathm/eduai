@@ -2179,3 +2179,461 @@ class RefreshToken(Base):
     __table_args__ = (
         Index("ix_refresh_tokens_user_id", "user_id"),
     )
+
+
+# ============================================================
+# MODULE A — PÉDAGOGIQUE (hiérarchie de contenu)
+# ============================================================
+
+
+class TypeElementPedagogique(str, Enum):
+    TEXTE = "texte"
+    VIDEO = "video"
+    IMAGE = "image"
+    QUIZ = "quiz"
+    PDF = "pdf"
+
+
+class StatutElementPedagogique(str, Enum):
+    BROUILLON = "brouillon"
+    EN_REVIEW = "en_review"
+    PUBLIE = "publie"
+    REJETE = "rejete"
+
+
+class NiveauDifficulte(str, Enum):
+    BASIQUE = "basique"
+    MOYEN = "moyen"
+    DIFFICILE = "difficile"
+
+
+class Competence(Base):
+    """Compétence pédagogique rattachée à une matière et un niveau scolaire."""
+    __tablename__ = "competences"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    nom: Mapped[str] = mapped_column(String(200), nullable=False)
+    matiere: Mapped[str] = mapped_column(String(100), nullable=False)
+    niveau_scolaire: Mapped[str] = mapped_column(String(50), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+    __table_args__ = (
+        Index("ix_competences_matiere", "matiere"),
+        Index("ix_competences_niveau", "niveau_scolaire"),
+    )
+
+
+class Parcours(Base):
+    """Parcours pédagogique regroupant chapitres et leçons."""
+    __tablename__ = "parcours"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    titre: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text)
+    matiere: Mapped[str] = mapped_column(String(100), nullable=False)
+    niveau_scolaire: Mapped[str] = mapped_column(String(50), nullable=False)
+    difficulte: Mapped[str] = mapped_column(String(20), default="moyen")
+    objectifs: Mapped[Optional[dict]] = mapped_column(JSON)
+    auteur_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    est_publique: Mapped[bool] = mapped_column(Boolean, default=True)
+    est_actif: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+    auteur: Mapped[Optional["User"]] = relationship("User", foreign_keys=[auteur_id])
+    chapitres: Mapped[List["Chapitre"]] = relationship("Chapitre", back_populates="parcours", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        Index("ix_parcours_auteur", "auteur_id"),
+        Index("ix_parcours_matiere", "matiere"),
+        Index("ix_parcours_niveau", "niveau_scolaire"),
+    )
+
+
+class Chapitre(Base):
+    """Chapitre dans un parcours pédagogique."""
+    __tablename__ = "chapitres"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    parcours_id: Mapped[int] = mapped_column(ForeignKey("parcours.id", ondelete="CASCADE"), nullable=False)
+    titre: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text)
+    objectifs: Mapped[Optional[dict]] = mapped_column(JSON)
+    ordre: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+    parcours: Mapped["Parcours"] = relationship("Parcours", back_populates="chapitres")
+    lecons: Mapped[List["Lecon"]] = relationship("Lecon", back_populates="chapitre", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        Index("ix_chapitres_parcours", "parcours_id"),
+    )
+
+
+class Lecon(Base):
+    """Leçon dans un chapitre."""
+    __tablename__ = "lecons"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    chapitre_id: Mapped[int] = mapped_column(ForeignKey("chapitres.id", ondelete="CASCADE"), nullable=False)
+    titre: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text)
+    duree_minutes: Mapped[int] = mapped_column(Integer, default=0)
+    objectifs: Mapped[Optional[dict]] = mapped_column(JSON)
+    ordre: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+    chapitre: Mapped["Chapitre"] = relationship("Chapitre", back_populates="lecons")
+    paragraphes: Mapped[List["Paragraphe"]] = relationship("Paragraphe", back_populates="lecon", cascade="all, delete-orphan")
+    elements: Mapped[List["ElementPedagogique"]] = relationship("ElementPedagogique", back_populates="lecon", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        Index("ix_lecons_chapitre", "chapitre_id"),
+    )
+
+
+class Paragraphe(Base):
+    """Paragraphe auto-référencé dans une leçon."""
+    __tablename__ = "paragraphes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    lecon_id: Mapped[int] = mapped_column(ForeignKey("lecons.id", ondelete="CASCADE"), nullable=False)
+    parent_id: Mapped[Optional[int]] = mapped_column(ForeignKey("paragraphes.id", ondelete="CASCADE"))
+    contenu: Mapped[str] = mapped_column(Text, nullable=False)
+    type: Mapped[str] = mapped_column(String(30), default="texte")
+    ordre: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+    lecon: Mapped["Lecon"] = relationship("Lecon", back_populates="paragraphes")
+    parent: Mapped[Optional["Paragraphe"]] = relationship("Paragraphe", remote_side="Paragraphe.id", backref="children")
+
+    __table_args__ = (
+        Index("ix_paragraphes_lecon", "lecon_id"),
+        Index("ix_paragraphes_parent", "parent_id"),
+    )
+
+
+# Association tables for M:N relationships (defined before ElementPedagogique)
+
+elements_tags_matieres = Table(
+    "elements_tags_matieres",
+    Base.metadata,
+    Column("element_id", Integer, ForeignKey("elements_pedagogiques.id", ondelete="CASCADE"), primary_key=True),
+    Column("matiere_id", Integer, ForeignKey("matieres.id", ondelete="CASCADE"), primary_key=True),
+)
+
+elements_competences = Table(
+    "elements_competences",
+    Base.metadata,
+    Column("element_id", Integer, ForeignKey("elements_pedagogiques.id", ondelete="CASCADE"), primary_key=True),
+    Column("competence_id", Integer, ForeignKey("competences.id", ondelete="CASCADE"), primary_key=True),
+)
+
+
+class ElementPedagogique(Base):
+    """Élément pédagogique (texte, vidéo, image, quiz, pdf) rattaché à une leçon ou un paragraphe."""
+    __tablename__ = "elements_pedagogiques"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    type: Mapped[str] = mapped_column(String(20), nullable=False)
+    titre: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text)
+    lecon_id: Mapped[Optional[int]] = mapped_column(ForeignKey("lecons.id", ondelete="CASCADE"))
+    paragraphe_id: Mapped[Optional[int]] = mapped_column(ForeignKey("paragraphes.id", ondelete="CASCADE"))
+    matiere_id: Mapped[Optional[int]] = mapped_column(ForeignKey("matieres.id", ondelete="SET NULL"))
+    niveau_etude_id: Mapped[Optional[int]] = mapped_column(ForeignKey("niveaux_etude.id", ondelete="SET NULL"))
+    auteur_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    statut: Mapped[str] = mapped_column(String(20), default="brouillon")
+    difficulte: Mapped[str] = mapped_column(String(20), default="moyen")
+    metadonnees: Mapped[Optional[dict]] = mapped_column(JSON)
+    est_global: Mapped[bool] = mapped_column(Boolean, default=False)
+    est_libre: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+    lecon: Mapped[Optional["Lecon"]] = relationship("Lecon", back_populates="elements")
+    paragraphe: Mapped[Optional["Paragraphe"]] = relationship("Paragraphe", backref="elements")
+    matiere: Mapped[Optional["Matiere"]] = relationship("Matiere")
+    niveau_etude: Mapped[Optional["NiveauEtude"]] = relationship("NiveauEtude")
+    auteur: Mapped[Optional["User"]] = relationship("User", foreign_keys=[auteur_id])
+    texte: Mapped[Optional["ElementTexte"]] = relationship("ElementTexte", back_populates="element", uselist=False)
+    video: Mapped[Optional["ElementVideo"]] = relationship("ElementVideo", back_populates="element", uselist=False)
+    image: Mapped[Optional["ElementImage"]] = relationship("ElementImage", back_populates="element", uselist=False)
+    quiz: Mapped[Optional["ElementQuiz"]] = relationship("ElementQuiz", back_populates="element", uselist=False)
+    pdf: Mapped[Optional["ElementPdf"]] = relationship("ElementPdf", back_populates="element", uselist=False)
+    tags_matieres: Mapped[List["Matiere"]] = relationship("Matiere", secondary="elements_tags_matieres")
+
+    __table_args__ = (
+        Index("ix_elements_type", "type"),
+        Index("ix_elements_statut", "statut"),
+        Index("ix_elements_auteur", "auteur_id"),
+        Index("ix_elements_matiere", "matiere_id"),
+        Index("ix_elements_niveau", "niveau_etude_id"),
+        Index("ix_elements_lecon", "lecon_id"),
+        Index("ix_elements_paragraphe", "paragraphe_id"),
+        CheckConstraint(
+            "(lecon_id IS NOT NULL AND paragraphe_id IS NULL) OR (lecon_id IS NULL AND paragraphe_id IS NOT NULL)",
+            name="ck_element_one_parent",
+        ),
+    )
+
+
+class ElementTexte(Base):
+    """Contenu texte d'un élément pédagogique."""
+    __tablename__ = "elements_texte"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    element_id: Mapped[int] = mapped_column(ForeignKey("elements_pedagogiques.id", ondelete="CASCADE"), unique=True, nullable=False)
+    corps: Mapped[str] = mapped_column(Text, nullable=False)
+
+    element: Mapped["ElementPedagogique"] = relationship("ElementPedagogique", back_populates="texte")
+
+
+class ElementVideo(Base):
+    """Contenu vidéo d'un élément pédagogique."""
+    __tablename__ = "elements_video"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    element_id: Mapped[int] = mapped_column(ForeignKey("elements_pedagogiques.id", ondelete="CASCADE"), unique=True, nullable=False)
+    url: Mapped[str] = mapped_column(String(500), nullable=False)
+    duree_secondes: Mapped[Optional[int]] = mapped_column(Integer)
+    thumbnail_url: Mapped[Optional[str]] = mapped_column(String(500))
+
+    element: Mapped["ElementPedagogique"] = relationship("ElementPedagogique", back_populates="video")
+
+
+class ElementImage(Base):
+    """Contenu image d'un élément pédagogique."""
+    __tablename__ = "elements_image"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    element_id: Mapped[int] = mapped_column(ForeignKey("elements_pedagogiques.id", ondelete="CASCADE"), unique=True, nullable=False)
+    url: Mapped[str] = mapped_column(String(500), nullable=False)
+    alt_text: Mapped[Optional[str]] = mapped_column(String(255))
+
+    element: Mapped["ElementPedagogique"] = relationship("ElementPedagogique", back_populates="image")
+
+
+class ElementQuiz(Base):
+    """Contenu quiz d'un élément pédagogique."""
+    __tablename__ = "elements_quiz"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    element_id: Mapped[int] = mapped_column(ForeignKey("elements_pedagogiques.id", ondelete="CASCADE"), unique=True, nullable=False)
+    questions_json: Mapped[dict] = mapped_column(JSON, nullable=False)
+    score_reussite: Mapped[float] = mapped_column(Float, default=0.6)
+
+    element: Mapped["ElementPedagogique"] = relationship("ElementPedagogique", back_populates="quiz")
+
+
+class ElementPdf(Base):
+    """Contenu PDF d'un élément pédagogique."""
+    __tablename__ = "elements_pdf"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    element_id: Mapped[int] = mapped_column(ForeignKey("elements_pedagogiques.id", ondelete="CASCADE"), unique=True, nullable=False)
+    url: Mapped[str] = mapped_column(String(500), nullable=False)
+    pages: Mapped[Optional[int]] = mapped_column(Integer)
+    taille_octets: Mapped[Optional[int]] = mapped_column(Integer)
+
+    element: Mapped["ElementPedagogique"] = relationship("ElementPedagogique", back_populates="pdf")
+
+
+class ContentWorkflow(Base):
+    """Audit trail des changements de statut d'un élément pédagogique."""
+    __tablename__ = "content_workflow"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    element_id: Mapped[int] = mapped_column(ForeignKey("elements_pedagogiques.id", ondelete="CASCADE"), nullable=False)
+    ancien_statut: Mapped[str] = mapped_column(String(20), nullable=False)
+    nouveau_statut: Mapped[str] = mapped_column(String(20), nullable=False)
+    commentaires: Mapped[Optional[str]] = mapped_column(Text)
+    auteur_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+    element: Mapped["ElementPedagogique"] = relationship("ElementPedagogique", backref="workflows")
+    auteur: Mapped[Optional["User"]] = relationship("User", foreign_keys=[auteur_id])
+
+    __table_args__ = (
+        Index("ix_content_workflow_element", "element_id"),
+    )
+
+
+class ContentPromotion(Base):
+    """Historique des promotions locale → globale."""
+    __tablename__ = "content_promotions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    element_source_id: Mapped[int] = mapped_column(ForeignKey("elements_pedagogiques.id", ondelete="CASCADE"), nullable=False)
+    parcours_destination_id: Mapped[Optional[int]] = mapped_column(ForeignKey("parcours.id", ondelete="SET NULL"))
+    snapshot_json: Mapped[dict] = mapped_column(JSON, nullable=False)
+    effectuee_par_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+    element_source: Mapped["ElementPedagogique"] = relationship("ElementPedagogique", backref="promotions")
+    parcours_destination: Mapped[Optional["Parcours"]] = relationship("Parcours")
+    effectuee_par: Mapped[Optional["User"]] = relationship("User", foreign_keys=[effectuee_par_id])
+
+    __table_args__ = (
+        Index("ix_content_promotions_element", "element_source_id"),
+    )
+
+
+# ============================================================
+# MODULE B — COMMERCIAL (abonnements, famille, licences)
+# ============================================================
+
+
+class TierPack(str, Enum):
+    GRATUIT = "gratuit"
+    BASIQUE = "basique"
+    SILVER = "silver"
+    GOLDEN = "golden"
+
+
+class StatutAbonnement(str, Enum):
+    ACTIF = "actif"
+    GRACE = "grace"
+    EXPIRE = "expire"
+    ANNULE = "annule"
+
+
+class TypeCompte(str, Enum):
+    INDIVIDUEL = "individuel"
+    FAMILLE = "famille"
+    ECOLE = "ecole"
+
+
+class PackDefinition(Base):
+    """Pack d'abonnement global (pas de school_id)."""
+    __tablename__ = "pack_definitions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    nom: Mapped[str] = mapped_column(String(100), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text)
+    tier: Mapped[str] = mapped_column(String(20), nullable=False)
+    niveau_scolaire: Mapped[str] = mapped_column(String(50), nullable=False)
+    matieres: Mapped[Optional[dict]] = mapped_column(JSON)
+    prix_tnd: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
+    features: Mapped[Optional[dict]] = mapped_column(JSON)
+    est_actif: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+    abonnements: Mapped[List["Abonnement"]] = relationship("Abonnement", back_populates="pack")
+    licences: Mapped[List["LicenceEcole"]] = relationship("LicenceEcole", back_populates="pack")
+
+    __table_args__ = (
+        Index("ix_pack_definitions_tier", "tier"),
+        Index("ix_pack_definitions_niveau", "niveau_scolaire"),
+    )
+
+
+class Abonnement(Base):
+    """Abonnement d'un utilisateur à un pack."""
+    __tablename__ = "abonnements"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    pack_id: Mapped[int] = mapped_column(ForeignKey("pack_definitions.id", ondelete="CASCADE"), nullable=False)
+    statut: Mapped[str] = mapped_column(String(20), default="actif")
+    debut: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    fin: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    grace_fin: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    stripe_subscription_id: Mapped[Optional[str]] = mapped_column(String(255))
+    stripe_customer_id: Mapped[Optional[str]] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+    user: Mapped["User"] = relationship("User", backref="abonnements")
+    pack: Mapped["PackDefinition"] = relationship("PackDefinition", back_populates="abonnements")
+
+    __table_args__ = (
+        Index("ix_abonnements_user", "user_id"),
+        Index("ix_abonnements_pack", "pack_id"),
+        Index("ix_abonnements_statut", "statut"),
+    )
+
+
+class CompteFamille(Base):
+    """Compte famille regroupant plusieurs élèves."""
+    __tablename__ = "comptes_famille"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    parent_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
+    max_enfants: Mapped[int] = mapped_column(Integer, default=5)
+    rang_famille: Mapped[int] = mapped_column(Integer, default=1)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+    parent: Mapped["User"] = relationship("User", backref="compte_famille")
+    enfants: Mapped[List["FamilleEnfant"]] = relationship("FamilleEnfant", back_populates="compte_famille", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        Index("ix_comptes_famille_parent", "parent_id"),
+    )
+
+
+class FamilleEnfant(Base):
+    """Lien famille-enfant avec rang figé et remise dégressive."""
+    __tablename__ = "famille_enfants"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    compte_famille_id: Mapped[int] = mapped_column(ForeignKey("comptes_famille.id", ondelete="CASCADE"), nullable=False)
+    eleve_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
+    rang: Mapped[int] = mapped_column(Integer, nullable=False)
+    remise_pct: Mapped[float] = mapped_column(Float, default=0.0)
+    date_ajout: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+    compte_famille: Mapped["CompteFamille"] = relationship("CompteFamille", back_populates="enfants")
+    eleve: Mapped["User"] = relationship("User", backref="famille_links")
+
+    __table_args__ = (
+        Index("ix_famille_enfants_compte", "compte_famille_id"),
+        Index("ix_famille_enfants_eleve", "eleve_id"),
+    )
+
+
+class LicenceEcole(Base):
+    """Pool de licences d'un école pour un pack donné."""
+    __tablename__ = "licences_ecole"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    ecole_id: Mapped[int] = mapped_column(ForeignKey("schools.id", ondelete="CASCADE"), nullable=False)
+    pack_id: Mapped[int] = mapped_column(ForeignKey("pack_definitions.id", ondelete="CASCADE"), nullable=False)
+    quantite: Mapped[int] = mapped_column(Integer, nullable=False)
+    quantite_disponible: Mapped[int] = mapped_column(Integer, nullable=False)
+    date_achat: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+
+    ecole: Mapped["School"] = relationship("School", backref="licences")
+    pack: Mapped["PackDefinition"] = relationship("PackDefinition", back_populates="licences")
+    assignations: Mapped[List["LicenceAssignation"]] = relationship("LicenceAssignation", back_populates="licence", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        Index("ix_licences_ecole_ecole", "ecole_id"),
+        Index("ix_licences_ecole_pack", "pack_id"),
+    )
+
+
+class LicenceAssignation(Base):
+    """Affectation d'une licence à un utilisateur."""
+    __tablename__ = "licence_assignations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    licence_id: Mapped[int] = mapped_column(ForeignKey("licences_ecole.id", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    affecte_par_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    date_affectation: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    desaffecte_a: Mapped[Optional[datetime]] = mapped_column(DateTime)
+
+    licence: Mapped["LicenceEcole"] = relationship("LicenceEcole", back_populates="assignations")
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id], backref="licence_assignations")
+    affecte_par: Mapped[Optional["User"]] = relationship("User", foreign_keys=[affecte_par_id])
+
+    __table_args__ = (
+        Index("ix_licence_assignations_licence", "licence_id"),
+        Index("ix_licence_assignations_user", "user_id"),
+    )

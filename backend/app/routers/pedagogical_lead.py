@@ -33,6 +33,16 @@ router = APIRouter(prefix="/pedagogical-lead", tags=["Pedagogical (School)"])
 # Schemas
 # ---------------------------------------------------------------------------
 
+class CoursePendingRead(BaseModel):
+    id: int
+    title: str
+    description: Optional[str] = None
+    school_id: Optional[int] = None
+    author_id: Optional[int] = None
+    pedagogical_status: Optional[str] = None
+    created_at: Optional[str] = None
+    author_name: Optional[str] = None
+
 class LocalReviewRequest(BaseModel):
     action: str  # approved_local, needs_revision, escalate
     comment: Optional[str] = None
@@ -84,6 +94,39 @@ def progress_report(
             "completed_lessons": completed,
         })
     return {"school_id": school_id, "classrooms": report}
+
+
+@router.get("/courses/pending")
+def courses_pending(
+    skip: int = 0,
+    limit: int = 20,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_pedagogical_lead),
+):
+    """Liste les cours de l'école en attente de revue pédagogique locale."""
+    school_id = current_user.school_id
+    q = db.query(Course).filter(
+        Course.school_id == school_id,
+        Course.pedagogical_status.in_(["pending_review", "needs_revision"]),
+    )
+    total = q.count()
+    courses = q.order_by(Course.created_at.desc()).offset(skip).limit(limit).all()
+
+    result = []
+    for c in courses:
+        author = db.query(User).filter(User.id == c.author_id).first() if c.author_id else None
+        result.append({
+            "id": c.id,
+            "title": c.title,
+            "description": c.description,
+            "school_id": c.school_id,
+            "author_id": c.author_id,
+            "pedagogical_status": c.pedagogical_status,
+            "created_at": c.created_at.isoformat() if c.created_at else None,
+            "author_name": author.full_name if author else None,
+        })
+
+    return {"total": total, "skip": skip, "limit": limit, "courses": result}
 
 
 @router.put("/courses/{course_id}/review-local")

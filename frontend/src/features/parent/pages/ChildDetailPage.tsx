@@ -70,7 +70,13 @@ export default function ChildDetailPage() {
           <h1 className="text-2xl font-[300] text-navy">{suivi.full_name}</h1>
           <p className="text-gray-500">{suivi.niveau_scolaire || "Niveau non defini"}</p>
         </div>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          <Link to={`/dashboard/parent/enfant/${id}/wallet`} className="px-3 py-1.5 text-xs font-medium text-navy bg-gray-100 rounded-xl hover:bg-gray-200 flex items-center gap-1">
+            <Wallet className="w-3.5 h-3.5" /> Portefeuille
+          </Link>
+          <Link to={`/dashboard/parent/enfant/${id}/pack`} className="px-3 py-1.5 text-xs font-medium text-navy bg-gray-100 rounded-xl hover:bg-gray-200 flex items-center gap-1">
+            <ExternalLink className="w-3.5 h-3.5" /> Pack
+          </Link>
           <button onClick={handleUnlink} className="text-sm text-red-500 hover:text-red-700 transition-colors">
             Detacher
           </button>

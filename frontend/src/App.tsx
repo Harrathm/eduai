@@ -4,6 +4,7 @@ import { useAuthStore } from "./store/authStore";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { useOnlineStatus } from "./hooks";
 import DashboardLayout from "./components/layout/DashboardLayout";
+import { TeacherWriteGuard, TeacherStateBadge } from "./components/TeacherStateGuard";
 
 // ─── Lazy-loaded pages ──────────────────────────────────────────────
 const LoginPage = lazy(() => import("./features/auth/pages/LoginPage"));
@@ -52,6 +53,10 @@ const TeacherWallet = lazy(() => import("./features/teacher/pages/TeacherWallet"
 const TeacherSalesPage = lazy(() => import("./features/teacher/pages/TeacherSalesPage"));
 const TeacherReorientationPage = lazy(() => import("./features/teacher/pages/TeacherReorientationPage"));
 const TeacherValidationContenuPage = lazy(() => import("./features/teacher/pages/TeacherValidationContenuPage"));
+const TeacherParcoursPage = lazy(() => import("./features/teacher/pages/TeacherParcoursPage"));
+const TeacherElementsPage = lazy(() => import("./features/teacher/pages/TeacherElementsPage"));
+const TeacherBibliothequePage = lazy(() => import("./features/teacher/pages/TeacherBibliothequePage"));
+const TeacherAbonnementsPage = lazy(() => import("./features/teacher/pages/TeacherAbonnementsPage"));
 
 // Student
 const StudentDashboard = lazy(() => import("./features/student/pages/StudentDashboard"));
@@ -60,6 +65,7 @@ const StudentCourseCatalog = lazy(() => import("./features/student/pages/CourseC
 const StudentWallet = lazy(() => import("./features/student/pages/StudentWallet"));
 const StudentTierPage = lazy(() => import("./features/student/pages/StudentTierPage"));
 const PacksPage = lazy(() => import("./features/student/pages/PacksPage"));
+const StudentPackPage = lazy(() => import("./features/student/pages/StudentPackPage"));
 const PlacementTestPage = lazy(() => import("./features/student/pages/PlacementTestPage"));
 const InboxPage = lazy(() => import("./features/student/pages/InboxPage"));
 const PathwayCatalogPage = lazy(() => import("./features/student/pages/PathwayCatalogPage"));
@@ -72,10 +78,14 @@ const LearnerPlayerPage = lazy(() => import("./features/learner/pages/PlayerPage
 const CatalogPage = lazy(() => import("./pages/learner/CatalogPage"));
 const CoursePlayerPage = lazy(() => import("./pages/learner/CoursePlayerPage"));
 const LearnerAIChatPage = lazy(() => import("./pages/learner/LearnerAIChatPage"));
+const SoftSkillsCatalogPage = lazy(() => import("./pages/learner/SoftSkillsCatalogPage"));
 
 // Parent
 const ParentDashboardPage = lazy(() => import("./features/parent/pages/ParentDashboardPage"));
 const ChildDetailPage = lazy(() => import("./features/parent/pages/ChildDetailPage"));
+const ParentWalletPage = lazy(() => import("./features/parent/pages/ParentWalletPage"));
+const ParentPackPage = lazy(() => import("./features/parent/pages/ParentPackPage"));
+const ParentFamillePage = lazy(() => import("./features/parent/pages/ParentFamillePage"));
 
 // ─── Loading fallback ───────────────────────────────────────────────
 function PageLoader() {
@@ -118,25 +128,18 @@ function OnlineStatusBanner() {
   );
 }
 
-// ─── Main app content ───────────────────────────────────────────────
-function AppContent() {
-  const restore = useAuthStore((s) => s.restore);
+export default function App() {
   const user = useAuthStore((s) => s.user);
+  const restore = useAuthStore((s) => s.restore);
 
   useEffect(() => {
     restore();
   }, []);
 
   return (
-    <OnlineStatusBanner />
-  );
-}
-
-export default function App() {
-  return (
     <ErrorBoundary>
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <AppContent />
+        <OnlineStatusBanner />
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
@@ -214,24 +217,30 @@ export default function App() {
               }>
                 <Route path="learning" element={<MyLearning />} />
                 <Route path="classroom" element={<ClassroomManager />} />
-                <Route path="ai-studio" element={<TeacherAIStudio />} />
+                <Route path="ai-studio" element={<TeacherWriteGuard><TeacherAIStudio /></TeacherWriteGuard>} />
                 <Route path="wallet" element={<TeacherWallet />} />
                 <Route path="sales" element={<TeacherSalesPage />} />
-                <Route path="reorientations" element={<TeacherReorientationPage />} />
-                <Route path="validation-contenu" element={<TeacherValidationContenuPage />} />
+                <Route path="abonnements" element={<TeacherAbonnementsPage />} />
+                <Route path="reorientations" element={<TeacherWriteGuard><TeacherReorientationPage /></TeacherWriteGuard>} />
+                <Route path="validation-contenu" element={<TeacherWriteGuard><TeacherValidationContenuPage /></TeacherWriteGuard>} />
+                <Route path="parcours" element={<TeacherWriteGuard><TeacherParcoursPage /></TeacherWriteGuard>} />
+                <Route path="elements" element={<TeacherWriteGuard><TeacherElementsPage /></TeacherWriteGuard>} />
+                <Route path="bibliotheque" element={<TeacherBibliothequePage />} />
               </Route>
 
               <Route path="inbox" element={<InboxPage />} />
 
               {/* Student */}
               <Route path="courses" element={<RequireRole roles={["student", "admin_school"]}><CatalogPage /></RequireRole>} />
-              <Route path="courses/:courseId" element={<RequireRole roles={["student", "admin_school"]}><CoursePlayerPage /></RequireRole>} />
-              <Route path="courses/:courseId/lessons/:lessonId" element={<RequireRole roles={["student", "admin_school"]}><CoursePlayerPage /></RequireRole>} />
+              <Route path="courses/:courseId" element={<RequireRole roles={["student", "admin_school", "teacher"]}><CoursePlayerPage /></RequireRole>} />
+              <Route path="courses/:courseId/lessons/:lessonId" element={<RequireRole roles={["student", "admin_school", "teacher"]}><CoursePlayerPage /></RequireRole>} />
               <Route path="assignments" element={<RequireRole roles={["student", "admin_school"]}><StudentCourseCatalog /></RequireRole>} />
               <Route path="ai-tutor" element={<RequireRole roles={["student", "admin_school", "teacher"]}><LearnerAIChatPage /></RequireRole>} />
               <Route path="wallet" element={<RequireRole roles={["student", "admin_school"]}><StudentWallet /></RequireRole>} />
               <Route path="packs" element={<RequireRole roles={["student", "admin_school"]}><PacksPage /></RequireRole>} />
+              <Route path="my-pack" element={<RequireRole roles={["student", "admin_school"]}><StudentPackPage /></RequireRole>} />
               <Route path="tier" element={<RequireRole roles={["student", "admin_school"]}><StudentTierPage /></RequireRole>} />
+              <Route path="soft-skills" element={<SoftSkillsCatalogPage />} />
               <Route path="placement/:testId" element={<RequireRole roles={["student", "admin_school"]}><PlacementTestPage /></RequireRole>} />
               <Route path="profile" element={<RequireRole roles={["student", "teacher", "admin_school"]}><ProfilePage /></RequireRole>} />
               <Route path="assimilation" element={<RequireRole roles={["student", "admin_school"]}><StudentAssimilationProfilePage /></RequireRole>} />
@@ -243,6 +252,9 @@ export default function App() {
               <Route path="parent" element={<RequireRole roles={["parent"]}><Outlet /></RequireRole>}>
                 <Route index element={<ParentDashboardPage />} />
                 <Route path="enfant/:eleveId" element={<ChildDetailPage />} />
+                <Route path="enfant/:eleveId/wallet" element={<ParentWalletPage />} />
+                <Route path="enfant/:eleveId/pack" element={<ParentPackPage />} />
+                <Route path="famille" element={<ParentFamillePage />} />
               </Route>
             </Route>
 
