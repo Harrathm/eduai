@@ -1,6 +1,7 @@
 # FRONTEND FIXES REPORT V3 — EDUAI Learning
 **Date :** 05/08/2026
 **Remplace :** FRONTEND_FIXES_REPORT_V2.md
+**Commit :** `2230902` (phase1-critical)
 **Méthodologie :** Preuve RÉELLE et PERTINENTE pour chaque correction. Aucun `npx vite build` comme seule preuve pour du code Flutter.
 
 ---
@@ -486,4 +487,4 @@ def _mask_value(key: str, value: Optional[str]) -> Optional[str]:
 ### Ce qui reste
 1. **i18n :** 91 fichiers TSX non migrés (admin, teacher, components) — migration incrémentale possible
 2. **Flutter :** `flutter test` / `flutter build` à exécuter quand le SDK sera disponible
-3. **Git commit :** Non fait dans cette session — à faire manuellement
+3. **Git commit :** ✅ `2230902` (phase1-critical)
