@@ -92,7 +92,7 @@ export default function BroadcastCenter() {
             <button
               key={opt.value}
               onClick={() => setTarget(opt.value)}
-              className={`w-full text-left p-4 rounded-2xl border-2 transition-all ${
+              className={`w-full text-start p-4 rounded-2xl border-2 transition-all ${
                 target === opt.value
                   ? "border-orange bg-orange/5 shadow-sm"
                   : "border-transparent bg-white hover:border-black/10 shadow-sm"
@@ -192,7 +192,7 @@ export default function BroadcastCenter() {
                 </div>
                 <button
                   onClick={() => handleDelete(msg.id)}
-                  className="p-2 rounded-lg text-gray hover:bg-red-50 hover:text-red-500 transition-colors flex-shrink-0 ml-4"
+                  className="p-2 rounded-lg text-gray hover:bg-red-50 hover:text-red-500 transition-colors flex-shrink-0 ms-4"
                   title="Delete"
                 >
                   <Trash2 className="w-4 h-4" />

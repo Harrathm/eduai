@@ -1,7 +1,9 @@
+import { tokenStorage } from "../../../utils/tokenStorage";
+
 const API_BASE = "/api";
 
 async function fetchJSON(url: string, options?: RequestInit) {
-  const token = localStorage.getItem("token");
+  const token = tokenStorage.getToken();
   const headers: Record<string, string> = { ...((options?.headers as Record<string, string>) || {}) };
   if (token) headers["Authorization"] = `Bearer ${token}`;
   if (!headers["Content-Type"] && options?.method !== "GET") {

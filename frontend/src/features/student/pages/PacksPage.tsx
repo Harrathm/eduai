@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../../../store/authStore";
 import { api } from "../../../utils/apiClient";
 
@@ -31,6 +32,7 @@ function PackSkeleton() {
 }
 
 function PackCard({ pack, userNiveau }: { pack: Pack; userNiveau?: string }) {
+  const { t } = useTranslation();
   const isMatchingLevel = !userNiveau || pack.niveau_scolaire === userNiveau;
 
   return (
@@ -63,7 +65,7 @@ function PackCard({ pack, userNiveau }: { pack: Pack; userNiveau?: string }) {
         </div>
         {pack.already_included_by_school && (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
-            Inclus via école
+            {t('packs.includedViaSchool')}
           </span>
         )}
       </div>
@@ -88,15 +90,15 @@ function PackCard({ pack, userNiveau }: { pack: Pack; userNiveau?: string }) {
       <div className="flex items-center justify-between pt-3 border-t border-gray-100">
         <div>
           <span className="text-2xl font-[300] text-navy">{pack.price}</span>
-          <span className="text-sm text-gray-400 ml-1">{pack.currency}</span>
+          <span className="text-sm text-gray-400 ms-1">{pack.currency}</span>
           <p className="text-xs text-gray-400">
-            {pack.validity_duration_days} jours de validité
+            {pack.validity_duration_days} {t('packs.daysValidity')}
           </p>
         </div>
 
         {pack.already_included_by_school ? (
           <div className="px-4 py-2 bg-green-100 text-green-700 text-sm font-medium rounded-xl">
-            Déjà actif
+            {t('packs.alreadyActive')}
           </div>
         ) : (
           <button
@@ -112,7 +114,7 @@ function PackCard({ pack, userNiveau }: { pack: Pack; userNiveau?: string }) {
               }
             }}
           >
-            {isMatchingLevel ? "Acheter" : "Niveau incompatible"}
+            {isMatchingLevel ? t('packs.buy') : t('packs.levelIncompatible')}
           </button>
         )}
       </div>
@@ -121,6 +123,7 @@ function PackCard({ pack, userNiveau }: { pack: Pack; userNiveau?: string }) {
 }
 
 export default function PacksPage() {
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const [packs, setPacks] = useState<Pack[]>([]);
   const [loading, setLoading] = useState(true);
@@ -138,7 +141,7 @@ export default function PacksPage() {
         const data = await api.get(url);
         setPacks(data.items || []);
       } catch (err: any) {
-        setError(err.message || "Erreur de chargement");
+        setError(err.message || t('packs.loadingError'));
       } finally {
         setLoading(false);
       }
@@ -157,24 +160,24 @@ export default function PacksPage() {
       {/* Header */}
       <div className="bg-navy rounded-3xl p-8">
         <h1 className="text-3xl font-[300] text-white">
-          Packs d'<span className="italic text-orange-l">Étude</span>
+          {t('packs.title')}
         </h1>
         <p className="text-white/50 mt-2">
-          Accédez à tous les cours de votre niveau avec un pack
+          {t('packs.subtitle')}
         </p>
       </div>
 
       {/* Filter */}
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-black/5">
         <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-sm text-gray-500 font-medium">Niveau :</span>
+          <span className="text-sm text-gray-500 font-medium">{t('packs.niveauLabel')}</span>
           <button
             onClick={() => setFilter("")}
             className={`px-3 py-1.5 text-xs rounded-full transition-colors ${
               !filter ? "bg-navy text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >
-            Tous
+            {t('packs.all')}
           </button>
           {niveaux.map((n) => (
             <button
@@ -207,11 +210,11 @@ export default function PacksPage() {
       ) : packs.length === 0 ? (
         <div className="bg-white rounded-2xl p-12 shadow-sm border border-black/5 text-center">
           <div className="text-4xl mb-4">📦</div>
-          <h3 className="text-lg font-medium text-navy mb-2">Aucun pack disponible</h3>
+          <h3 className="text-lg font-medium text-navy mb-2">{t('packs.noPacks')}</h3>
           <p className="text-sm text-gray-500">
             {filter
-              ? `Aucun pack pour le niveau "${filter}"`
-              : "Aucun pack n'a été publié pour le moment"}
+              ? t('packs.noPacksForLevel', { level: filter })
+              : t('packs.noPacksPublished')}
           </p>
         </div>
       ) : (

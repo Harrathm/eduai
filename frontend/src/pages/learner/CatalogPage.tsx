@@ -57,10 +57,10 @@ export default function CatalogPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-700 text-white py-12">
+      <div className="bg-gradient-to-r from-navy-600 to-purple-700 text-white py-12">
         <div className="container mx-auto px-4">
           <h1 className="text-3xl font-bold mb-2">Catalogue des formations</h1>
-          <p className="text-indigo-100 mb-6">Découvrez nos cours et commencez à apprendre</p>
+          <p className="text-navy-100 mb-6">Découvrez nos cours et commencez à apprendre</p>
           <form onSubmit={(e) => { e.preventDefault(); loadCourses(); }} className="flex gap-2 max-w-xl">
             <input type="text" placeholder="Rechercher un cours..." value={filters.search}
               onChange={e => setFilters({ ...filters, search: e.target.value })}
@@ -96,7 +96,7 @@ export default function CatalogPage() {
       <div className="container mx-auto px-4 py-8">
         {loading ? (
           <div className="text-center py-16">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mx-auto"></div>
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-navy-600 mx-auto"></div>
             <p className="mt-4 text-gray-500">Chargement...</p>
           </div>
         ) : courses.length === 0 ? (
@@ -104,7 +104,7 @@ export default function CatalogPage() {
             <BookOpen className="w-12 h-12 mx-auto mb-4 text-gray-300" />
             <p className="text-gray-500 mb-4">Aucun cours trouvé</p>
             <button onClick={() => { setFilters({ search: "", category: "", level: "" }); loadCourses(); }}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg">Voir tous les cours</button>
+              className="px-4 py-2 bg-navy-600 text-white rounded-lg">Voir tous les cours</button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -115,22 +115,22 @@ export default function CatalogPage() {
                   <div className="aspect-video bg-gray-100 relative">
                     {course.cover_url
                       ? <img src={course.cover_url} alt={course.title} className="w-full h-full object-cover" />
-                      : <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-100 to-purple-100">
-                          <BookOpen className="w-12 h-12 text-indigo-300" />
+                      : <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-navy-100 to-purple-100">
+                          <BookOpen className="w-12 h-12 text-navy-300" />
                         </div>
                     }
                     {course.is_free && (
                       <span className="absolute top-2 left-2 px-2 py-0.5 bg-green-500 text-white text-xs font-medium rounded">Gratuit</span>
                     )}
                     {isEnrolled && (
-                      <span className="absolute top-2 right-2 px-2 py-0.5 bg-indigo-500 text-white text-xs font-medium rounded flex items-center gap-1">
+                      <span className="absolute top-2 right-2 px-2 py-0.5 bg-navy-500 text-white text-xs font-medium rounded flex items-center gap-1">
                         <Award className="w-3 h-3" /> Inscrit
                       </span>
                     )}
                   </div>
                   <div className="p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 text-xs rounded capitalize">
+                      <span className="px-2 py-0.5 bg-navy-50 text-navy-700 text-xs rounded capitalize">
                         {LEVELS[course.level as keyof typeof LEVELS] || course.level}
                       </span>
                       {course.category && (
@@ -149,13 +149,13 @@ export default function CatalogPage() {
                     <div className="flex gap-2">
                       {isEnrolled ? (
                         <button onClick={() => navigate(`/learn/courses/${course.id}`)}
-                          className="flex-1 flex items-center justify-center gap-2 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 font-medium">
+                          className="flex-1 flex items-center justify-center gap-2 py-2 bg-navy-600 text-white text-sm rounded-lg hover:bg-navy-700 font-medium">
                           Continuer <ChevronRight className="w-4 h-4" />
                         </button>
                       ) : (
                         <>
                           <button onClick={(e) => handleEnroll(e, course.id)}
-                            className="flex-1 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 font-medium">
+                            className="flex-1 py-2 bg-navy-600 text-white text-sm rounded-lg hover:bg-navy-700 font-medium">
                             S'inscrire
                           </button>
                           <button onClick={() => navigate(`/learn/courses/${course.id}`)}

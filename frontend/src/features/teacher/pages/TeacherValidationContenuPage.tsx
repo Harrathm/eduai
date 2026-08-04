@@ -187,7 +187,7 @@ export default function TeacherValidationContenuPage() {
               <div>Niveau</div>
               <div>Type</div>
               <div>Statut</div>
-              <div className="text-right">Actions</div>
+              <div className="text-end">Actions</div>
             </div>
           </div>
           <div className="divide-y divide-gray-100">

@@ -248,7 +248,7 @@ export default function AdminCoursesPage() {
           <Eye className="w-4 h-4" />
         </button>
         <button onClick={() => handleDuplicate(c.id)} disabled={processing}
-          className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100" title="Dupliquer">
+          className="p-1.5 bg-navy-50 text-navy-600 rounded-lg hover:bg-navy-100" title="Dupliquer">
           <Copy className="w-4 h-4" />
         </button>
         {c.is_published ? (
@@ -311,7 +311,7 @@ export default function AdminCoursesPage() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray" />
           <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Rechercher un cours..." className="w-full pl-12 pr-4 py-3 bg-cream-m rounded-xl border border-black/5 text-sm focus:outline-none focus:ring-2 focus:ring-orange/20" />
+            placeholder="Rechercher un cours..." className="w-full ps-12 pe-4 py-3 bg-cream-m rounded-xl border border-black/5 text-sm focus:outline-none focus:ring-2 focus:ring-orange/20" />
         </div>
         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
           className="px-4 py-3 bg-cream-m rounded-xl border border-black/5 text-sm focus:outline-none">

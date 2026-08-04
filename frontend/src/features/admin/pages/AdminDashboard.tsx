@@ -199,11 +199,11 @@ export default function AdminDashboard() {
                   <table className="w-full">
                     <thead className="bg-cream-m">
                       <tr>
-                        <th className="text-left px-5 py-3 text-xs font-semibold text-gray uppercase">Nom</th>
-                        <th className="text-left px-5 py-3 text-xs font-semibold text-gray uppercase">Email</th>
-                        <th className="text-left px-5 py-3 text-xs font-semibold text-gray uppercase">Rôle</th>
-                        <th className="text-left px-5 py-3 text-xs font-semibold text-gray uppercase">Status</th>
-                        <th className="text-left px-5 py-3 text-xs font-semibold text-gray uppercase">Actions</th>
+                        <th className="text-start px-5 py-3 text-xs font-semibold text-gray uppercase">Nom</th>
+                        <th className="text-start px-5 py-3 text-xs font-semibold text-gray uppercase">Email</th>
+                        <th className="text-start px-5 py-3 text-xs font-semibold text-gray uppercase">Rôle</th>
+                        <th className="text-start px-5 py-3 text-xs font-semibold text-gray uppercase">Status</th>
+                        <th className="text-start px-5 py-3 text-xs font-semibold text-gray uppercase">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-black/5">
@@ -264,7 +264,7 @@ export default function AdminDashboard() {
                           <p className="text-sm text-gray mt-1">{c.description}</p>
                           <p className="text-xs text-gray mt-2">Enseignant: {c.teacher_name}</p>
                         </div>
-                        <div className="text-right">
+                        <div className="text-end">
                           <span className={`px-3 py-1 text-xs rounded-full ${
                             c.status === "published" ? "bg-green-100 text-green-700" :
                             c.status === "pending" ? "bg-yellow-100 text-yellow-700" :

@@ -129,7 +129,7 @@ export default function StudentAssimilationProfilePage() {
                     <h3 className="font-semibold text-navy">{ch.nom}</h3>
                     <p className="text-xs text-gray">{matiereName} • {notionCount} notion{notionCount > 1 ? "s" : ""}</p>
                   </div>
-                  <div className="text-right">
+                  <div className="text-end">
                     <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium ${levelInfo.bg} ${levelInfo.text}`}>
                       {levelInfo.label}
                     </span>

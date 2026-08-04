@@ -1,7 +1,9 @@
-const API = "";
+import { tokenStorage } from "../../../utils/tokenStorage";
+
+const API = import.meta.env.VITE_API_URL || "";
 
 async function api<T = any>(path: string, opts: RequestInit = {}): Promise<T> {
-  const token = localStorage.getItem("token") || JSON.parse(localStorage.getItem("auth-storage") || "{}")?.state?.token;
+  const token = tokenStorage.getToken();
   const r = await fetch(`${API}${path}`, {
     ...opts,
     headers: {

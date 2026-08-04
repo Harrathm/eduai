@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/api/api_service.dart';
+import '../../../core/storage/secure_storage.dart';
 import '../../auth/bloc/auth_bloc.dart';
 
 part 'courses_event.dart';
@@ -19,6 +20,8 @@ class CoursesBloc extends Bloc<CoursesEvent, CoursesState> {
   ) async {
     emit(CoursesLoading());
     try {
+      final token = await SecureStorage.getToken();
+      _apiService.setToken(token);
       final courses = await _apiService.getCourses();
       emit(CoursesLoaded(courses: List<Map<String, dynamic>>.from(courses)));
     } catch (e) {

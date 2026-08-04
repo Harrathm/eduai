@@ -142,7 +142,7 @@ export default function FinancialHub() {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-cream-m rounded-xl border border-black/5 focus:border-orange focus:outline-none"
+                className="w-full ps-12 pe-4 py-3 bg-cream-m rounded-xl border border-black/5 focus:border-orange focus:outline-none"
                 placeholder="Rechercher..."
               />
             </div>
@@ -178,31 +178,31 @@ export default function FinancialHub() {
             <table className="w-full">
               <thead className="bg-cream-m">
                 <tr>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray uppercase">
+                  <th className="text-start px-6 py-4 text-xs font-semibold text-gray uppercase">
                     Utilisateur
                   </th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray uppercase">
+                  <th className="text-start px-6 py-4 text-xs font-semibold text-gray uppercase">
                     Rôle
                   </th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray uppercase">
+                  <th className="text-start px-6 py-4 text-xs font-semibold text-gray uppercase">
                     Status
                   </th>
-                  <th className="text-right px-6 py-4 text-xs font-semibold text-gray uppercase">
+                  <th className="text-end px-6 py-4 text-xs font-semibold text-gray uppercase">
                     Tokens
                   </th>
-                  <th className="text-right px-6 py-4 text-xs font-semibold text-gray uppercase">
+                  <th className="text-end px-6 py-4 text-xs font-semibold text-gray uppercase">
                     DT
                   </th>
-                  <th className="text-right px-6 py-4 text-xs font-semibold text-gray uppercase">
+                  <th className="text-end px-6 py-4 text-xs font-semibold text-gray uppercase">
                     Tokens Dépensés
                   </th>
-                  <th className="text-right px-6 py-4 text-xs font-semibold text-gray uppercase">
+                  <th className="text-end px-6 py-4 text-xs font-semibold text-gray uppercase">
                     DT Dépensés
                   </th>
-                  <th className="text-right px-6 py-4 text-xs font-semibold text-gray uppercase">
+                  <th className="text-end px-6 py-4 text-xs font-semibold text-gray uppercase">
                     DT Gagnés
                   </th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray uppercase">
+                  <th className="text-start px-6 py-4 text-xs font-semibold text-gray uppercase">
                     Actions
                   </th>
                 </tr>
@@ -240,7 +240,7 @@ export default function FinancialHub() {
                         {u.is_active ? "Actif" : "Inactif"}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right font-medium">
+                    <td className="px-6 py-4 text-end font-medium">
                       {editingId === u.id ? (
                         <input
                           type="number"
@@ -251,13 +251,13 @@ export default function FinancialHub() {
                               token_balance: Number(e.target.value),
                             })
                           }
-                          className="w-20 px-2 py-1 bg-cream-m rounded text-right"
+                          className="w-20 px-2 py-1 bg-cream-m rounded text-end"
                         />
                       ) : (
                         u.token_balance
                       )}
                     </td>
-                    <td className="px-6 py-4 text-right font-medium">
+                    <td className="px-6 py-4 text-end font-medium">
                       {editingId === u.id ? (
                         <input
                           type="number"
@@ -268,19 +268,19 @@ export default function FinancialHub() {
                               dt_balance: Number(e.target.value),
                             })
                           }
-                          className="w-20 px-2 py-1 bg-cream-m rounded text-right"
+                          className="w-20 px-2 py-1 bg-cream-m rounded text-end"
                         />
                       ) : (
                         u.dt_balance
                       )}
                     </td>
-                    <td className="px-6 py-4 text-right text-gray text-sm">
+                    <td className="px-6 py-4 text-end text-gray text-sm">
                       {u.total_tokens_spent}
                     </td>
-                    <td className="px-6 py-4 text-right text-gray text-sm">
+                    <td className="px-6 py-4 text-end text-gray text-sm">
                       {u.total_dt_spent}
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-end">
                       <span className="text-green-600 font-medium">
                         +{u.total_dt_earned}
                       </span>

@@ -345,7 +345,7 @@ export default function RegisterPage() {
                           key={school.id}
                           type="button"
                           onClick={() => handleSelectSchool(school)}
-                          className="w-full text-left px-5 py-3 hover:bg-orange/5 transition-colors border-b border-gray-100 last:border-0"
+                          className="w-full text-start px-5 py-3 hover:bg-orange/5 transition-colors border-b border-gray-100 last:border-0"
                         >
                           <span className="text-sm text-navy">{school.name}</span>
                         </button>

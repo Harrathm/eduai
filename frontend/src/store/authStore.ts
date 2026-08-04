@@ -1,7 +1,7 @@
 import { create } from "zustand";
+import { tokenStorage } from "../utils/tokenStorage";
 
-// Use consistent localhost for both frontend and backend
-const API_URL = "";
+const API_URL = import.meta.env.VITE_API_URL || "";
 
 async function authAPI_login(email, password) {
   const params = new URLSearchParams();
@@ -65,8 +65,8 @@ async function authAPI_me(token) {
 }
 
 export const useAuthStore = create((set, get) => ({
-  user: JSON.parse(localStorage.getItem("user") || "null"),
-  token: localStorage.getItem("token"),
+  user: tokenStorage.getUser(),
+  token: tokenStorage.getToken(),
   isLoading: false,
   error: null,
 
@@ -74,27 +74,26 @@ export const useAuthStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const data = await authAPI_login(email, password);
-      localStorage.setItem("token", data.access_token);
+      tokenStorage.setToken(data.access_token);
+      if (data.refresh_token) tokenStorage.setRefreshToken(data.refresh_token);
       const user = await authAPI_me(data.access_token);
-      localStorage.setItem("user", JSON.stringify(user));
+      tokenStorage.setUser(user);
       set({ token: data.access_token, user, isLoading: false });
       return true;
     } catch (err) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
+      tokenStorage.clearAll();
       set({ error: err.message, isLoading: false, token: null, user: null });
       return false;
     }
   },
 
   logout: () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    tokenStorage.clearAll();
     set({ token: null, user: null });
   },
 
   setUser: (user: any) => {
-    localStorage.setItem("user", JSON.stringify(user));
+    tokenStorage.setUser(user);
     set({ user });
   },
 
@@ -102,9 +101,10 @@ export const useAuthStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const data = await authAPI_register(email, password, full_name, school_name, niveau_scolaire);
-      localStorage.setItem("token", data.access_token);
+      tokenStorage.setToken(data.access_token);
+      if (data.refresh_token) tokenStorage.setRefreshToken(data.refresh_token);
       const user = await authAPI_me(data.access_token);
-      localStorage.setItem("user", JSON.stringify(user));
+      tokenStorage.setUser(user);
       set({ token: data.access_token, user, isLoading: false });
       return true;
     } catch (err) {
@@ -117,9 +117,10 @@ export const useAuthStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const data = await authAPI_registerTrialTeacher(email, password, full_name);
-      localStorage.setItem("token", data.access_token);
+      tokenStorage.setToken(data.access_token);
+      if (data.refresh_token) tokenStorage.setRefreshToken(data.refresh_token);
       const user = await authAPI_me(data.access_token);
-      localStorage.setItem("user", JSON.stringify(user));
+      tokenStorage.setUser(user);
       set({ token: data.access_token, user, isLoading: false });
       return true;
     } catch (err) {
@@ -141,22 +142,21 @@ export const useAuthStore = create((set, get) => ({
   },
 
   restore: async () => {
-    const token = localStorage.getItem("token");
-    const userStr = localStorage.getItem("user");
+    const token = tokenStorage.getToken();
+    const user = tokenStorage.getUser();
     
-    if (!token || !userStr) {
+    if (!token || !user) {
       set({ token: null, user: null });
       return;
     }
     
     try {
-      const user = await authAPI_me(token);
-      localStorage.setItem("user", JSON.stringify(user));
-      set({ token, user });
+      const freshUser = await authAPI_me(token);
+      tokenStorage.setUser(freshUser);
+      set({ token, user: freshUser });
     } catch (err) {
       // Expected when token is missing or expired — silently clear session
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
+      tokenStorage.clearAll();
       set({ token: null, user: null });
     }
   },

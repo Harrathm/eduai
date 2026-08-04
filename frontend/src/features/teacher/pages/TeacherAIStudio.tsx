@@ -305,7 +305,7 @@ export default function TeacherAIStudio() {
                     onClick={() => {
                       if (result) navigator.clipboard.writeText(result);
                     }}
-                    className="text-white/70 hover:text-white text-sm ml-2"
+                    className="text-white/70 hover:text-white text-sm ms-2"
                   >
                     Copier
                   </button>
@@ -356,7 +356,7 @@ export default function TeacherAIStudio() {
                 <button
                   key={q}
                   onClick={() => setPrompt(q)}
-                  className="w-full p-3 bg-white/10 text-white text-left rounded-xl text-sm hover:bg-white/20 transition-colors"
+                  className="w-full p-3 bg-white/10 text-white text-start rounded-xl text-sm hover:bg-white/20 transition-colors"
                 >
                   {q}
                 </button>

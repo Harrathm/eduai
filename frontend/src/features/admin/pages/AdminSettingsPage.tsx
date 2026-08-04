@@ -3,6 +3,7 @@ import { Save, RefreshCw, Eye, EyeOff, Check, AlertCircle, Loader2, Globe, Key, 
 import { adminSettings, adminLogs } from "../api";
 import type { PlatformSettingItem, TokenLimits, ErrorLogResponse } from "../api";
 import { useAuthStore } from "@/store/authStore";
+import { tokenStorage } from "../../../utils/tokenStorage";
 
 type TabId = "general" | "api-keys" | "pricing" | "token-limits" | "maintenance" | "logs";
 
@@ -211,7 +212,7 @@ export default function AdminSettingsPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${tokenStorage.getToken()}`,
         },
         body: JSON.stringify({ provider_id: providerId, key: config.key, model: config.model }),
       });
@@ -666,7 +667,7 @@ export default function AdminSettingsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-black/5">
-                  <th className="text-left py-3 px-2 font-medium text-gray">Role</th>
+                  <th className="text-start py-3 px-2 font-medium text-gray">Role</th>
                   <th className="text-center py-3 px-2 font-medium text-gray">Monthly</th>
                   <th className="text-center py-3 px-2 font-medium text-gray">Daily</th>
                   <th className="text-center py-3 px-2 font-medium text-gray">Per Request</th>

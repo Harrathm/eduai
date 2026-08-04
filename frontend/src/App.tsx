@@ -97,9 +97,24 @@ function PageLoader() {
 }
 
 // ─── Auth guards ────────────────────────────────────────────────────
+function isTokenExpired(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return Date.now() >= (payload.exp || 0) * 1000;
+  } catch {
+    return true;
+  }
+}
+
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token);
+  const logout = useAuthStore((s) => s.logout);
+
   if (!token) return <Navigate to="/login" replace />;
+  if (isTokenExpired(token)) {
+    logout();
+    return <Navigate to="/login" replace />;
+  }
   return <>{children}</>;
 }
 
@@ -240,7 +255,7 @@ export default function App() {
               <Route path="packs" element={<RequireRole roles={["student", "admin_school"]}><PacksPage /></RequireRole>} />
               <Route path="my-pack" element={<RequireRole roles={["student", "admin_school"]}><StudentPackPage /></RequireRole>} />
               <Route path="tier" element={<RequireRole roles={["student", "admin_school"]}><StudentTierPage /></RequireRole>} />
-              <Route path="soft-skills" element={<SoftSkillsCatalogPage />} />
+              <Route path="soft-skills" element={<RequireAuth><SoftSkillsCatalogPage /></RequireAuth>} />
               <Route path="placement/:testId" element={<RequireRole roles={["student", "admin_school"]}><PlacementTestPage /></RequireRole>} />
               <Route path="profile" element={<RequireRole roles={["student", "teacher", "admin_school"]}><ProfilePage /></RequireRole>} />
               <Route path="assimilation" element={<RequireRole roles={["student", "admin_school"]}><StudentAssimilationProfilePage /></RequireRole>} />

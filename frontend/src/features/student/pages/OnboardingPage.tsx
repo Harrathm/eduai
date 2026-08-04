@@ -46,7 +46,7 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-8">
+    <div className="min-h-screen bg-gradient-to-br from-navy-50 via-white to-purple-50 flex items-center justify-center p-8">
       <div className="max-w-lg w-full">
         {step === 0 && (
           <div className="bg-white rounded-3xl shadow-xl p-10 text-center">
@@ -66,7 +66,7 @@ export default function OnboardingPage() {
                   onClick={() => handleLanguageSelect(l.code)}
                   className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${
                     language === l.code
-                      ? "border-indigo-600 bg-indigo-50"
+                      ? "border-navy-600 bg-navy-50"
                       : "border-gray-200 hover:border-gray-300"
                   }`}
                 >
@@ -78,7 +78,7 @@ export default function OnboardingPage() {
             
             <button
               onClick={() => setStep(1)}
-              className="w-full py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors"
+              className="w-full py-3 bg-navy-600 text-white rounded-xl font-medium hover:bg-navy-700 transition-colors"
             >
               {t("onboarding.next")}
             </button>
@@ -95,9 +95,9 @@ export default function OnboardingPage() {
                 <button
                   key={n}
                   onClick={() => setNiveau(n)}
-                  className={`p-3 rounded-xl border-2 text-left text-sm transition-all ${
+                  className={`p-3 rounded-xl border-2 text-start text-sm transition-all ${
                     niveau === n
-                      ? "border-indigo-600 bg-indigo-50 text-indigo-700 font-medium"
+                      ? "border-navy-600 bg-navy-50 text-navy-700 font-medium"
                       : "border-gray-200 hover:border-gray-300"
                   }`}
                 >
@@ -116,7 +116,7 @@ export default function OnboardingPage() {
               <button
                 onClick={handleFinish}
                 disabled={saving}
-                className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 disabled:opacity-50"
+                className="flex-1 py-3 bg-navy-600 text-white rounded-xl font-medium hover:bg-navy-700 disabled:opacity-50"
               >
                 {saving ? t("common.loading") : t("onboarding.finish")}
               </button>

@@ -108,7 +108,7 @@ export default function EnrollmentManager() {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-cream-m rounded-xl border border-black/5 focus:border-orange focus:outline-none"
+                className="w-full ps-12 pe-4 py-3 bg-cream-m rounded-xl border border-black/5 focus:border-orange focus:outline-none"
                 placeholder="Rechercher..."
               />
             </div>
@@ -149,19 +149,19 @@ export default function EnrollmentManager() {
           <table className="w-full">
             <thead className="bg-cream-m">
               <tr>
-                <th className="text-left px-6 py-4 text-xs font-semibold text-gray uppercase">
+                <th className="text-start px-6 py-4 text-xs font-semibold text-gray uppercase">
                   Enseignant
                 </th>
-                <th className="text-left px-6 py-4 text-xs font-semibold text-gray uppercase">
+                <th className="text-start px-6 py-4 text-xs font-semibold text-gray uppercase">
                   École
                 </th>
-                <th className="text-left px-6 py-4 text-xs font-semibold text-gray uppercase">
+                <th className="text-start px-6 py-4 text-xs font-semibold text-gray uppercase">
                   Status
                 </th>
-                <th className="text-left px-6 py-4 text-xs font-semibold text-gray uppercase">
+                <th className="text-start px-6 py-4 text-xs font-semibold text-gray uppercase">
                   Date
                 </th>
-                <th className="text-left px-6 py-4 text-xs font-semibold text-gray uppercase">
+                <th className="text-start px-6 py-4 text-xs font-semibold text-gray uppercase">
                   Actions
                 </th>
               </tr>

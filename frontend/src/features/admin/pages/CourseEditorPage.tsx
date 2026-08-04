@@ -8,6 +8,7 @@ import {
 
 import { adminCoursesAPI, adminChaptersAPI, adminLessonsAPI } from "../../../api/lms";
 import { adminCourses } from "../../admin/api";
+import { tokenStorage } from "../../../utils/tokenStorage";
 
 const LESSON_TYPES = [
   { value: "text", label: "Texte", icon: FileText },
@@ -18,7 +19,7 @@ const LESSON_TYPES = [
   { value: "quiz", label: "Quiz/Examen", icon: HelpCircle },
 ];
 
-function getToken() { return localStorage.getItem("token"); }
+function getToken() { return tokenStorage.getToken(); }
 
 async function apiFetch(path: string, options: RequestInit = {}) {
   const token = getToken();
@@ -393,7 +394,7 @@ export default function CourseEditorPage() {
               <Eye className="w-3 h-3" /> Aperçu
             </button>
             <button onClick={handleDuplicate} disabled={saving}
-              className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs bg-indigo-100 text-indigo-800 rounded hover:bg-indigo-200 disabled:opacity-50">
+              className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs bg-navy-100 text-navy-800 rounded hover:bg-navy-200 disabled:opacity-50">
               <Copy className="w-3 h-3" /> Dupliquer
             </button>
           </div>
@@ -546,7 +547,7 @@ export default function CourseEditorPage() {
             {course.modifier_name && <div>Modifié par: {course.modifier_name}</div>}
           </div>
           <button onClick={handleSaveCourse} disabled={saving}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50">
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm bg-navy-600 text-white rounded-lg hover:bg-navy-700 disabled:opacity-50">
             <Save className="w-4 h-4" /> {saving ? "Sauvegarde..." : "Enregistrer"}
           </button>
         </div>
@@ -555,7 +556,7 @@ export default function CourseEditorPage() {
         <div className="flex-1 overflow-y-auto p-2 space-y-1">
           {chapters.map(ch => (
             <div key={ch.id}
-              className={`rounded cursor-pointer ${activeChapter === ch.id ? "bg-indigo-50" : "hover:bg-gray-50"}`}>
+              className={`rounded cursor-pointer ${activeChapter === ch.id ? "bg-navy-50" : "hover:bg-gray-50"}`}>
               <div onClick={() => setActiveChapter(ch.id)} className="flex items-center gap-2 p-2">
                 <GripVertical className="w-4 h-4 text-gray-400" />
                 <div className="flex-1">
@@ -588,7 +589,7 @@ export default function CourseEditorPage() {
               </div>
               <div className="flex gap-2">
                 <button onClick={() => handleAddLesson(activeChapterData.id)}
-                  className="flex items-center gap-1 px-3 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                  className="flex items-center gap-1 px-3 py-2 text-sm bg-navy-600 text-white rounded-lg hover:bg-navy-700">
                   <Plus className="w-4 h-4" /> Ajouter leçon
                 </button>
                 <button onClick={() => handleDeleteChapter(activeChapterData.id)}
@@ -609,7 +610,7 @@ export default function CourseEditorPage() {
                   {activeChapterData.lessons.map((lesson: Lesson) => (
                     <div key={lesson.id}
                       onClick={() => openLessonEditor(lesson)}
-                      className={`p-4 rounded-lg border-2 cursor-pointer hover:border-indigo-300 transition-colors ${getLessonBg(lesson.lesson_type)}`}>
+                      className={`p-4 rounded-lg border-2 cursor-pointer hover:border-navy-300 transition-colors ${getLessonBg(lesson.lesson_type)}`}>
                       <div className="flex items-center gap-2 mb-2">
                         {getLessonIcon(lesson.lesson_type)}
                         <span className="text-xs font-medium">
@@ -636,7 +637,7 @@ export default function CourseEditorPage() {
               <ChevronDown className="w-12 h-12 mx-auto mb-4 text-gray-300" />
               <p>Sélectionnez un chapitre</p>
               {chapters.length === 0 && (
-                <button onClick={handleAddChapter} className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                <button onClick={handleAddChapter} className="mt-4 px-4 py-2 bg-navy-600 text-white rounded-lg hover:bg-navy-700">
                   Créer le premier chapitre
                 </button>
               )}
@@ -666,7 +667,7 @@ export default function CourseEditorPage() {
                       <button key={t.value}
                         onClick={() => setEditLessonForm({ ...editLessonForm, lesson_type: t.value })}
                         className={`p-3 rounded-lg border-2 flex flex-col items-center gap-2 ${
-                          editLessonForm.lesson_type === t.value ? "border-indigo-600 bg-indigo-50" : "border-gray-200 hover:border-gray-300"
+                          editLessonForm.lesson_type === t.value ? "border-navy-600 bg-navy-50" : "border-gray-200 hover:border-gray-300"
                         }`}>
                         <Icon className="w-5 h-5" />
                         <span className="text-sm">{t.label}</span>
@@ -765,7 +766,7 @@ export default function CourseEditorPage() {
                 Annuler
               </button>
               <button onClick={handleSaveLesson}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                className="flex items-center gap-2 px-4 py-2 bg-navy-600 text-white rounded-lg hover:bg-navy-700">
                 <Save className="w-4 h-4" /> Enregistrer
               </button>
             </div>

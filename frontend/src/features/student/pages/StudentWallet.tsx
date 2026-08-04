@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../../../store/authStore";
 import { api } from "../../../utils/apiClient";
 import { Wallet, Coins, TrendingUp, Clock } from "lucide-react";
@@ -25,6 +26,7 @@ interface TxRecord {
 }
 
 export default function StudentWallet() {
+  const { t } = useTranslation();
   const { token } = useAuthStore();
   const [balance, setBalance] = useState<WalletBalance | null>(null);
   const [history, setHistory] = useState<TxRecord[]>([]);
@@ -60,9 +62,9 @@ export default function StudentWallet() {
     <div className="space-y-6">
       <div className="bg-white rounded-3xl p-8 shadow-sm border border-black/5">
         <h1 className="text-3xl font-[300] text-navy">
-          Mon <span className="italic text-orange">Portefeuille</span>
+          {t('wallet.title')}
         </h1>
-        <p className="text-gray mt-2">Solde de crédits IA et tokens</p>
+        <p className="text-gray mt-2">{t('wallet.subtitle')}</p>
       </div>
 
       {/* Solde total */}
@@ -70,15 +72,15 @@ export default function StudentWallet() {
         <div className="bg-gradient-to-br from-orange-p to-cream rounded-2xl p-6">
           <div className="flex items-center gap-2 mb-2">
             <Coins className="w-5 h-5 text-orange" />
-            <span className="text-sm text-gray">Crédits IA</span>
+            <span className="text-sm text-gray">{t('wallet.aiCredits')}</span>
           </div>
           <div className="text-3xl font-[300] text-navy">{balance?.total ?? 0}</div>
-          <div className="text-xs text-gray mt-1">1 crédit = 500 tokens</div>
+          <div className="text-xs text-gray mt-1">{t('wallet.creditTokenRatio')}</div>
         </div>
         <div className="bg-gradient-to-br from-yellow-50 to-cream rounded-2xl p-6">
           <div className="flex items-center gap-2 mb-2">
             <Wallet className="w-5 h-5 text-yellow-600" />
-            <span className="text-sm text-gray">Tokens</span>
+            <span className="text-sm text-gray">{t('wallet.tokens')}</span>
           </div>
           <div className="text-3xl font-[300] text-navy">{(balance?.total ?? 0) * 500}</div>
         </div>
@@ -86,7 +88,7 @@ export default function StudentWallet() {
 
       {/* Détail par pool */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
-        <h2 className="text-lg font-semibold text-navy mb-4">Détail par source</h2>
+        <h2 className="text-lg font-semibold text-navy mb-4">{t('wallet.detailBySource')}</h2>
         <div className="space-y-3">
           {(["trial", "subscription", "school_allocated", "purchased", "dt_purchased"] as const).map((pool) => {
             const data = getPoolData(pool);
@@ -98,13 +100,13 @@ export default function StudentWallet() {
                   {data.expires_at && (
                     <span className="ml-2 text-xs text-gray flex items-center gap-1">
                       <Clock className="w-3 h-3" />
-                      expire le {new Date(data.expires_at).toLocaleDateString("fr-TN")}
+                      {t('wallet.expiresOn')} {new Date(data.expires_at).toLocaleDateString("fr-TN")}
                     </span>
                   )}
                 </div>
-                <div className="text-right">
-                  <span className="font-semibold text-navy">{data.balance} crédits</span>
-                  <span className="text-xs text-gray ml-2">({data.balance * 500} tokens)</span>
+                <div className="text-end">
+                  <span className="font-semibold text-navy">{data.balance} {t('wallet.credits')}</span>
+                  <span className="text-xs text-gray ms-2">({data.balance * 500} {t('wallet.tokens')})</span>
                 </div>
               </div>
             );
@@ -114,9 +116,9 @@ export default function StudentWallet() {
 
       {/* Historique */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
-        <h2 className="text-lg font-semibold text-navy mb-4">Historique récent</h2>
+        <h2 className="text-lg font-semibold text-navy mb-4">{t('wallet.recentHistory')}</h2>
         {history.length === 0 ? (
-          <p className="text-gray text-sm">Aucune transaction</p>
+          <p className="text-gray text-sm">{t('wallet.noTransactions')}</p>
         ) : (
           <div className="space-y-2">
             {history.map((tx) => (
@@ -125,7 +127,7 @@ export default function StudentWallet() {
                   <span className="text-sm font-medium text-navy">{tx.feature}</span>
                   <span className="ml-2 text-xs text-gray">{poolLabel(tx.pool)}</span>
                 </div>
-                <div className="text-right">
+                <div className="text-end">
                   <span className={`text-sm font-semibold ${tx.amount > 0 ? "text-green-600" : "text-red-500"}`}>
                     {tx.amount > 0 ? "+" : ""}{tx.amount}
                   </span>
@@ -139,12 +141,12 @@ export default function StudentWallet() {
 
       {/* Info */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
-        <h2 className="text-lg font-semibold text-navy mb-4">Comment obtenir des crédits?</h2>
+        <h2 className="text-lg font-semibold text-navy mb-4">{t('wallet.howToGetCredits')}</h2>
         <div className="space-y-3 text-gray text-sm">
-          <p>• <b>Essai</b> : 100 crédits offerts à l'inscription (30 jours)</p>
-          <p>• <b>Abonnement</b> : 200 crédits/mois inclus dans votre plan</p>
-          <p>• <b>École</b> : alloués par votre administration</p>
-          <p>• <b>Acheté</b> : achetez via Stripe (paiement sécurisé)</p>
+          <p>• <b>{t('wallet.poolTrial')}</b> : {t('wallet.poolTrialDesc')}</p>
+          <p>• <b>{t('wallet.poolSubscription')}</b> : {t('wallet.poolSubscriptionDesc')}</p>
+          <p>• <b>{t('wallet.poolSchool')}</b> : {t('wallet.poolSchoolDesc')}</p>
+          <p>• <b>{t('wallet.poolPurchased')}</b> : {t('wallet.poolPurchasedDesc')}</p>
         </div>
       </div>
     </div>

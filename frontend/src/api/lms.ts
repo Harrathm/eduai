@@ -1,6 +1,8 @@
-const API_URL = "";
+import { tokenStorage } from "../utils/tokenStorage";
 
-const getToken = () => localStorage.getItem("token");
+const API_URL = import.meta.env.VITE_API_URL || "";
+
+const getToken = () => tokenStorage.getToken();
 
 async function fetchAPI(endpoint: string, options: RequestInit = {}) {
   const token = getToken();

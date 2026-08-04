@@ -100,7 +100,7 @@ export default function AddStudentModal({ token, classId, open, onClose, onEnrol
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 bg-cream-m rounded-xl border border-black/5 focus:outline-none focus:ring-2 focus:ring-orange/30"
+            className="w-full ps-11 pe-4 py-3 bg-cream-m rounded-xl border border-black/5 focus:outline-none focus:ring-2 focus:ring-orange/30"
             placeholder="Rechercher par nom ou email..."
             autoFocus
           />

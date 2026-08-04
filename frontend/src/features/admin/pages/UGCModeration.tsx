@@ -179,7 +179,7 @@ export default function UGCModeration() {
                     <span>{course.students_enrolled} étudiants</span>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-end">
                   <div className="text-lg font-semibold text-navy mb-1">
                     {course.price_tokens} tokens
                   </div>

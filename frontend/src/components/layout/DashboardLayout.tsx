@@ -178,7 +178,7 @@ export default function DashboardLayout() {
                       end={item.end}
                       onClick={() => setSidebarOpen(false)}
                       className={({ isActive }) =>
-                        `flex items-center gap-4 pl-10 pr-5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                        `flex items-center gap-4 ps-10 pe-5 py-2.5 rounded-xl text-sm font-medium transition-all ${
                           isActive
                             ? "bg-gradient-to-r from-orange to-orange-l text-white"
                             : "text-white/50 hover:bg-white/5 hover:text-white"

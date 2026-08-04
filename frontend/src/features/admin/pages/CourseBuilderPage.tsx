@@ -123,7 +123,7 @@ export default function CourseBuilderPage() {
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium"
+          className="flex items-center gap-2 px-4 py-2 bg-navy-600 text-white rounded-lg hover:bg-navy-700 font-medium"
         >
           <Plus className="w-5 h-5" />
           Nouveau cours
@@ -182,7 +182,7 @@ export default function CourseBuilderPage() {
             <div className="p-4 border-t flex justify-end gap-2">
               <button onClick={() => setShowCreate(false)} className="px-4 py-2 border rounded-lg hover:bg-gray-50">Annuler</button>
               <button onClick={handleCreate} disabled={creating}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50">
+                className="flex items-center gap-2 px-4 py-2 bg-navy-600 text-white rounded-lg hover:bg-navy-700 disabled:opacity-50">
                 {creating ? "Création..." : <><Check className="w-4 h-4" /> Créer</>}
               </button>
             </div>
@@ -196,7 +196,7 @@ export default function CourseBuilderPage() {
           <div className="flex-1 min-w-[200px] relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input type="text" placeholder="Rechercher un cours..." value={search}
-              onChange={e => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-2 border rounded-lg" />
+              onChange={e => setSearch(e.target.value)} className="w-full ps-10 pe-4 py-2 border rounded-lg" />
           </div>
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="px-3 py-2 border rounded-lg">
             <option value="">Tous les statuts</option>
@@ -218,7 +218,7 @@ export default function CourseBuilderPage() {
         <div className="text-center py-20">
           <BookOpen className="w-12 h-12 mx-auto mb-4 text-gray-300" />
           <p className="text-gray-500">Aucun cours trouvé</p>
-          <button onClick={() => setShowCreate(true)} className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+          <button onClick={() => setShowCreate(true)} className="mt-4 px-4 py-2 bg-navy-600 text-white rounded-lg hover:bg-navy-700">
             Créer mon premier cours
           </button>
         </div>
@@ -245,7 +245,7 @@ export default function CourseBuilderPage() {
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   <button onClick={() => navigate(`/dashboard/admin/courses/${course.id}`)}
-                    className="flex items-center gap-1 px-3 py-1.5 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700">
+                    className="flex items-center gap-1 px-3 py-1.5 text-sm bg-navy-600 text-white rounded hover:bg-navy-700">
                     <Edit className="w-3 h-3" /> Éditer
                   </button>
                   {course.status === "published" ? (

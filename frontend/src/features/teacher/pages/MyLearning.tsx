@@ -119,7 +119,7 @@ export default function MyLearning() {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-cream-m rounded-xl border border-black/5 focus:border-orange focus:outline-none"
+                className="w-full ps-12 pe-4 py-3 bg-cream-m rounded-xl border border-black/5 focus:border-orange focus:outline-none"
                 placeholder="Rechercher une formation..."
               />
             </div>
@@ -177,7 +177,7 @@ export default function MyLearning() {
                     )}
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-end">
                   <div className="text-lg font-semibold text-navy mb-1">
                     {training.is_free ? "Gratuit" : `${training.price_tokens} tokens`}
                   </div>

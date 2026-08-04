@@ -85,7 +85,7 @@ export default function AdminArborescencePage() {
   const AddForm = ({ type, parentId, onClose }: { type: string; parentId?: number; onClose: () => void }) => {
     const [val, setVal] = useState("");
     return (
-      <div className="flex items-center gap-2 ml-8 py-1">
+      <div className="flex items-center gap-2 ms-8 py-1">
         <input autoFocus className="px-3 py-1.5 border rounded-lg text-sm flex-1" placeholder={`Nom du ${type}...`}
           value={val} onChange={e => setVal(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter" && val.trim()) { save(type, { nom: val.trim() }, parentId); onClose(); } if (e.key === "Escape") onClose(); }} />

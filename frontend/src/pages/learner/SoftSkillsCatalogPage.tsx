@@ -51,7 +51,7 @@ export default function SoftSkillsCatalogPage() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-br from-purple-600 to-indigo-700 rounded-3xl p-8">
+      <div className="bg-gradient-to-br from-purple-600 to-navy-700 rounded-3xl p-8">
         <div className="flex items-center gap-3 mb-2">
           <Sparkles className="w-8 h-8 text-white/80" />
           <h1 className="text-3xl font-[300] text-white">
@@ -88,7 +88,7 @@ export default function SoftSkillsCatalogPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Rechercher une formation..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple/30"
+              className="w-full ps-10 pe-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple/30"
             />
           </div>
           {categories.length > 0 && (

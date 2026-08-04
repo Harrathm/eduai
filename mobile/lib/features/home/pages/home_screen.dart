@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../courses/pages/courses_screen.dart';
 import '../../assignments/pages/assignments_screen.dart';
-import '../../ai_tutor/pages/ai_tutor_screen.dart';
+import '../../ai_tutor/pages/ai_tutor_stream_screen.dart';
+import '../../gamification/pages/gamification_screen.dart';
+import '../../pack/pages/mon_pack_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,8 +18,9 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _screens = [
     const _DashboardTab(),
     const CoursesScreen(),
+    const AITutorStreamScreen(),
     const AssignmentsScreen(),
-    const AITutorScreen(),
+    const GamificationScreen(),
   ];
 
   @override
@@ -26,32 +29,13 @@ class _HomeScreenState extends State<HomeScreen> {
       body: _screens[_currentIndex],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
+        onDestinationSelected: (index) => setState(() => _currentIndex = index),
         destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.school_outlined),
-            selectedIcon: Icon(Icons.school),
-            label: 'Courses',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.assignment_outlined),
-            selectedIcon: Icon(Icons.assignment),
-            label: 'Tasks',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.smart_toy_outlined),
-            selectedIcon: Icon(Icons.smart_toy),
-            label: 'AI Tutor',
-          ),
+          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Accueil'),
+          NavigationDestination(icon: Icon(Icons.school_outlined), selectedIcon: Icon(Icons.school), label: 'Cours'),
+          NavigationDestination(icon: Icon(Icons.smart_toy_outlined), selectedIcon: Icon(Icons.smart_toy), label: 'IA'),
+          NavigationDestination(icon: Icon(Icons.assignment_outlined), selectedIcon: Icon(Icons.assignment), label: 'Tâches'),
+          NavigationDestination(icon: Icon(Icons.emoji_events_outlined), selectedIcon: Icon(Icons.emoji_events), label: 'Badges'),
         ],
       ),
     );
@@ -59,20 +43,17 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _DashboardTab extends StatelessWidget {
-  const _DashboardTab({super.key});
+  const _DashboardTab();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('EDUAI Learning'),
-        backgroundColor: const Color(0xFF4F46E5),
+        backgroundColor: const Color(0xFF0D1B2A),
         foregroundColor: Colors.white,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {},
-          ),
+          IconButton(icon: const Icon(Icons.notifications_outlined), onPressed: () {}),
         ],
       ),
       body: SingleChildScrollView(
@@ -80,263 +61,80 @@ class _DashboardTab extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Welcome Card
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF4F46E5), Color(0xFF9333EA)],
-                ),
+                gradient: const LinearGradient(colors: [Color(0xFF0D1B2A), Color(0xFF2C4A6E)]),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Welcome Back!',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  const Text('Bienvenue!', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Continue your learning journey',
-                    style: TextStyle(color: Colors.white70),
-                  ),
+                  const Text('Continuez votre apprentissage', style: TextStyle(color: Colors.white70)),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFF4F46E5),
-                    ),
-                    child: const Text('Continue Learning'),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: const Color(0xFF0D1B2A)),
+                    child: const Text('Continuer'),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
-            // Quick Stats
-            const Text(
-              'Your Progress',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+            const Text('Accès rapide', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                _quickAction(context, Icons.card_membership, 'Mon Pack', '/mon-pack'),
+                const SizedBox(width: 12),
+                _quickAction(context, Icons.account_balance_wallet, 'Wallet', '/wallet'),
+                const SizedBox(width: 12),
+                _quickAction(context, Icons.smart_toy, 'Tuteur IA', '/ai-tutor'),
+              ],
             ),
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(
-                  child: _StatCard(
-                    icon: Icons.school,
-                    label: 'Courses',
-                    value: '4',
-                    color: Colors.blue,
-                  ),
-                ),
+                _quickAction(context, Icons.emoji_events, 'Badges', '/gamification'),
                 const SizedBox(width: 12),
-                Expanded(
-                  child: _StatCard(
-                    icon: Icons.assignment,
-                    label: 'Tasks',
-                    value: '3',
-                    color: Colors.amber,
-                  ),
-                ),
+                _quickAction(context, Icons.library_books, 'Catalogue', '/catalog'),
                 const SizedBox(width: 12),
-                Expanded(
-                  child: _StatCard(
-                    icon: Icons.check_circle,
-                    label: 'Done',
-                    value: '12',
-                    color: Colors.green,
-                  ),
-                ),
+                _quickAction(context, Icons.people, 'Parent', '/parent'),
               ],
-            ),
-            const SizedBox(height: 24),
-            // Quick Actions
-            const Text(
-              'Quick Actions',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _ActionCard(
-                    icon: Icons.smart_toy,
-                    label: 'AI Tutor',
-                    onTap: () {},
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _ActionCard(
-                    icon: Icons.quiz,
-                    label: 'Quiz',
-                    onTap: () {},
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _ActionCard(
-                    icon: Icons.download,
-                    label: 'Resources',
-                    onTap: () {},
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            // Recent Activity
-            const Text(
-              'Recent Activity',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            _ActivityTile(
-              icon: Icons.check_circle,
-              title: 'Completed Python Basics',
-              subtitle: '2 hours ago',
-              color: Colors.green,
-            ),
-            _ActivityTile(
-              icon: Icons.assignment_turned_in,
-              title: 'Submitted Calculator Assignment',
-              subtitle: 'Yesterday',
-              color: Colors.blue,
-            ),
-            _ActivityTile(
-              icon: Icons.chat_bubble,
-              title: 'Chat with AI Tutor',
-              subtitle: '2 days ago',
-              color: Colors.purple,
             ),
           ],
         ),
       ),
     );
   }
-}
 
-class _StatCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color color;
-
-  const _StatCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 28),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          Text(
-            label,
-            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ActionCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _ActionCard({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey[200]!),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: const Color(0xFF4F46E5)),
+  Widget _quickAction(BuildContext context, IconData icon, String label, String route) {
+    return Expanded(
+      child: InkWell(
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) {
+          const routes = {
+            '/mon-pack': MonPackScreen(),
+            '/wallet': WalletScreen(),
+            '/ai-tutor': AITutorStreamScreen(),
+            '/gamification': GamificationScreen(),
+            '/catalog': CatalogScreen(),
+          };
+          return routes[route] ?? const SizedBox();
+        })),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade200), borderRadius: BorderRadius.circular(12)),
+          child: Column(children: [
+            Icon(icon, color: const Color(0xFF0D1B2A)),
             const SizedBox(height: 8),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 12),
-            ),
-          ],
+            Text(label, style: const TextStyle(fontSize: 11), textAlign: TextAlign.center),
+          ]),
         ),
       ),
-    );
-  }
-}
-
-class _ActivityTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-
-  const _ActivityTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(icon, color: color, size: 20),
-      ),
-      title: Text(title),
-      subtitle: Text(subtitle, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
     );
   }
 }

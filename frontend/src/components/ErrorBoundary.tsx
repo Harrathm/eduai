@@ -47,7 +47,7 @@ export class ErrorBoundary extends Component<Props, State> {
               Une erreur inattendue a eu lieu. Veuillez réessayer ou retourner au tableau de bord.
             </p>
             {this.state.error && (
-              <details className="bg-red-50 text-red-700 p-3 rounded-lg mb-6 text-sm font-mono text-left">
+              <details className="bg-red-50 text-red-700 p-3 rounded-lg mb-6 text-sm font-mono text-start">
                 <summary className="cursor-pointer font-semibold">Détails de l'erreur</summary>
                 <pre className="mt-2 whitespace-pre-wrap break-words text-xs">
                   {this.state.error.message}

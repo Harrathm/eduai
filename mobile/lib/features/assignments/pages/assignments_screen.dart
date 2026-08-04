@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/api/api_service.dart';
+import '../../../core/storage/secure_storage.dart';
 
 class Assignment {
   final int id;
@@ -50,6 +51,8 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
 
     try {
       final api = ApiService();
+      final token = await SecureStorage.getToken();
+      api.setToken(token);
       final data = await api.getAssignments();
       setState(() {
         _assignments = data.map((e) => Assignment.fromJson(e)).toList();
@@ -163,6 +166,8 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                               setModalState(() => submitting = true);
                               try {
                                 final api = ApiService();
+                                final token = await SecureStorage.getToken();
+                                api.setToken(token);
                                 await api.submitAssignment(
                                   assignment.id,
                                   controller.text,

@@ -39,7 +39,7 @@ export function AdminTable<T extends { id: number | string }>({
           <thead className="bg-cream-m">
             <tr>
               {columns.map((col) => (
-                <th key={col.key} className="text-left px-5 py-4 text-xs font-semibold text-gray uppercase tracking-wider whitespace-nowrap"
+                <th key={col.key} className="text-start px-5 py-4 text-xs font-semibold text-gray uppercase tracking-wider whitespace-nowrap"
                   style={{ width: col.width }}>
                   {typeof col.header === "string" ? col.header : col.header}
                 </th>

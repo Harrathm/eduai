@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { School, BookOpen, Users, CheckCircle, XCircle, Plus, Loader2, AlertCircle, RefreshCw, Search, Ban } from "lucide-react";
+import { tokenStorage } from "../../../utils/tokenStorage";
 
 const API_URL = "";
 
 function getToken(): string | null {
-  return localStorage.getItem("token");
+  return tokenStorage.getToken();
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -217,7 +218,7 @@ export default function SchoolCourseDistribution() {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Filter schools by name..."
-          className="w-full pl-11 pr-4 py-3 bg-white rounded-2xl shadow-sm border border-black/5 text-sm focus:outline-none focus:ring-2 focus:ring-orange/20"
+          className="w-full ps-11 pe-4 py-3 bg-white rounded-2xl shadow-sm border border-black/5 text-sm focus:outline-none focus:ring-2 focus:ring-orange/20"
         />
       </div>
 
@@ -239,7 +240,7 @@ export default function SchoolCourseDistribution() {
                   <div>
                     <h3 className="font-semibold text-navy">{school.school_name}</h3>
                     <p className="text-xs text-gray">
-                      <Users className="w-3 h-3 inline mr-1" />
+                      <Users className="w-3 h-3 inline me-1" />
                       {school.total_users} users ({school.student_count} students, {school.teacher_count} teachers)
                     </p>
                   </div>
@@ -289,7 +290,7 @@ export default function SchoolCourseDistribution() {
                         </div>
                         <div className="flex items-center justify-between text-xs">
                           <span className="text-gray">
-                            <Users className="w-3 h-3 inline mr-1" />
+                            <Users className="w-3 h-3 inline me-1" />
                             {course.enrolled_users_count} enrolled
                           </span>
                           <span className="text-gray/50">

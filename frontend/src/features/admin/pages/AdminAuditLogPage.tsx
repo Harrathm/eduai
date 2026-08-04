@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { Shield, UserX, Pencil, Trash2, Check, Coins, BookOpen, Building2 } from "lucide-react";
 import { AdminTable, KPICard, StatusBadge } from "../components";
+import { tokenStorage } from "../../../utils/tokenStorage";
 
 const API_URL = "";
-const token = localStorage.getItem("token");
+const token = tokenStorage.getToken();
 
 interface AuditLog {
   id: number;

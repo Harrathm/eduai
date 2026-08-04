@@ -1,7 +1,9 @@
-const API_URL = "";
+import { tokenStorage } from "../../../utils/tokenStorage";
+
+const API_URL = import.meta.env.VITE_API_URL || "";
 
 function getToken(): string | null {
-  return localStorage.getItem("token");
+  return tokenStorage.getToken();
 }
 
 async function request<T>(

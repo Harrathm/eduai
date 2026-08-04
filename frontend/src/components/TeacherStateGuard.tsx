@@ -63,7 +63,6 @@ export function TeacherWriteGuard({ children }: { children: React.ReactNode }) {
     return (
       <div className="p-6">
         <TeacherBlockedBanner state="B" reason="Vous ne pouvez pas créer ou modifier de contenu en attendant la validation pédagogique par un responsable." />
-        <div className="opacity-60 pointer-events-none">{children}</div>
       </div>
     );
   }
@@ -72,7 +71,6 @@ export function TeacherWriteGuard({ children }: { children: React.ReactNode }) {
     return (
       <div className="p-6">
         <TeacherBlockedBanner state="C" reason="Votre compte est en période d'essai. Souscrivez à un pack pour accéder à toutes les fonctionnalités." />
-        <div className="opacity-60 pointer-events-none">{children}</div>
       </div>
     );
   }

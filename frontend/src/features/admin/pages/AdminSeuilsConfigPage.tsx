@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Settings, Save, RotateCcw } from "lucide-react";
+import { tokenStorage } from "../../../utils/tokenStorage";
 
 interface MatiereThreshold {
   matiere_id: number;
@@ -24,7 +25,7 @@ export default function AdminSeuilsConfigPage() {
   };
 
   const load = useCallback(async () => {
-    const token = localStorage.getItem("token");
+    const token = tokenStorage.getToken();
     try {
       const res = await fetch("/api/pathway/matieres", { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) {
@@ -48,7 +49,7 @@ export default function AdminSeuilsConfigPage() {
 
   const handleSave = async () => {
     setSaving(true);
-    const token = localStorage.getItem("token");
+    const token = tokenStorage.getToken();
     try {
       for (const t of thresholds) {
         if (t.matiere_id === 0) continue;

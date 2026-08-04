@@ -100,7 +100,7 @@ export default function PathwayCatalogPage() {
                       <CheckCircle className="w-3.5 h-3.5" /> Accès actif
                     </span>
                   ) : item.pack ? (
-                    <div className="text-right">
+                    <div className="text-end">
                       <p className="text-xl font-bold text-orange">{item.pack.price} {item.pack.currency}</p>
                       <p className="text-xs text-gray">{item.pack.name}</p>
                     </div>
@@ -134,7 +134,7 @@ export default function PathwayCatalogPage() {
                     <span>
                       Accès actif
                       {item.purchase && (
-                        <span className="text-gray ml-1">
+                        <span className="text-gray ms-1">
                           — jusqu'au {new Date(item.purchase.valid_until).toLocaleDateString("fr-FR")}
                         </span>
                       )}

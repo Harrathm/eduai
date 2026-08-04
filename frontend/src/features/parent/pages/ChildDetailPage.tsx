@@ -182,7 +182,7 @@ export default function ChildDetailPage() {
               <div key={i} className="flex justify-between items-center p-3 rounded-lg bg-gray-50">
                 <div>
                   <span className="text-sm font-medium text-navy">Pack #{p.pack_id}</span>
-                  <span className="text-xs text-gray-400 ml-3">{p.amount_paid} {p.currency}</span>
+                  <span className="text-xs text-gray-400 ms-3">{p.amount_paid} {p.currency}</span>
                 </div>
                 <div className="text-xs text-gray-500">
                   Valide jusqu'au {new Date(p.valid_until).toLocaleDateString("fr-TN")}

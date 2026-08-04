@@ -125,7 +125,7 @@ export default function ProfilePage() {
               <button
                 key={n}
                 onClick={() => setNiveau(n)}
-                className={`p-3 rounded-xl border-2 text-left text-sm transition-all ${
+                className={`p-3 rounded-xl border-2 text-start text-sm transition-all ${
                   niveau === n
                     ? "border-orange bg-orange/5 text-orange font-medium"
                     : "border-gray-200 hover:border-gray-300"

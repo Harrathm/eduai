@@ -331,7 +331,7 @@ export default function AdminInboxView() {
                         type="text"
                         value={searchUser}
                         onChange={(e) => setSearchUser(e.target.value)}
-                        className="w-full pl-12 pr-4 py-3 bg-cream-m rounded-xl border border-black/5"
+                        className="w-full ps-12 pe-4 py-3 bg-cream-m rounded-xl border border-black/5"
                         placeholder="Rechercher..."
                       />
                     </div>
@@ -341,7 +341,7 @@ export default function AdminInboxView() {
                           <button
                             key={u.id}
                             onClick={() => { setSelectedUser(u); setSearchUser(""); }}
-                            className="w-full px-4 py-2 text-left hover:bg-cream"
+                            className="w-full px-4 py-2 text-start hover:bg-cream"
                           >
                             <div className="font-medium">{u.full_name}</div>
                             <div className="text-xs text-gray">{u.role}</div>

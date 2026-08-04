@@ -98,8 +98,8 @@ export default function AdminUsersPage() {
 
   const SortIcon = ({ field }: { field: SortField }) => (
     sortBy === field
-      ? sortOrder === "asc" ? <ArrowUp className="w-3 h-3 inline ml-1" /> : <ArrowDown className="w-3 h-3 inline ml-1" />
-      : <span className="w-3 h-3 inline ml-1 opacity-30">↕</span>
+      ? sortOrder === "asc" ? <ArrowUp className="w-3 h-3 inline ms-1" /> : <ArrowDown className="w-3 h-3 inline ms-1" />
+      : <span className="w-3 h-3 inline ms-1 opacity-30">↕</span>
   );
 
   const toggleActive = async (user: AdminUser) => {
@@ -290,7 +290,7 @@ export default function AdminUsersPage() {
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray" />
           <input type="text" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Search by name or email..." className="w-full pl-12 pr-4 py-3 bg-cream-m rounded-xl border border-black/5 text-sm focus:outline-none focus:ring-2 focus:ring-orange/20" />
+            placeholder="Search by name or email..." className="w-full ps-12 pe-4 py-3 bg-cream-m rounded-xl border border-black/5 text-sm focus:outline-none focus:ring-2 focus:ring-orange/20" />
         </div>
         <select value={roleFilter} onChange={e => { setRoleFilter(e.target.value as RoleFilter); setPage(1); }}
           className="px-4 py-3 bg-cream-m rounded-xl border border-black/5 text-sm focus:outline-none">
@@ -392,7 +392,7 @@ export default function AdminUsersPage() {
           <div className="space-y-2">
             {(["student", "teacher", "admin_school", "pedagogical_admin", "pedagogical_lead"] as const).map(r => (
               <button key={r} onClick={() => setNewRole(r)}
-                className={`w-full p-4 rounded-xl text-left font-medium capitalize transition-all ${newRole === r ? "bg-orange text-white" : "bg-cream-m hover:bg-cream text-navy"}`}>
+                className={`w-full p-4 rounded-xl text-start font-medium capitalize transition-all ${newRole === r ? "bg-orange text-white" : "bg-cream-m hover:bg-cream text-navy"}`}>
                 {r === "admin_school" ? "Admin École" : r === "pedagogical_admin" ? "Resp. Pédago. (Plateforme)" : r === "pedagogical_lead" ? "Resp. Pédago. (École)" : r}
               </button>
             ))}

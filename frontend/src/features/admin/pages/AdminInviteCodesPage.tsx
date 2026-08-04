@@ -96,7 +96,7 @@ export default function AdminInviteCodesPage() {
             placeholder="Rechercher une école..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-12 pr-4 py-2.5 bg-cream rounded-xl border-0 text-sm focus:ring-2 focus:ring-orange/30 outline-none"
+            className="w-full ps-12 pe-4 py-2.5 bg-cream rounded-xl border-0 text-sm focus:ring-2 focus:ring-orange/30 outline-none"
           />
         </div>
       </div>
@@ -105,10 +105,10 @@ export default function AdminInviteCodesPage() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-black/5">
-              <th className="text-left px-6 py-4 text-xs font-medium text-gray uppercase tracking-wider">École</th>
-              <th className="text-left px-6 py-4 text-xs font-medium text-gray uppercase tracking-wider">Plan</th>
-              <th className="text-left px-6 py-4 text-xs font-medium text-gray uppercase tracking-wider">Code d'invitation</th>
-              <th className="text-right px-6 py-4 text-xs font-medium text-gray uppercase tracking-wider">Actions</th>
+              <th className="text-start px-6 py-4 text-xs font-medium text-gray uppercase tracking-wider">École</th>
+              <th className="text-start px-6 py-4 text-xs font-medium text-gray uppercase tracking-wider">Plan</th>
+              <th className="text-start px-6 py-4 text-xs font-medium text-gray uppercase tracking-wider">Code d'invitation</th>
+              <th className="text-end px-6 py-4 text-xs font-medium text-gray uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -149,11 +149,11 @@ export default function AdminInviteCodesPage() {
                     <span className="text-xs text-gray italic">Aucun code</span>
                   )}
                 </td>
-                <td className="px-6 py-4 text-right">
+                <td className="px-6 py-4 text-end">
                   <button
                     onClick={() => handleRegenerate(school.id, school.name)}
                     disabled={regeneratingId === school.id}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-orange bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors disabled:opacity-50 ml-auto"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-orange bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors disabled:opacity-50 ms-auto"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${regeneratingId === school.id ? "animate-spin" : ""}`} />
                     Régénérer

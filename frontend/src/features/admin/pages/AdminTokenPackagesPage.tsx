@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Coins, Plus, RefreshCw, Pencil, Trash2, Save } from "lucide-react";
 import { KPICard, AdminTable, Modal, ConfirmModal } from "../components";
+import { tokenStorage } from "../../../utils/tokenStorage";
 
 const API_URL = "";
 
@@ -27,7 +28,7 @@ export default function AdminTokenPackagesPage() {
     setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
   };
 
-  const token = localStorage.getItem("token");
+  const token = tokenStorage.getToken();
 
   const fetchPackages = async () => {
     setLoading(true);

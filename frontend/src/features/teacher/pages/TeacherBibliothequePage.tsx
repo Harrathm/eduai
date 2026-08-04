@@ -87,7 +87,7 @@ export default function TeacherBibliothequePage() {
             <div className="flex-1 relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray" />
               <input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && doSearch()}
-                placeholder="Rechercher un contenu..." className="w-full pl-9 pr-4 py-2.5 border rounded-xl text-sm" />
+                placeholder="Rechercher un contenu..." className="w-full ps-9 pe-4 py-2.5 border rounded-xl text-sm" />
             </div>
             <button onClick={doSearch} className="px-4 py-2 bg-orange text-white rounded-xl text-sm hover:bg-orange/90">Rechercher</button>
           </div>
@@ -135,8 +135,8 @@ export default function TeacherBibliothequePage() {
                     <Award size={14} className="text-orange" />
                     <span className="font-semibold text-navy text-sm">{c.nom}</span>
                   </div>
-                  {c.description && <p className="text-xs text-gray ml-5">{c.description}</p>}
-                  <div className="flex gap-2 mt-2 ml-5">
+                  {c.description && <p className="text-xs text-gray ms-5">{c.description}</p>}
+                  <div className="flex gap-2 mt-2 ms-5">
                     {c.matiere && <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600">{c.matiere}</span>}
                     {c.niveau_scolaire && <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-600">{c.niveau_scolaire}</span>}
                   </div>

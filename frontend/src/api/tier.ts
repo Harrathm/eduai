@@ -1,7 +1,9 @@
-const API_URL = "";
+import { tokenStorage } from "../utils/tokenStorage";
+
+const API_URL = import.meta.env.VITE_API_URL || "";
 
 async function fetchAPI(endpoint: string, options: RequestInit = {}) {
-  const token = localStorage.getItem("token");
+  const token = tokenStorage.getToken();
   const res = await fetch(`${API_URL}${endpoint}`, {
     ...options,
     headers: {

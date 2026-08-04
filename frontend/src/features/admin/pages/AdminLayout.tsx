@@ -148,7 +148,7 @@ export default function AdminLayout() {
 
             {/* User */}
             <div className="flex items-center gap-3">
-              <div className="hidden sm:block text-right">
+              <div className="hidden sm:block text-end">
                 <div className="text-sm font-medium text-navy">{user?.full_name}</div>
                 <div className="text-xs text-orange font-medium capitalize">{user?.role?.toLowerCase().replace("_", " ")}</div>
               </div>

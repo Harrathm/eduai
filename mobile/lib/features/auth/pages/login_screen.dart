@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../bloc/auth_bloc.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -41,7 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             );
           } else if (state is AuthAuthenticated) {
-            Navigator.pushReplacementNamed(context, '/home');
+            context.go('/home');
           }
         },
         child: SafeArea(
@@ -157,30 +158,20 @@ class _LoginScreenState extends State<LoginScreen> {
                     );
                   },
                 ),
-                const SizedBox(height: 24),
-                // Demo credentials
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Demo Credentials',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      Text('Student: student@demo-academy.edu'),
-                      Text('Password: password123'),
-                    ],
-                  ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () => context.push('/forgot-password'),
+                  child: const Text('Forgot Password?'),
                 ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () => context.push('/register'),
+                  child: const Text.rich(TextSpan(children: [
+                    TextSpan(text: "Don't have an account? ", style: TextStyle(color: Colors.grey)),
+                    TextSpan(text: 'Sign Up', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ])),
+                ),
+                const SizedBox(height: 12),
               ],
             ),
           ),

@@ -112,7 +112,7 @@ export default function ResetPasswordPage() {
               type={showPassword ? "text" : "password"}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full px-5 py-3 pr-12 bg-cream-m rounded-xl border border-black/5 focus:outline-none focus:ring-2 focus:ring-orange/30"
+              className="w-full px-5 py-3 pe-12 bg-cream-m rounded-xl border border-black/5 focus:outline-none focus:ring-2 focus:ring-orange/30"
               placeholder="Nouveau mot de passe"
               required
               minLength={8}

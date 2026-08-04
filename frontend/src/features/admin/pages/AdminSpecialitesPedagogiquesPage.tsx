@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Plus, Trash2, Users, BookOpen } from "lucide-react";
+import { tokenStorage } from "../../../utils/tokenStorage";
 
 interface Specialite {
   id: number;
@@ -30,7 +31,7 @@ export default function AdminSpecialitesPedagogiquesPage() {
     setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
   };
 
-  const token = localStorage.getItem("token");
+  const token = tokenStorage.getToken();
   const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 
   const load = useCallback(async () => {

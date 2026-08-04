@@ -4,6 +4,7 @@
  */
 
 import { api } from "../utils/apiClient";
+import { tokenStorage } from "../utils/tokenStorage";
 
 // ── Types ──────────────────────────────────────────────
 
@@ -66,9 +67,31 @@ export async function deleteAllConversations(): Promise<{ ok: boolean; deleted: 
   return api.delete("/api/conversations");
 }
 
-export function getExportUrl(conversationId: number, format: "pdf" | "docx"): string {
-  const token = localStorage.getItem("token");
-  return `/api/conversations/${conversationId}/export/${format}?token=${token}`;
+/**
+ * Downloads an export file (PDF/DOCX) using fetch + Authorization header.
+ * Avoids embedding JWT in URL query parameter (leaks in browser history, Referer headers).
+ */
+export async function downloadExport(
+  conversationId: number,
+  format: "pdf" | "docx"
+): Promise<void> {
+  const response = await fetch(`/api/conversations/${conversationId}/export/${format}`, {
+    headers: {
+      Authorization: `Bearer ${tokenStorage.getToken()}`,
+    },
+  });
+  if (!response.ok) {
+    throw new Error("Erreur lors de l'export");
+  }
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `conversation_${conversationId}.${format}`;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
 }
 
 // ── Export de message unique ────────────────────────────
@@ -82,7 +105,7 @@ export async function exportMessagePdf(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
+      Authorization: `Bearer ${tokenStorage.getToken()}`,
     },
     body: JSON.stringify({ content, role, title }),
   });
@@ -111,7 +134,7 @@ export async function exportMessageDocx(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
+      Authorization: `Bearer ${tokenStorage.getToken()}`,
     },
     body: JSON.stringify({ content, role, title }),
   });

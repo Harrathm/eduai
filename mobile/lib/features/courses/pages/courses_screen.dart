@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/api/api_service.dart';
+import '../../../core/storage/secure_storage.dart';
 
 class CoursesScreen extends StatefulWidget {
   const CoursesScreen({super.key});
@@ -27,6 +28,8 @@ class _CoursesScreenState extends State<CoursesScreen> {
 
     try {
       final api = ApiService();
+      final token = await SecureStorage.getToken();
+      api.setToken(token);
       final courses = await api.getCourses();
       setState(() {
         _courses = List<Map<String, dynamic>>.from(courses);
@@ -185,6 +188,8 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
   Future<void> _loadModules() async {
     try {
       final api = ApiService();
+      final token = await SecureStorage.getToken();
+      api.setToken(token);
       final modules = await api.getModulesForCourse(widget.course['id']);
       setState(() {
         _modules = List<Map<String, dynamic>>.from(modules);

@@ -121,7 +121,7 @@ export default function SuperAdminCourseFactory() {
               {/* Class Header */}
               <button
                 onClick={() => toggleExpand(entry.class_id)}
-                className="w-full flex items-center justify-between p-5 hover:bg-cream/50 transition-colors text-left"
+                className="w-full flex items-center justify-between p-5 hover:bg-cream/50 transition-colors text-start"
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
@@ -149,7 +149,7 @@ export default function SuperAdminCourseFactory() {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-4 mr-4">
+                <div className="flex items-center gap-4 me-4">
                   <div className="text-center">
                     <div className="text-sm font-semibold text-navy">{entry.courses.length}</div>
                     <div className="text-xs text-gray">Courses</div>
@@ -200,7 +200,7 @@ export default function SuperAdminCourseFactory() {
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                           <thead>
-                            <tr className="text-left text-gray text-xs uppercase tracking-wider border-b border-black/5">
+                            <tr className="text-start text-gray text-xs uppercase tracking-wider border-b border-black/5">
                               <th className="pb-2 font-medium">Name</th>
                               <th className="pb-2 font-medium">Email</th>
                               <th className="pb-2 font-medium">Enrolled At</th>

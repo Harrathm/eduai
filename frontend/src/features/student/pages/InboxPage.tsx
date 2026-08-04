@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../../../store/authStore";
 
 const API_URL = "";
@@ -16,6 +17,7 @@ interface InboxMessage {
 }
 
 export default function InboxPage() {
+  const { t } = useTranslation();
   const { token } = useAuthStore();
   const [messages, setMessages] = useState<InboxMessage[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -81,8 +83,8 @@ export default function InboxPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-[300] text-navy">Boîte de réception</h1>
-          <p className="text-gray text-sm mt-1">{total} message(s), {unreadCount} non lu(s)</p>
+          <h1 className="text-2xl font-[300] text-navy">{t('inbox.title')}</h1>
+          <p className="text-gray text-sm mt-1">{t('inbox.messageCount', { total, unread: unreadCount })}</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -91,7 +93,7 @@ export default function InboxPage() {
               filter === "all" ? "bg-navy text-white" : "bg-cream-m text-gray hover:text-navy"
             }`}
           >
-            Tous
+            {t('inbox.all')}
           </button>
           <button
             onClick={() => setFilter("unread")}
@@ -99,20 +101,20 @@ export default function InboxPage() {
               filter === "unread" ? "bg-navy text-white" : "bg-cream-m text-gray hover:text-navy"
             }`}
           >
-            Non lus {unreadCount > 0 && `(${unreadCount})`}
+            {t('inbox.unread')} {unreadCount > 0 && `(${unreadCount})`}
           </button>
         </div>
       </div>
 
       <div className="bg-white rounded-2xl border border-black/5 overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-gray">Chargement...</div>
+          <div className="p-12 text-center text-gray">{t('inbox.loading')}</div>
         ) : messages.length === 0 ? (
           <div className="p-12 text-center text-gray">
             <svg className="w-12 h-12 mx-auto mb-4 text-gray/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
             </svg>
-            Aucun message
+            {t('inbox.noMessages')}
           </div>
         ) : (
           <div className="divide-y divide-black/5">
@@ -120,7 +122,7 @@ export default function InboxPage() {
               <button
                 key={msg.id}
                 onClick={() => openMessage(msg)}
-                className={`w-full text-left px-6 py-4 hover:bg-cream-m/50 transition-colors ${
+                className={`w-full text-start px-6 py-4 hover:bg-cream-m/50 transition-colors ${
                   !msg.is_read ? "bg-orange/5" : ""
                 }`}
               >
@@ -136,7 +138,7 @@ export default function InboxPage() {
                       <span className="text-xs text-gray flex-shrink-0">{formatDate(msg.created_at)}</span>
                     </div>
                     <p className="text-xs text-gray mt-1">
-                      De : {msg.sender_name}
+                      {t('inbox.from')} {msg.sender_name}
                       {msg.target_audience && msg.target_audience !== "specific" && (
                         <span className="ml-2 px-2 py-0.5 bg-cream-m rounded-full text-[10px]">
                           {msg.target_audience}

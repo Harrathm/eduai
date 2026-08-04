@@ -1,6 +1,6 @@
 // Admin Media Library Page
 import { useState, useEffect } from "react";
-import { adminCoursesAPI } from "../../api/adminCourses";
+import { adminCoursesAPI } from "../../api/lms";
 import { Plus, Trash2, Upload, Image, Video, File, Search, Filter, X } from "lucide-react";
 
 interface MediaAsset {
@@ -81,7 +81,7 @@ export default function AdminMediaLibraryPage() {
           <p className="text-gray-600">Manage uploaded files</p>
         </div>
         
-        <label className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg cursor-pointer hover:bg-indigo-700">
+        <label className="flex items-center gap-2 px-4 py-2 bg-navy-600 text-white rounded-lg cursor-pointer hover:bg-navy-700">
           <Upload className="w-4 h-4" />
           Upload File
           <input 
@@ -95,11 +95,11 @@ export default function AdminMediaLibraryPage() {
       </div>
 
       {uploading && (
-        <div className="mb-6 p-4 bg-indigo-50 rounded-lg">
+        <div className="mb-6 p-4 bg-navy-50 rounded-lg">
           <div className="flex items-center gap-3">
             <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
               <div 
-                className="h-full bg-indigo-600 transition-all"
+                className="h-full bg-navy-600 transition-all"
                 style={{ width: `${uploadProgress}%` }}
               />
             </div>
@@ -112,7 +112,7 @@ export default function AdminMediaLibraryPage() {
         <button
           onClick={() => setFilter("all")}
           className={`px-3 py-1.5 rounded-lg text-sm ${
-            filter === "all" ? "bg-indigo-100 text-indigo-700" : "bg-gray-100"
+            filter === "all" ? "bg-navy-100 text-navy-700" : "bg-gray-100"
           }`}
         >
           All
@@ -120,7 +120,7 @@ export default function AdminMediaLibraryPage() {
         <button
           onClick={() => setFilter("video")}
           className={`px-3 py-1.5 rounded-lg text-sm ${
-            filter === "video" ? "bg-indigo-100 text-indigo-700" : "bg-gray-100"
+            filter === "video" ? "bg-navy-100 text-navy-700" : "bg-gray-100"
           }`}
         >
           Videos
@@ -128,7 +128,7 @@ export default function AdminMediaLibraryPage() {
         <button
           onClick={() => setFilter("image")}
           className={`px-3 py-1.5 rounded-lg text-sm ${
-            filter === "image" ? "bg-indigo-100 text-indigo-700" : "bg-gray-100"
+            filter === "image" ? "bg-navy-100 text-navy-700" : "bg-gray-100"
           }`}
         >
           Images
@@ -136,7 +136,7 @@ export default function AdminMediaLibraryPage() {
         <button
           onClick={() => setFilter("document")}
           className={`px-3 py-1.5 rounded-lg text-sm ${
-            filter === "document" ? "bg-indigo-100 text-indigo-700" : "bg-gray-100"
+            filter === "document" ? "bg-navy-100 text-navy-700" : "bg-gray-100"
           }`}
         >
           Documents
@@ -156,7 +156,7 @@ export default function AdminMediaLibraryPage() {
           {assets.map(asset => (
             <div 
               key={asset.id}
-              className="group relative bg-white rounded-lg border overflow-hidden hover:border-indigo-300"
+              className="group relative bg-white rounded-lg border overflow-hidden hover:border-navy-300"
             >
               <div className="aspect-square flex items-center justify-center bg-gray-50">
                 {getIcon(asset.mime_type)}

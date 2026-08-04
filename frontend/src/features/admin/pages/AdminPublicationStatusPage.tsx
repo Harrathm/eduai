@@ -91,11 +91,11 @@ export default function AdminPublicationStatusPage() {
           <table className="w-full">
             <thead className="bg-gray-50 border-b">
               <tr>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray uppercase">Notion</th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray uppercase">Chapitre</th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray uppercase">Matière</th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray uppercase">Statut</th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-gray uppercase">Niveaux manquants</th>
+                <th className="px-5 py-3 text-start text-xs font-medium text-gray uppercase">Notion</th>
+                <th className="px-5 py-3 text-start text-xs font-medium text-gray uppercase">Chapitre</th>
+                <th className="px-5 py-3 text-start text-xs font-medium text-gray uppercase">Matière</th>
+                <th className="px-5 py-3 text-start text-xs font-medium text-gray uppercase">Statut</th>
+                <th className="px-5 py-3 text-start text-xs font-medium text-gray uppercase">Niveaux manquants</th>
               </tr>
             </thead>
             <tbody className="divide-y">

@@ -317,9 +317,9 @@ export default function AdminDashboardPage() {
             <table className="w-full">
               <thead className="bg-cream-m">
                 <tr>
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray uppercase">School</th>
-                  <th className="text-right px-6 py-3 text-xs font-semibold text-gray uppercase">Revenue (DT)</th>
-                  <th className="text-right px-6 py-3 text-xs font-semibold text-gray uppercase">Share</th>
+                  <th className="text-start px-6 py-3 text-xs font-semibold text-gray uppercase">School</th>
+                  <th className="text-end px-6 py-3 text-xs font-semibold text-gray uppercase">Revenue (DT)</th>
+                  <th className="text-end px-6 py-3 text-xs font-semibold text-gray uppercase">Share</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-black/5">
@@ -335,8 +335,8 @@ export default function AdminDashboardPage() {
                         <span className="font-medium text-navy">{school.school_name}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-right font-bold text-green-600">{formatDT(school.revenue)} DT</td>
-                    <td className="px-6 py-4 text-right text-gray text-sm">
+                    <td className="px-6 py-4 text-end font-bold text-green-600">{formatDT(school.revenue)} DT</td>
+                    <td className="px-6 py-4 text-end text-gray text-sm">
                       {revenue.total_revenue > 0 ? ((school.revenue / revenue.total_revenue) * 100).toFixed(1) : 0}%
                     </td>
                   </tr>

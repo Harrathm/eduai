@@ -161,7 +161,7 @@ export default function PlatformOverview() {
             <p className="text-white/60 mt-2">Here's what's happening on your platform today.</p>
           </div>
           <div className="flex items-center gap-4">
-            <div className="text-right">
+            <div className="text-end">
               <div className="text-sm text-white/60">Today's Date</div>
               <div className="font-medium">
                 {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}

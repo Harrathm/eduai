@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { GraduationCap, ChevronDown, ChevronRight, Star, BookOpen, Clock, CheckCircle, AlertCircle, TrendingUp } from "lucide-react";
 import { getMonParcours } from "../../pathway/api";
 import type { MonParcoursNiveau } from "../../pathway/api";
@@ -17,6 +18,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: typeof 
 };
 
 export default function MonParcoursPage() {
+  const { t } = useTranslation();
   const [parcours, setParcours] = useState<MonParcoursNiveau[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedMatieres, setExpandedMatieres] = useState<Set<number>>(new Set());
@@ -41,7 +43,7 @@ export default function MonParcoursPage() {
   useEffect(() => { load(); }, [load]);
 
   if (loading) {
-    return <div className="text-center py-12 text-gray">Chargement de votre parcours...</div>;
+    return <div className="text-center py-12 text-gray">{t('monParcours.loading')}</div>;
   }
 
   if (parcours.length === 0) {
@@ -50,8 +52,8 @@ export default function MonParcoursPage() {
         <h1 className="text-3xl font-display font-light text-navy">Mon <span className="italic text-orange">Parcours</span></h1>
         <div className="bg-white rounded-2xl shadow-sm border border-black/5 p-12 text-center">
           <GraduationCap className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray mb-2">Aucun parcours actif</p>
-          <p className="text-sm text-gray">Achetez un pack pour accéder à votre parcours éducatif</p>
+          <p className="text-gray mb-2">{t('monParcours.noActivePath')}</p>
+          <p className="text-sm text-gray">{t('monParcours.buyPackPrompt')}</p>
         </div>
       </div>
     );
@@ -61,7 +63,7 @@ export default function MonParcoursPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-display font-light text-navy">Mon <span className="italic text-orange">Parcours</span></h1>
-        <p className="text-gray text-sm mt-1">Suivi de votre progression dans chaque matière et chapitre</p>
+        <p className="text-gray text-sm mt-1">{t('monParcours.subtitle')}</p>
       </div>
 
       {parcours.map(niveau => {
@@ -87,19 +89,19 @@ export default function MonParcoursPage() {
                 <div>
                   <h2 className="text-xl font-semibold text-navy">{niveau.niveau.nom}</h2>
                   <p className="text-sm text-gray mt-0.5">
-                    {totalChapitres} chapitre{totalChapitres > 1 ? "s" : ""} • {" "}
-                    {totalNotions} notion{totalNotions > 1 ? "s" : ""}
+                    {totalChapitres} {t('monParcours.chapters', { count: totalChapitres })} • {" "}
+                    {totalNotions} {t('monParcours.notions', { count: totalNotions })}
                   </p>
                 </div>
                 <div className="flex gap-3 text-center">
                   <div>
                     <p className="text-lg font-bold text-blue">{chapitresEnCours}</p>
-                    <p className="text-xs text-gray">En cours</p>
+                    <p className="text-xs text-gray">{t('monParcours.inProgress')}</p>
                   </div>
                   <div className="w-px bg-gray-200"></div>
                   <div>
                     <p className="text-lg font-bold text-green">{chapitresTermines}</p>
-                    <p className="text-xs text-gray">Terminés</p>
+                    <p className="text-xs text-gray">{t('monParcours.completed')}</p>
                   </div>
                 </div>
               </div>
@@ -118,7 +120,7 @@ export default function MonParcoursPage() {
                 <div key={matiere.id}>
                   <button
                     onClick={() => toggle(matiere.id)}
-                    className="w-full flex items-center gap-3 px-6 py-4 hover:bg-gray-50 transition-colors text-left"
+                    className="w-full flex items-center gap-3 px-6 py-4 hover:bg-gray-50 transition-colors text-start"
                   >
                     {expandedMatieres.has(matiere.id) ? (
                       <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
@@ -128,7 +130,7 @@ export default function MonParcoursPage() {
                     <BookOpen className="w-5 h-5 text-blue flex-shrink-0" />
                     <div className="flex-1">
                       <p className="font-medium text-navy">{matiere.nom}</p>
-                      <p className="text-xs text-gray">{matiere.chapters_count} chapitre{matiere.chapters_count > 1 ? "s" : ""}</p>
+                      <p className="text-xs text-gray">{matiere.chapters_count} {t('monParcours.chapters', { count: matiere.chapters_count })}</p>
                     </div>
                     {/* Mini status badges */}
                     <div className="flex gap-1">
@@ -170,15 +172,15 @@ export default function MonParcoursPage() {
                               <p className="text-sm font-medium text-navy">{ch.nom}</p>
                               <div className="flex items-center gap-2 mt-0.5">
                                 <span className={`px-2 py-0.5 rounded-full text-xs ${cfg.color}`}>
-                                  <Icon className="w-3 h-3 inline mr-1" />{cfg.label}
+                                  <Icon className="w-3 h-3 inline me-1" />{cfg.label}
                                 </span>
                                 {ch.niveau_assimilation && (
                                   <span className="text-xs text-gray capitalize">{ch.niveau_assimilation}</span>
                                 )}
                               </div>
                             </div>
-                            <div className="text-right text-xs text-gray">
-                              <p>{ch.notions_count} notion{ch.notions_count > 1 ? "s" : ""}</p>
+                            <div className="text-end text-xs text-gray">
+                              <p>{ch.notions_count} {t('monParcours.notion', { count: ch.notions_count })}</p>
                               {ch.scores_count > 0 && (
                                 <p className="flex items-center gap-1 justify-end mt-0.5">
                                   <TrendingUp className="w-3 h-3" />

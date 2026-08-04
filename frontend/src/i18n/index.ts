@@ -7,6 +7,12 @@ import ar from "./locales/ar.json";
 
 const savedLang = localStorage.getItem("eduai_language") || "fr";
 
+function applyDir(lang: string) {
+  const dir = lang === "ar" ? "rtl" : "ltr";
+  document.documentElement.setAttribute("dir", dir);
+  document.documentElement.setAttribute("lang", lang);
+}
+
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
@@ -21,5 +27,8 @@ i18n
       lookupLocalStorage: "eduai_language",
     },
   });
+
+i18n.on("languageChanged", applyDir);
+applyDir(i18n.language);
 
 export default i18n;

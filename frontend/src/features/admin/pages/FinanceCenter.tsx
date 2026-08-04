@@ -115,7 +115,7 @@ export default function FinanceCenter() {
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray" />
           <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search by email or name..." className="w-full pl-12 pr-4 py-3 bg-cream-m rounded-xl border border-black/5 text-sm focus:outline-none focus:ring-2 focus:ring-orange/20" />
+            placeholder="Search by email or name..." className="w-full ps-12 pe-4 py-3 bg-cream-m rounded-xl border border-black/5 text-sm focus:outline-none focus:ring-2 focus:ring-orange/20" />
         </div>
       </div>
 
@@ -125,13 +125,13 @@ export default function FinanceCenter() {
           <table className="w-full">
             <thead className="bg-cream-m">
               <tr>
-                <th className="text-left px-5 py-4 text-xs font-semibold text-gray uppercase">User</th>
-                <th className="text-left px-5 py-4 text-xs font-semibold text-gray uppercase">Role</th>
-                <th className="text-right px-5 py-4 text-xs font-semibold text-gray uppercase">DT Balance</th>
-                <th className="text-right px-5 py-4 text-xs font-semibold text-gray uppercase">Token Balance</th>
-                <th className="text-right px-5 py-4 text-xs font-semibold text-gray uppercase">Total DT Spent</th>
-                <th className="text-right px-5 py-4 text-xs font-semibold text-gray uppercase">Total TKN Spent</th>
-                <th className="text-right px-5 py-4 text-xs font-semibold text-gray uppercase">Actions</th>
+                <th className="text-start px-5 py-4 text-xs font-semibold text-gray uppercase">User</th>
+                <th className="text-start px-5 py-4 text-xs font-semibold text-gray uppercase">Role</th>
+                <th className="text-end px-5 py-4 text-xs font-semibold text-gray uppercase">DT Balance</th>
+                <th className="text-end px-5 py-4 text-xs font-semibold text-gray uppercase">Token Balance</th>
+                <th className="text-end px-5 py-4 text-xs font-semibold text-gray uppercase">Total DT Spent</th>
+                <th className="text-end px-5 py-4 text-xs font-semibold text-gray uppercase">Total TKN Spent</th>
+                <th className="text-end px-5 py-4 text-xs font-semibold text-gray uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-black/5">
@@ -156,11 +156,11 @@ export default function FinanceCenter() {
                       {w.role.toLowerCase().replace("_", " ")}
                     </span>
                   </td>
-                  <td className="px-5 py-4 text-right font-semibold text-green-600">{formatNum(w.balance_dt)} DT</td>
-                  <td className="px-5 py-4 text-right font-semibold text-orange">{formatNum(w.balance_tokens)} TKN</td>
-                  <td className="px-5 py-4 text-right text-gray text-sm">{formatNum(w.total_dt_spent)} DT</td>
-                  <td className="px-5 py-4 text-right text-gray text-sm">{formatNum(w.total_tokens_spent)} TKN</td>
-                  <td className="px-5 py-4 text-right">
+                  <td className="px-5 py-4 text-end font-semibold text-green-600">{formatNum(w.balance_dt)} DT</td>
+                  <td className="px-5 py-4 text-end font-semibold text-orange">{formatNum(w.balance_tokens)} TKN</td>
+                  <td className="px-5 py-4 text-end text-gray text-sm">{formatNum(w.total_dt_spent)} DT</td>
+                  <td className="px-5 py-4 text-end text-gray text-sm">{formatNum(w.total_tokens_spent)} TKN</td>
+                  <td className="px-5 py-4 text-end">
                     <div className="flex items-center justify-end gap-1">
                       <button onClick={() => openModal(w, "add")}
                         className="p-2 rounded-lg text-green-600 hover:bg-green-50 transition-colors" title="Add funds">

@@ -156,12 +156,12 @@ export default function TeacherSalesPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b bg-gray-50">
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cours</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Montant payé</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Commission</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Votre revenu</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">ID</th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Cours</th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Montant payé</th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Commission</th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Votre revenu</th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Date</th>
                 </tr>
               </thead>
               <tbody className="divide-y">

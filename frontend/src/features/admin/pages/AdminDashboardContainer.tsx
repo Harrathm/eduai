@@ -97,8 +97,8 @@ export default function AdminDashboardContainer() {
             </svg>
           </button>
           
-          <div className="flex items-center gap-4 ml-auto">
-            <div className="text-right">
+          <div className="flex items-center gap-4 ms-auto">
+            <div className="text-end">
               <div className="text-sm font-medium text-navy">{user?.full_name}</div>
               <div className="text-xs text-orange font-medium">Administrator</div>
             </div>

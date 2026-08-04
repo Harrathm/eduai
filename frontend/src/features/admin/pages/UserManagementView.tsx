@@ -112,7 +112,6 @@ export default function UserManagementView() {
       });
       if (res.ok) {
         const data = await res.json();
-        console.log("fetchUsers OK, got", data.length, "users");
         setUsers(Array.isArray(data) ? data : data.items || []);
       } else {
         console.error("fetchUsers error:", res.status, await res.text());
@@ -176,8 +175,6 @@ const toggleUserStatus = async (userId: number, isActive: boolean) => {
         ? `${API_URL}/api/admin/wallets/${balanceModal.user.id}/${action}?amount_tokens=${balanceModal.amount}`
         : `${API_URL}/api/admin/wallets/${balanceModal.user.id}/${action}?amount_dt=${balanceModal.amount}`;
       
-      console.log("Calling endpoint:", endpoint);
-      
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { 
@@ -188,7 +185,6 @@ const toggleUserStatus = async (userId: number, isActive: boolean) => {
       });
       
       const responseText = await res.text();
-      console.log("Response:", res.status, responseText);
       
       if (res.ok) {
         const data = JSON.parse(responseText);
@@ -359,7 +355,7 @@ const toggleUserStatus = async (userId: number, isActive: boolean) => {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-cream-m rounded-xl border border-black/5"
+                className="w-full ps-12 pe-4 py-3 bg-cream-m rounded-xl border border-black/5"
                 placeholder="Rechercher..."
               />
             </div>
@@ -416,12 +412,12 @@ const toggleUserStatus = async (userId: number, isActive: boolean) => {
             <table className="w-full">
               <thead className="bg-cream-m">
                 <tr>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray uppercase">User</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray uppercase">Rôle</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray uppercase">Status</th>
-                  <th className="text-right px-6 py-4 text-xs font-semibold text-gray uppercase">Tokens</th>
-                  <th className="text-right px-6 py-4 text-xs font-semibold text-gray uppercase">DT</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray uppercase">Actions</th>
+                  <th className="text-start px-6 py-4 text-xs font-semibold text-gray uppercase">User</th>
+                  <th className="text-start px-6 py-4 text-xs font-semibold text-gray uppercase">Rôle</th>
+                  <th className="text-start px-6 py-4 text-xs font-semibold text-gray uppercase">Status</th>
+                  <th className="text-end px-6 py-4 text-xs font-semibold text-gray uppercase">Tokens</th>
+                  <th className="text-end px-6 py-4 text-xs font-semibold text-gray uppercase">DT</th>
+                  <th className="text-start px-6 py-4 text-xs font-semibold text-gray uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-black/5">
@@ -465,10 +461,10 @@ const toggleUserStatus = async (userId: number, isActive: boolean) => {
                         {user.is_active ? "Actif" : "Inactif"}
                       </button>
                     </td>
-                    <td className="px-6 py-4 text-right font-medium text-orange">
+                    <td className="px-6 py-4 text-end font-medium text-orange">
                       {formatNumber(user.token_balance || 0)}
                     </td>
-                    <td className="px-6 py-4 text-right font-medium text-yellow-700">
+                    <td className="px-6 py-4 text-end font-medium text-yellow-700">
                       {formatCurrency(user.dt_balance || 0)}
                     </td>
                     <td className="px-6 py-4">
@@ -605,7 +601,7 @@ const toggleUserStatus = async (userId: number, isActive: boolean) => {
                 <button
                   key={role}
                   onClick={() => setNewRole(role)}
-                  className={`w-full p-4 rounded-xl text-left transition-all ${
+                  className={`w-full p-4 rounded-xl text-start transition-all ${
                     newRole === role
                       ? "bg-orange text-white"
                       : "bg-cream-m hover:bg-cream"

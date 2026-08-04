@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Trophy, Flame, Star, Award, Medal, Crown, TrendingUp, CheckCircle } from "lucide-react";
 import { useAuthStore } from "../../../store/authStore";
+import { tokenStorage } from "../../../utils/tokenStorage";
 
 interface Badge {
   id: number; nom: string; description: string; icon_url: string | null;
@@ -36,7 +37,7 @@ export default function GamificationPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const token = useAuthStore.getState().token || localStorage.getItem("token");
+    const token = useAuthStore.getState().token || tokenStorage.getToken();
     const headers = { Authorization: `Bearer ${token}` };
     try {
       const [badgesRes, streakRes, rankRes] = await Promise.all([

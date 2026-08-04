@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/api/api_service.dart';
+import '../../../core/storage/secure_storage.dart';
 
 class Message {
   final String content;
@@ -51,6 +52,8 @@ class _AITutorScreenState extends State<AITutorScreen> {
 
     try {
       final api = ApiService();
+      final token = await SecureStorage.getToken();
+      api.setToken(token);
       final response = await api.askAI(userMessage.content);
       
       final aiMessage = Message(

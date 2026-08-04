@@ -236,7 +236,7 @@ export default function ContentModerationView() {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-cream-m rounded-xl border border-black/5"
+                className="w-full ps-12 pe-4 py-3 bg-cream-m rounded-xl border border-black/5"
                 placeholder="Rechercher un cours..."
               />
             </div>
@@ -408,7 +408,7 @@ export default function ContentModerationView() {
                       <div className="font-medium">{e.student_name}</div>
                       <div className="text-sm text-gray">{e.student_email}</div>
                     </div>
-                    <div className="text-right">
+                    <div className="text-end">
                       <div className="flex items-center gap-2 mb-1">
                         <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
                           <div className="h-full bg-orange rounded-full" style={{ width: `${e.progress}%` }} />

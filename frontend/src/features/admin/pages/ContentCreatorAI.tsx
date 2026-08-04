@@ -403,7 +403,7 @@ export default function ContentCreatorAI() {
                 </div>
                 <span className="ml-4 text-xs text-gray font-medium">{mod.lessons.length} lessons</span>
               </div>
-              <div className="space-y-2 pl-4 border-l-2 border-orange/20">
+              <div className="space-y-2 ps-4 border-s-2 border-orange/20">
                 {mod.lessons.map((les, li) => (
                   <div key={li} className="space-y-1">
                     <input value={les.title} onChange={e => handlePlanEdit(mi, li, "title", e.target.value)}
@@ -629,7 +629,7 @@ export default function ContentCreatorAI() {
                         {quiz.questions.map((q: any, qi: number) => (
                           <div key={qi} className="bg-cream-m rounded-xl p-4">
                             <p className="text-sm font-medium text-navy mb-2">{qi + 1}. {q.question_text}</p>
-                            <div className="space-y-1 pl-4">
+                            <div className="space-y-1 ps-4">
                               {q.options?.map((o: any, oi: number) => (
                                 <div key={oi} className={`text-xs px-3 py-1.5 rounded-lg ${o.is_correct ? "bg-green-100 text-green-700 font-medium" : "bg-white/50 text-gray"}`}>
                                   {o.option_text} {o.is_correct && "✓"}

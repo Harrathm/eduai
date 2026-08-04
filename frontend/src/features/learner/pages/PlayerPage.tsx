@@ -240,7 +240,7 @@ export default function LearnerPlayerPage() {
     return (
       <div className="p-6">
         <p>Course not found</p>
-        <button onClick={() => navigate("/dashboard")} className="text-indigo-600">
+        <button onClick={() => navigate("/dashboard")} className="text-navy-600">
           Back
         </button>
       </div>
@@ -251,7 +251,7 @@ export default function LearnerPlayerPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="max-w-md p-8 bg-white rounded-lg shadow text-center">
-          <BookOpen className="w-16 h-16 mx-auto mb-4 text-indigo-600" />
+          <BookOpen className="w-16 h-16 mx-auto mb-4 text-navy-600" />
           <h1 className="text-2xl font-bold mb-2">{course.title}</h1>
           <p className="text-gray-600 mb-4">{course.description}</p>
           <div className="mb-4">
@@ -272,7 +272,7 @@ export default function LearnerPlayerPage() {
           )}
           <button
             onClick={handleEnroll}
-            className="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+            className="w-full px-4 py-3 bg-navy-600 text-white rounded-lg hover:bg-navy-700"
           >
             {course.price_tokens > 0 || course.price_dt > 0 ? "Enroll Now" : "Start Learning"}
           </button>
@@ -299,7 +299,7 @@ export default function LearnerPlayerPage() {
           </button>
           <h2 className="font-semibold text-sm">{course.title}</h2>
           {certLoading ? (
-            <div className="mt-2 p-2 bg-indigo-50 rounded text-xs text-indigo-600">Checking certificate...</div>
+            <div className="mt-2 p-2 bg-navy-50 rounded text-xs text-navy-600">Checking certificate...</div>
           ) : certificate ? (
             <div className="mt-2 p-3 bg-green-50 rounded border border-green-200">
               <div className="flex items-center gap-2 mb-2">
@@ -327,8 +327,8 @@ export default function LearnerPlayerPage() {
                   <button
                     key={lesson.id}
                     onClick={() => loadLesson(lesson.id)}
-                    className={`w-full flex items-center gap-3 p-3 text-left hover:bg-gray-50 ${
-                      currentLesson?.id === lesson.id ? "bg-indigo-50" : ""
+                    className={`w-full flex items-center gap-3 p-3 text-start hover:bg-gray-50 ${
+                      currentLesson?.id === lesson.id ? "bg-navy-50" : ""
                     }`}
                   >
                     {getLessonIcon(lesson.lesson_type)}

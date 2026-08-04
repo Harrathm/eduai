@@ -1,4 +1,6 @@
-const API_URL = "";
+import { tokenStorage } from "./tokenStorage";
+
+const API_URL = import.meta.env.VITE_API_URL || "";
 
 interface RequestInterceptor {
   onFulfilled: (config: RequestInit) => RequestInit | Promise<RequestInit>;
@@ -23,7 +25,7 @@ class ApiClient {
   }
 
   private getToken(): string | null {
-    return localStorage.getItem("token");
+    return tokenStorage.getToken();
   }
 
   addRequestInterceptor(fn: (config: RequestInit) => RequestInit | Promise<RequestInit>): number {
@@ -100,10 +102,41 @@ class ApiClient {
     try {
       const response = await fetch(url, config);
       
-      // Handle 401 - Unauthorized
+      // Handle 401 - Unauthorized (try refresh token first)
       if (response.status === 401) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
+        const refreshToken = tokenStorage.getRefreshToken();
+        if (refreshToken && !url.includes("/auth/refresh-token")) {
+          try {
+            const refreshRes = await fetch(`${this.baseURL}/auth/refresh-token`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ refresh_token: refreshToken }),
+            });
+            if (refreshRes.ok) {
+              const data = await refreshRes.json();
+              tokenStorage.setToken(data.access_token);
+              if (data.refresh_token) tokenStorage.setRefreshToken(data.refresh_token);
+              // Retry original request with new token
+              const retryConfig = {
+                ...config,
+                headers: {
+                  ...config.headers,
+                  Authorization: `Bearer ${data.access_token}`,
+                },
+              };
+              const retryResponse = await fetch(url, retryConfig);
+              if (!retryResponse.ok) {
+                const errorData = await retryResponse.json().catch(() => ({}));
+                throw new Error(errorData.detail || `HTTP ${retryResponse.status}`);
+              }
+              const retryText = await retryResponse.text();
+              return retryText ? (JSON.parse(retryText) as T) : (null as T);
+            }
+          } catch {
+            // Refresh failed — fall through to logout
+          }
+        }
+        tokenStorage.clearAll();
         window.location.href = "/login";
         throw new Error("Session expired. Please login again.");
       }
@@ -113,6 +146,15 @@ class ApiClient {
 
       if (!processedResponse.ok) {
         const errorData = await processedResponse.json().catch(() => ({}));
+        if (processedResponse.status === 429) {
+          throw new Error("Trop de requêtes. Veuillez patienter avant de réessayer.");
+        }
+        if (processedResponse.status === 404) {
+          throw new Error("Ressource introuvable.");
+        }
+        if (processedResponse.status >= 500) {
+          throw new Error("Erreur serveur. Veuillez réessayer plus tard.");
+        }
         throw new Error(errorData.detail || `HTTP ${processedResponse.status}`);
       }
 
@@ -163,9 +205,6 @@ export const api = new ApiClient();
 
 // Add global response interceptor for logging
 api.addResponseInterceptor(async (response) => {
-  const requestId = response.headers.get("X-Request-ID");
-  const processTime = response.headers.get("X-Process-Time");
-  console.log(`API Response [${response.status}]: ${response.url} (${processTime})`);
   return response;
 });
 

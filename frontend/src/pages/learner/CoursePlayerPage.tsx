@@ -9,10 +9,11 @@ import {
 import { learnerAPI } from "../../api/lms";
 import { jsPDF } from "jspdf";
 import DOMPurify from "dompurify";
+import { tokenStorage } from "../../utils/tokenStorage";
 
 const BASE_URL = "";
 
-function getToken() { return localStorage.getItem("token"); }
+function getToken() { return tokenStorage.getToken(); }
 
 async function apiFetch(path: string, options: RequestInit = {}) {
   const token = getToken();
@@ -242,7 +243,7 @@ export default function CoursePlayerPage() {
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-navy-600 mx-auto mb-4"></div>
         <p className="text-gray-500">Chargement du cours...</p>
       </div>
     </div>
@@ -254,7 +255,7 @@ export default function CoursePlayerPage() {
         <h2 className="text-xl font-semibold text-red-500 mb-2">Erreur</h2>
         <p className="text-gray-600 mb-6">{error}</p>
         <div className="space-x-4">
-          <button onClick={loadSyllabus} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Réessayer</button>
+          <button onClick={loadSyllabus} className="px-4 py-2 bg-navy-600 text-white rounded-lg hover:bg-navy-700">Réessayer</button>
           <Link to="/login" className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Connexion</Link>
         </div>
       </div>
@@ -277,7 +278,7 @@ export default function CoursePlayerPage() {
           )}
           <p className="text-xs text-gray-500 mt-1">{progressPercent}% complété</p>
           {certLoading ? (
-            <div className="mt-3 p-2 bg-indigo-50 rounded text-xs text-indigo-600 text-center">Contrôle du certificat...</div>
+            <div className="mt-3 p-2 bg-navy-50 rounded text-xs text-navy-600 text-center">Contrôle du certificat...</div>
           ) : certificate ? (
             <div className="mt-3 p-3 bg-green-50 rounded border border-green-200">
               <div className="flex items-center gap-2 mb-1.5">
@@ -299,15 +300,15 @@ export default function CoursePlayerPage() {
           {syllabus.map((ch: any, ci: number) => (
             <div key={ch.id} className="border-b">
               <div className="px-4 py-3 bg-gray-50 font-medium text-sm flex items-center gap-2">
-                <span className="text-indigo-600 font-bold">{ci + 1}.</span>
+                <span className="text-navy-600 font-bold">{ci + 1}.</span>
                 <span className="flex-1">{ch.title || "Module"}</span>
                 <span className="text-xs text-gray-400">{ch.lessons?.length || 0}</span>
               </div>
               <div>
                 {(ch.lessons || []).map((l: any) => (
                   <button key={l.id} onClick={() => navigate(`/learn/courses/${courseId}/lessons/${l.id}`)}
-                    className={`w-full flex items-center gap-3 p-3 text-left border-b border-gray-50 hover:bg-gray-50 ${
-                      currentLesson?.id === l.id ? "bg-indigo-50 border-l-3 border-l-indigo-600" : ""
+                    className={`w-full flex items-center gap-3 p-3 text-start border-b border-gray-50 hover:bg-gray-50 ${
+                      currentLesson?.id === l.id ? "bg-navy-50 border-s-3 border-s-navy-600" : ""
                     }`}>
                     {completedLessons.has(l.id)
                       ? <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
@@ -333,7 +334,7 @@ export default function CoursePlayerPage() {
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="p-3 border-b bg-white flex items-center gap-3 shadow-sm">
           <button onClick={() => navigate("/dashboard")} title="Retour au dashboard"
-            className="p-2 hover:bg-gray-100 rounded text-gray-600 hover:text-indigo-600">
+            className="p-2 hover:bg-gray-100 rounded text-gray-600 hover:text-navy-600">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <button onClick={() => setSidebarOpen(true)} className="p-2 hover:bg-gray-100 rounded"><Menu className="w-5 h-5" /></button>
@@ -342,7 +343,7 @@ export default function CoursePlayerPage() {
             {currentLesson?.module_title && <p className="text-xs text-gray-500">{currentLesson.module_title}</p>}
           </div>
           <div className="flex gap-1">
-            <button onClick={() => setShowNotes(!showNotes)} className={`p-2 rounded ${showNotes ? "bg-indigo-100 text-indigo-600" : "hover:bg-gray-100"}`}>
+            <button onClick={() => setShowNotes(!showNotes)} className={`p-2 rounded ${showNotes ? "bg-navy-100 text-navy-600" : "hover:bg-gray-100"}`}>
               <StickyNote className="w-4 h-4" />
             </button>
             <button onClick={prevLesson} className="p-2 hover:bg-gray-100 rounded"><ArrowLeft className="w-5 h-5" /></button>
@@ -429,7 +430,7 @@ export default function CoursePlayerPage() {
               {currentLesson.document_url && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border">
                   <a href={currentLesson.document_url} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-3 text-indigo-600 hover:text-indigo-800">
+                    className="flex items-center gap-3 text-navy-600 hover:text-navy-800">
                     <File className="w-5 h-5" />
                     <span className="font-medium">{currentLesson.document_type || "Document"}</span>
                     <span className="text-sm text-gray-500">(Ouvrir)</span>
@@ -474,7 +475,7 @@ export default function CoursePlayerPage() {
                   <div className="space-y-2">
                     {q.options?.map((opt: any) => (
                       <label key={opt.id} className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer border transition-colors ${
-                        quizAnswers[q.id]?.includes(opt.id) ? "border-indigo-500 bg-indigo-50" : "border-gray-200 hover:border-gray-300"
+                        quizAnswers[q.id]?.includes(opt.id) ? "border-navy-500 bg-navy-50" : "border-gray-200 hover:border-gray-300"
                       }`}>
                         <input type="checkbox" className="w-4 h-4"
                           checked={quizAnswers[q.id]?.includes(opt.id) || false}
@@ -492,7 +493,7 @@ export default function CoursePlayerPage() {
                 </div>
               ))}
               <button onClick={submitQuiz} disabled={quizSubmitting}
-                className="w-full py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium disabled:opacity-50">
+                className="w-full py-3 bg-navy-600 text-white rounded-lg hover:bg-navy-700 font-medium disabled:opacity-50">
                 {quizSubmitting ? "Soumission..." : "Soumettre le quiz"}
               </button>
             </div>
@@ -512,7 +513,7 @@ export default function CoursePlayerPage() {
               </div>
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="text-center p-4 bg-white rounded-lg border">
-                  <p className="text-3xl font-bold text-indigo-600">{quizResult.score_percent}%</p>
+                  <p className="text-3xl font-bold text-navy-600">{quizResult.score_percent}%</p>
                   <p className="text-xs text-gray-500">Score</p>
                 </div>
                 <div className="text-center p-4 bg-white rounded-lg border">
@@ -544,7 +545,7 @@ export default function CoursePlayerPage() {
             <textarea value={noteText} onChange={e => setNoteText(e.target.value)} rows={3}
               className="w-full p-2 border rounded-lg text-sm mb-2" placeholder="Écrire une note..." />
             <button onClick={saveNote} disabled={!noteText.trim()}
-              className="w-full py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 disabled:opacity-50 mb-4">
+              className="w-full py-2 bg-navy-600 text-white text-sm rounded-lg hover:bg-navy-700 disabled:opacity-50 mb-4">
               Sauvegarder
             </button>
             <div className="space-y-3">
@@ -572,13 +573,13 @@ export default function CoursePlayerPage() {
               className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors ${
                 completedLessons.has(currentLesson.id)
                   ? "bg-green-500 text-white cursor-default"
-                  : "bg-indigo-600 text-white hover:bg-indigo-700"
+                  : "bg-navy-600 text-white hover:bg-navy-700"
               }`}>
               <CheckCircle className="w-5 h-5" />
               {completedLessons.has(currentLesson.id) ? "Termine" : "Marquer comme termine"}
             </button>
             <button onClick={nextLesson}
-              className="flex items-center gap-1 px-4 py-3 rounded-lg font-medium bg-indigo-500 text-white hover:bg-indigo-600">
+              className="flex items-center gap-1 px-4 py-3 rounded-lg font-medium bg-navy-500 text-white hover:bg-navy-600">
               Lecon suivante <ArrowRight className="w-4 h-4" />
             </button>
             <button onClick={startQuiz}

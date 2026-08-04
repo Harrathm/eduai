@@ -121,7 +121,7 @@ export default function TeacherWallet() {
                     </span>
                   )}
                 </div>
-                <div className="text-right">
+                <div className="text-end">
                   <span className="font-semibold text-navy">{data.balance} crédits</span>
                 </div>
               </div>
@@ -144,7 +144,7 @@ export default function TeacherWallet() {
                   <span className="text-sm font-medium text-navy">{tx.feature}</span>
                   <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${poolColor(tx.pool)}`}>{poolLabel(tx.pool)}</span>
                 </div>
-                <div className="text-right">
+                <div className="text-end">
                   <span className={`text-sm font-semibold ${tx.amount > 0 ? "text-green-600" : "text-red-500"}`}>
                     {tx.amount > 0 ? "+" : ""}{tx.amount}
                   </span>

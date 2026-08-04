@@ -179,7 +179,7 @@ export default function AdminSchoolsPage() {
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray" />
           <input type="text" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Search schools..." className="w-full pl-12 pr-4 py-3 bg-cream-m rounded-xl border border-black/5 text-sm focus:outline-none focus:ring-2 focus:ring-orange/20" />
+            placeholder="Search schools..." className="w-full ps-12 pe-4 py-3 bg-cream-m rounded-xl border border-black/5 text-sm focus:outline-none focus:ring-2 focus:ring-orange/20" />
         </div>
         <select value={tierFilter} onChange={e => { setTierFilter(e.target.value); setPage(1); }}
           className="px-4 py-3 bg-cream-m rounded-xl border border-black/5 text-sm focus:outline-none">

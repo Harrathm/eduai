@@ -11,10 +11,11 @@ import {
   exportMessageDocx,
   type ConversationSummary,
 } from "../../api/conversations";
+import { tokenStorage } from "../../utils/tokenStorage";
 
 const BASE_URL = "";
 function getToken() {
-  return localStorage.getItem("token");
+  return tokenStorage.getToken();
 }
 
 interface Message {
@@ -90,7 +91,7 @@ function WelcomeMessage({ onHintClick }: { onHintClick: (hint: string) => void }
           <button
             key={i}
             onClick={() => onHintClick(hint)}
-            className="text-left px-4 py-3 text-sm bg-white border border-gray-100 rounded-xl hover:border-orange/30 hover:bg-orange-p text-gray-600 hover:text-navy transition-all duration-200 shadow-sm"
+            className="text-start px-4 py-3 text-sm bg-white border border-gray-100 rounded-xl hover:border-orange/30 hover:bg-orange-p text-gray-600 hover:text-navy transition-all duration-200 shadow-sm"
           >
             {hint}
           </button>
@@ -356,7 +357,7 @@ export default function LearnerAIChatPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Rechercher..."
-              className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border border-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange/20 focus:border-orange/40 transition-all"
+              className="w-full ps-9 pe-3 py-2 text-sm bg-gray-50 border border-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange/20 focus:border-orange/40 transition-all"
             />
           </div>
         </div>
@@ -376,7 +377,7 @@ export default function LearnerAIChatPage() {
               <div key={conv.id} className="group relative">
                 <button
                   onClick={() => openConversation(conv.id)}
-                  className={`w-full text-left px-3 py-2.5 rounded-lg transition-all duration-150 pr-9 ${
+                  className={`w-full text-start px-3 py-2.5 rounded-lg transition-all duration-150 pe-9 ${
                     activeConvId === conv.id
                       ? "bg-orange-p border border-orange/10"
                       : "hover:bg-gray-50 border border-transparent"

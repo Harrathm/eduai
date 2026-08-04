@@ -33,7 +33,7 @@ export default function LanguageSelector() {
           onClick={() => handleChange(l.code)}
           className={`px-2 py-1 text-xs rounded transition-colors ${
             current === l.code
-              ? "bg-indigo-600 text-white font-medium"
+              ? "bg-navy-600 text-white font-medium"
               : "text-gray-600 hover:bg-gray-100"
           }`}
           title={l.label}
