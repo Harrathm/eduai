@@ -335,6 +335,30 @@ def seed():
             print("  [EXISTS] PackPurchase: eleve1.carthage -> Pack 9eme")
         session.flush()
 
+        # ── SOFT SKILLS CATALOG ───────────────────────────────────────
+        print("\n[8.5/9] Creating soft skills courses ...")
+        soft_skills_data = [
+            ("Gestion du stress et examens", "Techniques de gestion du stress avant les examens et periodes intenses.", "beginner"),
+            ("Methodes d'apprentissage efficaces", "Strategies pedagogiques pour optimiser la memorisation et la comprehension.", "intermediate"),
+            ("Communication et prise de parole", "Developper ses competences en communication orale et ecrite.", "beginner"),
+            ("Travail en equipe et collaboration", "Techniques de travail collaboratif et resolution de conflits.", "intermediate"),
+            ("Orientation scolaire et professionnelle", "Decouvrir son profil et choisir son parcours d'orientation.", "beginner"),
+            ("Gestion du temps et organisation", "Planification, priorisation et outils d'organisation personnelle.", "beginner"),
+            ("Leadership et initiative", "Developper ses qualites de leader et prendre des initiatives.", "advanced"),
+            ("Pensee critique et resolution de problemes", "Methodes d'analyse et prise de decision rationnelle.", "intermediate"),
+        ]
+        for ss_name, ss_desc, ss_level in soft_skills_data:
+            ss, is_new = get_or_create(
+                session, Course, title=ss_name,
+                defaults=dict(description=ss_desc, category="soft_skills", level=ss_level,
+                              status=CourseStatus.PUBLISHED.value, is_published=True,
+                              owner_type=CourseOwnerType.EDUAI_CATALOG.value,
+                              visibility=CourseVisibility.PUBLIC_CATALOG.value,
+                              school_id=school_a.id,
+                              author_id=superadmin.id))
+            print("  %s SoftSkill: %s (id=%d)" % (_lbl(is_new), ss_name, ss.id))
+        session.flush()
+
         # ── ENROLLMENTS ────────────────────────────────────────────────
         print("\n[9/9] Creating enrollments ...")
 
