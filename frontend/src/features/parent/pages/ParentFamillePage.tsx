@@ -52,7 +52,7 @@ export default function ParentFamillePage() {
       if (compteRes.ok) setCompte(await compteRes.json());
       if (enfantsRes.ok) {
         const data = await enfantsRes.json();
-        setEnfants(data.enfants || []);
+        setEnfants(data.items || data.enfants || []);
       }
       if (dashRes.ok) {
         const data = await dashRes.json();
@@ -109,8 +109,8 @@ export default function ParentFamillePage() {
 
   const DISCOUNT_INFO = [
     { rang: "1er enfant", remise: "0%", description: "Tarif plein" },
-    { rang: "2eme enfant", remise: "-20%", description: "Remise famile" },
-    { rang: "3eme enfant+", remise: "-25%", description: "Remise famile maximale" },
+    { rang: "2eme enfant", remise: "-20%", description: "Remise familiale" },
+    { rang: "3eme enfant+", remise: "-25%", description: "Remise familiale maximale" },
   ];
 
   if (loading) {

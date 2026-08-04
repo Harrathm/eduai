@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../../../store/authStore";
+import { api } from "../../../utils/apiClient";
 import { Wallet, Coins, TrendingUp, Clock } from "lucide-react";
-
-const API_URL = "";
 
 interface PoolEntry {
   pool: string;
@@ -39,19 +38,12 @@ export default function StudentWallet() {
     if (!token) return;
     setLoading(true);
     try {
-      const [balRes, histRes] = await Promise.all([
-        fetch(`${API_URL}/api/wallet/balance`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(`${API_URL}/api/wallet/history?page=1&page_size=20`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+      const [balData, histData] = await Promise.all([
+        api.get("/api/wallet/balance"),
+        api.get("/api/wallet/history?page=1&page_size=20"),
       ]);
-      if (balRes.ok) setBalance(await balRes.json());
-      if (histRes.ok) {
-        const data = await histRes.json();
-        setHistory(data.transactions || []);
-      }
+      setBalance(balData);
+      setHistory(histData.transactions || []);
     } catch (err) {
       console.error(err);
     }

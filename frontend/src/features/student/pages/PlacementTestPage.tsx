@@ -32,7 +32,7 @@ export default function PlacementTestPage() {
   useEffect(() => {
     const fetchTest = async () => {
       try {
-        const res = await apiClient.get(`/placement/tests/${testId}`);
+        const res = await apiClient.get(`/api/placement/tests/${testId}`);
         setTest(res.data);
       } catch {
         navigate("/dashboard");
@@ -58,7 +58,7 @@ export default function PlacementTestPage() {
         question_index: parseInt(qi),
         selected: sel,
       }));
-      const res = await apiClient.post(`/placement/tests/${test.id}/submit`, { answers: answerList });
+      const res = await apiClient.post(`/api/placement/tests/${test.id}/submit`, { answers: answerList });
       // Auto-enroll in pathway
       try {
         const enrollRes = await apiClient.post(`/api/pathway/auto-enroll-from-test`);

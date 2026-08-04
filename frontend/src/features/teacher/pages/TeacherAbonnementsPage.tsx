@@ -2,8 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuthStore } from "../../../store/authStore";
 import { ShoppingCart, Check, X, ArrowUpCircle, AlertCircle, Package, CreditCard } from "lucide-react";
 
-const API = "";
-
 interface Pack {
   id: number;
   nom: string;

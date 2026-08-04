@@ -25,7 +25,7 @@ function ObjectiveSkeleton() {
   );
 }
 
-function TierBadge({ tier }: { tier: string }) {
+function PalierBadge({ tier }: { tier: string }) {
   const labels: Record<string, { label: string; color: string }> = {
     decouverte: { label: "Découverte", color: "bg-blue-100 text-blue-700" },
     excellence: { label: "Excellence", color: "bg-orange-100 text-orange-700" },
@@ -34,7 +34,22 @@ function TierBadge({ tier }: { tier: string }) {
   const info = labels[tier] || labels.decouverte;
   return (
     <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${info.color}`}>
-      {info.label}
+      Palier : {info.label}
+    </span>
+  );
+}
+
+function PackBadge({ tier }: { tier: string }) {
+  const labels: Record<string, { label: string; color: string }> = {
+    gratuit: { label: "Gratuit", color: "bg-gray-100 text-gray-700" },
+    basique: { label: "Basique", color: "bg-blue-100 text-blue-700" },
+    silver: { label: "Silver", color: "bg-gray-200 text-gray-700" },
+    golden: { label: "Golden", color: "bg-amber-100 text-amber-700" },
+  };
+  const info = labels[tier] || labels.gratuit;
+  return (
+    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${info.color}`}>
+      Pack : {info.label}
     </span>
   );
 }
@@ -62,7 +77,7 @@ function DailyObjectiveCard({ objective }: { objective: DailyObjective | null })
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <h3 className="font-semibold text-navy text-sm">Objectif du jour</h3>
-            <TierBadge tier={objective.tier} />
+            <PalierBadge tier={objective.tier} />
           </div>
           <p className="text-gray-700 text-sm leading-relaxed">{objective.message}</p>
           {objective.estimated_minutes > 0 && (
@@ -73,7 +88,7 @@ function DailyObjectiveCard({ objective }: { objective: DailyObjective | null })
         </div>
         {objective.lesson_id && (
           <a
-            href={`/dashboard/courses/${objective.course_title ? "" : ""}lessons/${objective.lesson_id}`}
+            href={`/dashboard/courses/${objective.lesson_id}`}
             className="px-4 py-2 bg-navy text-white text-xs font-medium rounded-xl hover:bg-navy/90 transition-colors flex-shrink-0"
           >
             Commencer
@@ -87,14 +102,22 @@ function DailyObjectiveCard({ objective }: { objective: DailyObjective | null })
 export default function StudentDashboard() {
   const { user } = useAuthStore();
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [packTier, setPackTier] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const dashData = await tierAPI.dashboard();
+        const [dashData, aboData] = await Promise.all([
+          tierAPI.dashboard(),
+          fetch("/api/abonnements/mes-abonnements", {
+            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+          }).then((r) => r.ok ? r.json() : { items: [] }).catch(() => ({ items: [] })),
+        ]);
         setDashboard(dashData);
+        const activeAbo = (aboData.items || []).find((a: any) => a.statut === "actif" || a.statut === "grace");
+        if (activeAbo?.pack?.tier) setPackTier(activeAbo.pack.tier);
       } catch (err: any) {
         setError(err.message || "Erreur de chargement");
       } finally {
@@ -113,8 +136,9 @@ export default function StudentDashboard() {
         </h1>
         <p className="text-white/50 mt-2">Bienvenue, {user?.full_name}</p>
         {dashboard?.tier && (
-          <div className="mt-3">
-            <TierBadge tier={dashboard.tier} />
+          <div className="mt-3 flex items-center gap-2">
+            <PalierBadge tier={dashboard.tier} />
+            {packTier && <PackBadge tier={packTier} />}
           </div>
         )}
       </div>

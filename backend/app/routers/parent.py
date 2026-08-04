@@ -502,7 +502,7 @@ def list_messages(
     db: Session = Depends(get_db),
 ):
     """List messages visible to the parent (direct + broadcasts)."""
-    from sqlalchemy import or_
+    from sqlalchemy import or_, and_
 
     base_filters = [Message.school_id == current_user.school_id]
     inbox_filter = or_(

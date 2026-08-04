@@ -36,7 +36,7 @@ export default function GamificationPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const token = localStorage.getItem("token");
+    const token = useAuthStore.getState().token || localStorage.getItem("token");
     const headers = { Authorization: `Bearer ${token}` };
     try {
       const [badgesRes, streakRes, rankRes] = await Promise.all([

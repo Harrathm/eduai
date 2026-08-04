@@ -194,7 +194,7 @@ export default function TeacherValidationContenuPage() {
             {filtered.map(c => (
               <div key={c.id} className="px-6 py-4 grid grid-cols-6 gap-4 items-center hover:bg-gray-50/50 transition-colors">
                 <div className="text-sm text-gray font-mono">#{c.id}</div>
-                <div className="text-sm text-navy font-medium">Notion #{c.notion_id}</div>
+                <div className="text-sm text-navy font-medium">Contenu #{c.id}</div>
                 <div className="text-xs px-2 py-0.5 bg-cream-m rounded-full text-gray inline-block w-fit">
                   {c.niveau_assimilation}
                 </div>
@@ -211,7 +211,7 @@ export default function TeacherValidationContenuPage() {
                   )}
                   {c.statut_validation_pedagogique !== "rejete" && (
                     <button
-                      onClick={() => setRejectModal({ contenuId: c.id, contenuNom: `Notion #${c.notion_id}` })}
+                      onClick={() => setRejectModal({ contenuId: c.id, contenuNom: `Contenu #${c.id}` })}
                       className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors"
                     >
                       <XCircle className="w-3.5 h-3.5" /> Rejeter

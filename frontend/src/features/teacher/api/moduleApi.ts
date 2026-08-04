@@ -1,7 +1,7 @@
 const API = "";
 
 async function api<T = any>(path: string, opts: RequestInit = {}): Promise<T> {
-  const token = JSON.parse(localStorage.getItem("auth-storage") || "{}")?.state?.token;
+  const token = localStorage.getItem("token") || JSON.parse(localStorage.getItem("auth-storage") || "{}")?.state?.token;
   const r = await fetch(`${API}${path}`, {
     ...opts,
     headers: {

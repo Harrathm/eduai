@@ -52,7 +52,7 @@ export default function ParentDashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
           <div className="text-3xl font-[300] text-orange">{data.enfants.length}</div>
-          <div className="text-sm text-gray-500 mt-1">Enfant{data.enfants.length > 1 ? "s" : ""} rattle{data.enfants.length > 1 ? "s" : ""}</div>
+          <div className="text-sm text-gray-500 mt-1">Enfant{data.enfants.length > 1 ? "s" : ""} rattaché{data.enfants.length > 1 ? "s" : ""}</div>
         </div>
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
           <div className="text-3xl font-[300] text-navy">{data.enfants.reduce((s, e) => s + e.packs_actifs_count, 0)}</div>

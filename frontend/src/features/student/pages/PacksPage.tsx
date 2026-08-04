@@ -13,6 +13,7 @@ interface Pack {
   validity_duration_days: number;
   owner_type: string;
   already_included_by_school: boolean;
+  tier?: string;
 }
 
 function PackSkeleton() {
@@ -45,7 +46,19 @@ function PackCard({ pack, userNiveau }: { pack: Pack; userNiveau?: string }) {
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div>
-          <h3 className="font-semibold text-navy">{pack.name}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold text-navy">{pack.name}</h3>
+            {pack.tier && (
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                pack.tier === "golden" ? "bg-yellow-100 text-yellow-700" :
+                pack.tier === "silver" ? "bg-gray-100 text-gray-600" :
+                pack.tier === "basique" ? "bg-blue-100 text-blue-700" :
+                "bg-green-100 text-green-700"
+              }`}>
+                {pack.tier.charAt(0).toUpperCase() + pack.tier.slice(1)}
+              </span>
+            )}
+          </div>
           <p className="text-xs text-gray-400 mt-1">{pack.niveau_scolaire}</p>
         </div>
         {pack.already_included_by_school && (
@@ -93,6 +106,11 @@ function PackCard({ pack, userNiveau }: { pack: Pack; userNiveau?: string }) {
                 : "bg-gray-100 text-gray-400 cursor-not-allowed"
             }`}
             disabled={!isMatchingLevel}
+            onClick={() => {
+              if (isMatchingLevel) {
+                window.location.href = `/dashboard/my-pack`;
+              }
+            }}
           >
             {isMatchingLevel ? "Acheter" : "Niveau incompatible"}
           </button>
@@ -116,7 +134,7 @@ export default function PacksPage() {
       try {
         const params = new URLSearchParams();
         if (filter) params.set("niveau_scolaire", filter);
-        const url = `/api/packs${params.toString() ? `?${params}` : ""}`;
+        const url = `/api/abonnements/packs${params.toString() ? `?${params}` : ""}`;
         const data = await api.get(url);
         setPacks(data.items || []);
       } catch (err: any) {

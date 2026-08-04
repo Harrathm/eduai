@@ -32,21 +32,24 @@ export default function TeacherParcoursPage() {
     setLoading(true);
     try {
       const { items: parcoursList } = await listParcours();
-      const treeData: TreeItem[] = [];
-      for (const p of parcoursList) {
-        const { items: chapList } = await listChapitres(p.id);
-        const chapitres = [];
-        for (const c of chapList) {
-          const { items: lecList } = await listLecons(c.id);
-          const lecons = [];
-          for (const l of lecList) {
-            const { items: paraList } = await listParagraphes(l.id);
-            lecons.push({ ...l, paragraphes: paraList });
-          }
-          chapitres.push({ ...c, lecons });
-        }
-        treeData.push({ parcours: p, chapitres });
-      }
+      const treeData: TreeItem[] = await Promise.all(
+        parcoursList.map(async (p) => {
+          const { items: chapList } = await listChapitres(p.id);
+          const chapitres = await Promise.all(
+            chapList.map(async (c) => {
+              const { items: lecList } = await listLecons(c.id);
+              const lecons = await Promise.all(
+                lecList.map(async (l) => {
+                  const { items: paraList } = await listParagraphes(l.id);
+                  return { ...l, paragraphes: paraList };
+                })
+              );
+              return { ...c, lecons };
+            })
+          );
+          return { parcours: p, chapitres };
+        })
+      );
       setTree(treeData);
     } catch (e: any) {
       showToast(e.message, "error");

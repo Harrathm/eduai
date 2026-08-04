@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { parentAPI, ProgressionData, SuiviData } from "../api";
 import { Wallet, ExternalLink } from "lucide-react";
 
@@ -7,6 +7,7 @@ const RECHARGE_AMOUNTS = [5, 10, 20, 50];
 
 export default function ChildDetailPage() {
   const { eleveId } = useParams<{ eleveId: string }>();
+  const navigate = useNavigate();
   const id = parseInt(eleveId || "0");
 
   const [suivi, setSuivi] = useState<SuiviData | null>(null);
@@ -36,7 +37,7 @@ export default function ChildDetailPage() {
     if (!confirm("Voulez-vous vraiment detacher cet enfant ?")) return;
     try {
       await parentAPI.delierEleve(id);
-      window.location.href = "/dashboard/parent";
+      navigate("/dashboard/parent");
     } catch (e: any) {
       alert(e.message);
     }
