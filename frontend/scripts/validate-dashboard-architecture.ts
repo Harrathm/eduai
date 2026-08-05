@@ -76,21 +76,30 @@ check("inboxApi.list().catch()", hookSource.includes("inboxApi.list("));
 check("catalogApi.list().catch()", hookSource.includes("catalogApi.list("));
 check("abonnementApi.listPacks().catch()", hookSource.includes("abonnementApi.listPacks().catch"));
 
-console.log("\n═══ DASHBOARD: 8 WIDGETS PRÉSENTS ═══");
-check("Widget #1: Offres Disponibles", dashboardSource.includes("offresDisponibles"));
-check("Widget #2: Pack Actif", dashboardSource.includes("monPack"));
-check("Widget #3: Parcours", dashboardSource.includes("monParcours"));
-check("Widget #4: Assistant IA", dashboardSource.includes("assistantIA"));
-check("Widget #5: Portefeuille", dashboardSource.includes("portefeuille"));
-check("Widget #6: Soft Skills", dashboardSource.includes("formationsSoftSkills"));
-check("Widget #7: Profil", dashboardSource.includes("profil"));
-check("Widget #8: Messages", dashboardSource.includes("messages"));
+console.log("\n═══ DASHBOARD: 8 ZONES PRÉSENTES ═══");
+check("Zone Header: Profil & Statut (prénom + niveau + pack badge)", dashboardSource.includes("firstName"));
+check("Zone Header: Bouton Améliorer mon pack", dashboardSource.includes("Améliorer mon pack"));
+check("Zone Bannière: QuotaGauge (Gratuit)", dashboardSource.includes("QuotaGauge"));
+check("Zone Bannière: TrimesterReconfigBanner (Basic/Silver)", dashboardSource.includes("TrimesterReconfigBanner"));
+check("Zone Bannière: Accès Illimité (Golden)", dashboardSource.includes("Accès Illimité Actif"));
+check("Zone Colonne principale: Assistant IA avec actions rapides", dashboardSource.includes("Quiz") && dashboardSource.includes("Expliquer erreur"));
+check("Zone Colonne principale: Sélecteur langue FR/AR", dashboardSource.includes("aiLang"));
+check("Zone Colonne principale: Reprendre l'Apprentissage", dashboardSource.includes("Reprendre"));
+check("Zone Colonne principale: ProgressRing composant", dashboardSource.includes("ProgressRing"));
+check("Zone Colonne principale: Mes Matières Accessibles", dashboardSource.includes("Mes Matières Accessibles"));
+check("Zone Colonne secondaire: Statistiques (temps, leçons, progression)", dashboardSource.includes("Statistiques"));
+check("Zone Colonne secondaire: Soft Skills avec catalogue", dashboardSource.includes("formationsSoftSkills"));
+check("Zone Colonne secondaire: Annonces & Rappels", dashboardSource.includes("Annonces"));
+check("Zone Colonne secondaire: Portefeuille compact", dashboardSource.includes("portefeuille"));
+check("Bouton flottant IA (fixed bottom-right)", dashboardSource.includes("fixed bottom-6 right-6"));
 
 console.log("\n═══ DASHBOARD: COMPOSANTS CONSERVÉS ═══");
 check("QuotaGauge présent", dashboardSource.includes("QuotaGauge"));
 check("QuotaExhaustedModal présent", dashboardSource.includes("QuotaExhaustedModal"));
 check("TrimesterBadge présent", dashboardSource.includes("TrimesterBadge"));
 check("TrimesterReconfigBanner présent", dashboardSource.includes("TrimesterReconfigBanner"));
+check("ProgressRing (nouveau composant inline)", dashboardSource.includes("function ProgressRing"));
+check("WidgetError (conservé)", dashboardSource.includes("WidgetError"));
 
 console.log("\n═══ DASHBOARD: BLOCS SUPPRIMÉS ═══");
 check(

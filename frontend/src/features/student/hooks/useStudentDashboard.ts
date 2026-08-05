@@ -19,6 +19,12 @@ interface QuotaState {
   error: string | null;
 }
 
+export interface LastLesson {
+  title: string;
+  courseTitle: string;
+  progressPct: number;
+}
+
 interface StudentDashboardData {
   dashboard: DashboardData | null;
   packTier: string | null;
@@ -31,6 +37,9 @@ interface StudentDashboardData {
   quota: QuotaState;
   loading: boolean;
   error: string | null;
+  lastLesson: LastLesson | null;
+  learningTimeMinutes: number;
+  averageScore: number;
 }
 
 function computeQuota(dashboard: DashboardData | null): QuotaState {
@@ -57,6 +66,9 @@ export function useStudentDashboard() {
     quota: { tier: null, used: 0, limit: FREE_QUOTA_LIMIT, remaining: FREE_QUOTA_LIMIT, percent: 0, exhausted: false, isNotFree: false, error: null },
     loading: true,
     error: null,
+    lastLesson: null,
+    learningTimeMinutes: 0,
+    averageScore: 0,
   });
   const mountedRef = useRef(true);
   const trimester = useTrimesterReconfiguration();
@@ -88,6 +100,22 @@ export function useStudentDashboard() {
       const messages = Array.isArray(inboxData) ? inboxData : [];
       const unread = messages.filter((m) => !m.is_read).length;
 
+      // Mock data — will be replaced by real backend endpoints
+      const mockLastLesson = dashData.courses && dashData.courses.length > 0
+        ? (() => {
+            const last = dashData.courses.reduce((a, b) =>
+              (a.progress_pct ?? 0) > (b.progress_pct ?? 0) ? a : b
+            );
+            return {
+              title: last.title || "Dernière leçon",
+              courseTitle: last.title,
+              progressPct: last.progress_pct ?? 0,
+            };
+          })()
+        : null;
+      const mockLearningTime = Math.round((dashData.lessons_completed ?? 0) * 12);
+      const mockAvgScore = dashData.overall_progress_pct ?? 0;
+
       setData({
         dashboard: dashData,
         packTier: activeAbo?.tier || null,
@@ -97,9 +125,12 @@ export function useStudentDashboard() {
         lastMessage: messages[0] || null,
         softSkillsCourses: Array.isArray(softData) ? softData.slice(0, 3) : [],
         availablePacks: filteredPacks.slice(0, 3),
-        quota: computeQuota(dashData),                         // ← quota calculé localement, pas d'appel réseau
+        quota: computeQuota(dashData),
         loading: false,
         error: null,
+        lastLesson: mockLastLesson,
+        learningTimeMinutes: mockLearningTime,
+        averageScore: mockAvgScore,
       });
     } catch (err: any) {
       if (mountedRef.current) {
@@ -137,6 +168,9 @@ export function useStudentDashboard() {
     isGolden,
     matieresCount,
     globalProgress,
+    lastLesson: data.lastLesson,
+    learningTimeMinutes: data.learningTimeMinutes,
+    averageScore: data.averageScore,
     refresh: fetchData,
   };
 }
