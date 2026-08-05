@@ -44,6 +44,16 @@ class Settings(BaseSettings):
     konnect_merchant_id: str = Field(default="", description="Konnect merchant ID")
     konnect_webhook_secret: str = Field(default="", description="Konnect webhook HMAC-SHA256 secret")
     
+    # SMTP (email sending)
+    smtp_host: str = Field(default="", description="SMTP server host")
+    smtp_port: int = Field(default=587, description="SMTP server port")
+    smtp_username: str = Field(default="", description="SMTP username")
+    smtp_password: str = Field(default="", description="SMTP password")
+    smtp_use_tls: bool = Field(default=True, description="Use TLS for SMTP connection")
+    email_from_address: str = Field(default="noreply@eduai.tn", description="Sender email address")
+    email_from_name: str = Field(default="EDUAI Learning", description="Sender display name")
+    frontend_reset_url: str = Field(default="http://localhost:5173/reset-password", description="Frontend password reset URL base")
+
     # CORS
     cors_origins: str = Field(default="http://localhost:5173", description="Allowed CORS origins (comma-separated)")
     

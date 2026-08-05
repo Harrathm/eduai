@@ -80,6 +80,12 @@ def create_profil_assimilation(
     if current_user.role not in ("teacher", "admin_school", "super_admin", "pedagogical_admin", "pedagogical_lead"):
         raise HTTPException(status_code=403, detail="Seul un enseignant ou admin peut créer un profil")
 
+    # School scope check for teachers: ensure student belongs to same school
+    if current_user.role == "teacher" and current_user.school_id:
+        student = db.query(User).filter(User.id == profil_in.eleve_id).first()
+        if not student or student.school_id != current_user.school_id:
+            raise HTTPException(status_code=403, detail="Cet élève n'appartient pas à votre établissement")
+
     profil = ProfilAssimilationEleve(
         eleve_id=profil_in.eleve_id,
         chapitre_id=profil_in.chapitre_id,
@@ -211,8 +217,13 @@ def record_score(
     current_user: User = Depends(set_tenant_context),
 ):
     """Record a score for a student on a chapter. Auto-evaluates reorientation."""
-    if current_user.role not in ("teacher", "admin_school", "super_admin",
-                                  "student") and current_user.id != score_in.eleve_id:
+    # Teachers/admins can record scores for any student.
+    # Students can ONLY record scores for themselves.
+    if current_user.role == "student":
+        if current_user.id != score_in.eleve_id:
+            raise HTTPException(status_code=403, detail="Un étudiant ne peut enregistrer des scores que pour lui-même")
+    elif current_user.role not in ("teacher", "admin_school", "super_admin",
+                                    "pedagogical_admin", "pedagogical_lead"):
         raise HTTPException(status_code=403, detail="Accès refusé")
 
     from app.models import ChapterPathway

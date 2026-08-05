@@ -383,8 +383,12 @@ def purchase_course(
         raise HTTPException(status_code=402, detail="Solde insuffisant lors du débit")
 
     # Créer la transaction financière
+    transaction_school = current_user.school_id or course.school_id
+    if not transaction_school:
+        raise HTTPException(status_code=400, detail="Aucun établissement associé")
+
     transaction = Transaction(
-        school_id=current_user.school_id or course.school_id or 1,
+        school_id=transaction_school,
         user_id=current_user.id,
         type=TransactionType.COURSE_PURCHASE,
         amount=course.price,

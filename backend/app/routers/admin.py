@@ -975,6 +975,24 @@ def broadcast_message(
 
 # ---- Platform Settings ----
 
+def _mask_value(key: str, value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
+    sensitive_keys = {"ai_providers_config", "openai_api_key", "groq_api_key", "stripe_secret_key"}
+    if key in sensitive_keys:
+        try:
+            import json
+            data = json.loads(value)
+            for k in data:
+                if isinstance(data[k], str) and len(data[k]) > 8:
+                    data[k] = data[k][:4] + "****" + data[k][-4:]
+            return json.dumps(data)
+        except (json.JSONDecodeError, TypeError):
+            if len(value) > 8:
+                return value[:4] + "****" + value[-4:]
+    return value
+
+
 @router.get("/settings", response_model=list[SettingsRead])
 def list_settings(
     db: Session = Depends(get_db),
@@ -988,6 +1006,8 @@ def list_settings(
             PlatformSettings.school_id == admin.school_id,
             PlatformSettings.key.notin_(platform_keys),
         ).all()
+        for s in settings:
+            s.value = _mask_value(s.key, s.value)
         return settings
 
     # Super admin sees platform + school settings
@@ -995,6 +1015,8 @@ def list_settings(
         (PlatformSettings.school_id == admin.school_id) |
         (PlatformSettings.school_id == None)
     ).all()
+    for s in settings:
+        s.value = _mask_value(s.key, s.value)
     return settings
 
 

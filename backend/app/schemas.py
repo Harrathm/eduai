@@ -1361,9 +1361,25 @@ class AbonnementRead(BaseModel):
     debut: datetime
     fin: datetime
     grace_fin: Optional[datetime] = None
+    scheduled_tier: Optional[str] = None
+    scheduled_effective_date: Optional[datetime] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)
+
+
+class ChangeTierRequest(BaseModel):
+    target_pack_id: int
+
+
+class MonPackRead(BaseModel):
+    current_tier: str
+    current_pack: Optional[dict] = None
+    abonnement: Optional[dict] = None
+    available_packs: list = []
+    scheduled_change: Optional[dict] = None
+    niveau_scolaire: Optional[str] = None
+    quota_info: dict = {}
 
 
 class CompteFamilleRead(BaseModel):

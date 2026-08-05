@@ -269,8 +269,11 @@ def get_course(course_id: int, db: Session = Depends(get_db), admin: User = Depe
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_course(data: CourseCreate, db: Session = Depends(get_db), admin: User = Depends(require_admin), _sub=Depends(require_active_subscription)):
+    if not admin.school_id:
+        raise HTTPException(status_code=400, detail="Aucun établissement associé à votre compte")
+
     course = Course(
-        school_id=admin.school_id or 1,
+        school_id=admin.school_id,
         author_id=admin.id,
         title=data.title,
         description=data.description,

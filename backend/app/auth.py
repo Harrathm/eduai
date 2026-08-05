@@ -324,12 +324,24 @@ def teacher_register(user_in: UserCreate, db: Session = Depends(get_db)):
 # Login
 # ---------------------------------------------------------------------------
 
+def _mask_email(email: str) -> str:
+    """Mask email for safe logging: j***@example.com."""
+    if not email or "@" not in email:
+        return "***"
+    local, domain = email.split("@", 1)
+    if len(local) <= 2:
+        masked_local = local[0] + "***" if local else "***"
+    else:
+        masked_local = local[0] + "***" + local[-1]
+    return f"{masked_local}@{domain}"
+
+
 @router.post("/login", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     from app.models import User
     import logging
     logger = logging.getLogger(__name__)
-    logger.warning(f"LOGIN ATTEMPT: email={form_data.username}")
+    logger.warning(f"LOGIN ATTEMPT: email={_mask_email(form_data.username)}")
     user = db.query(User).filter(User.email == form_data.username).first()
     logger.info(f"USER FOUND: user_id={user.id if user else 'None'}")
 
@@ -351,9 +363,9 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         if user.failed_login_attempts >= 5:
             user.locked_until = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(minutes=15)
             user.failed_login_attempts = 0
-            log_security_event("account_locked", {"user_id": user.id, "email": user.email}, severity="WARNING")
+            log_security_event("account_locked", {"user_id": user.id, "email": _mask_email(user.email)}, severity="WARNING")
         db.commit()
-        log_security_event("failed_login", {"email": form_data.username}, severity="WARNING")
+        log_security_event("failed_login", {"email": _mask_email(form_data.username)}, severity="WARNING")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
 
     # Successful login — reset lockout state
@@ -517,9 +529,16 @@ def forgot_password(body: ForgotPasswordRequest, db: Session = Depends(get_db)):
             "email": user.email,
         })
 
+        # Send reset email (failures logged server-side, never exposed to client)
+        from app.services.email_service import send_password_reset_email
+        send_password_reset_email(
+            to_email=user.email,
+            reset_token=reset_token,
+            user_name=user.full_name,
+        )
+
         return {
             "message": "Si cet email est enregistré, vous recevrez un lien de réinitialisation.",
-            "token": reset_token,
         }
 
     return {"message": "Si cet email est enregistré, vous recevrez un lien de réinitialisation."}

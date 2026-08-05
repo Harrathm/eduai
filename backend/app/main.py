@@ -194,6 +194,7 @@ RATE_LIMITS = {
     "/auth/login": (10, 60),
     "/auth/register": (5, 60),
     "/auth/register-trial-teacher": (5, 60),
+    "/auth/forgot-password": (3, 60),
     "/api/ai/": (60, 60),
     "/api/admin/": (200, 60),
     "/api/wallet/": (30, 60),

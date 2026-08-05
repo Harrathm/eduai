@@ -197,8 +197,11 @@ def purchase_pack(
         raise HTTPException(status_code=400, detail="Solde insuffisant lors du débit")
 
     # Créer la transaction
+    if not user.school_id:
+        raise HTTPException(status_code=400, detail="Aucun établissement associé à votre compte")
+
     transaction = Transaction(
-        school_id=user.school_id or 1,
+        school_id=user.school_id,
         user_id=user.id,
         type=TransactionType.COURSE_PURCHASE,
         amount=pack.price,

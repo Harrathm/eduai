@@ -5,6 +5,7 @@ SQLAlchemy 2.0 with Multi-Tenancy Support
 
 from __future__ import annotations
 from datetime import datetime, timezone, date
+from decimal import Decimal
 from enum import Enum
 from typing import Optional, List
 import uuid
@@ -402,7 +403,7 @@ class Transaction(Base):
     
     # Transaction details
     type: Mapped[str] = mapped_column(SQLEnum(TransactionType), nullable=False)
-    amount: Mapped[float] = mapped_column(Float, nullable=False)
+    amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     currency: Mapped[str] = mapped_column(SQLEnum(Currency), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text)
     reference_id: Mapped[Optional[str]] = mapped_column(String(255))  # Could be course_id, enrollment_id, etc.
@@ -427,7 +428,7 @@ class TokenPackage(Base):
     
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     tokens: Mapped[int] = mapped_column(Integer, nullable=False)
-    price_dt: Mapped[float] = mapped_column(Float, nullable=False)
+    price_dt: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     bonus_tokens: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     
@@ -481,7 +482,7 @@ class Course(Base):
     
     # Pricing (crédits IA, système existant)
     price_tokens: Mapped[int] = mapped_column(Integer, default=0)
-    price_dt: Mapped[float] = mapped_column(Float, default=0.0)
+    price_dt: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=0)
     
     # Metadata
     category: Mapped[Optional[str]] = mapped_column(String(100))
@@ -724,6 +725,13 @@ class PackStatus(str, Enum):
     ARCHIVED = "archived"
 
 
+# ---------------------------------------------------------------------------
+# DEPRECATED — System B (StudyPack / PackPurchase)
+# These models are LEGACY. The active subscription system uses
+# PackDefinition + Abonnement (System A). Keep for backward compat only.
+# Do NOT add new features using these models.
+# ---------------------------------------------------------------------------
+
 class PackPurchaseStatus(str, Enum):
     ACTIVE = "active"
     EXPIRED = "expired"
@@ -736,7 +744,7 @@ class PurchaserType(str, Enum):
 
 
 class StudyPack(Base):
-    """Pack d'étude par niveau — donne accès à tous les cours d'un niveau scolaire."""
+    """DEPRECATED (System B) — Pack d'étude par niveau. Use PackDefinition instead."""
     __tablename__ = "study_packs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -779,7 +787,7 @@ class StudyPack(Base):
 
 
 class PackPurchase(Base):
-    """Historique des achats de packs — individuel (student) ou école (school)."""
+    """DEPRECATED (System B) — Historique des achats de packs. Use Abonnement instead."""
     __tablename__ = "pack_purchases"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -1115,7 +1123,7 @@ class AIUsageLog(Base):
     school_id: Mapped[int] = mapped_column(Integer, default=0)
     action: Mapped[str] = mapped_column(String(100), nullable=False)
     tokens_used: Mapped[int] = mapped_column(Integer, default=0)
-    cost_usd: Mapped[float] = mapped_column(Float, default=0.0)
+    cost_usd: Mapped[Decimal] = mapped_column(Numeric(10, 4), default=0)
     description: Mapped[Optional[str]] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
@@ -1666,7 +1674,7 @@ class Plan(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
     stripe_price_id: Mapped[Optional[str]] = mapped_column(String(255))
-    price: Mapped[float] = mapped_column(Float, default=0)
+    price: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=0)
     interval: Mapped[str] = mapped_column(String(50), default="month")
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     features: Mapped[Optional[dict]] = mapped_column(JSON)
@@ -2557,6 +2565,9 @@ class Abonnement(Base):
     debut: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     fin: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     grace_fin: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    # Tier change scheduling (downgrade = deferred, upgrade = immediate)
+    scheduled_tier: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)  # target tier for deferred downgrade
+    scheduled_effective_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)  # when the change takes effect
     stripe_subscription_id: Mapped[Optional[str]] = mapped_column(String(255))
     stripe_customer_id: Mapped[Optional[str]] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
