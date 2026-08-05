@@ -32,62 +32,18 @@ interface NavItem {
   end?: boolean;
 }
 
-interface NavSection {
-  section: string;
-  label: string;
-  icon: string;
-  items: NavItem[];
-}
-
-const STUDENT_NAV_SECTIONS: NavSection[] = [
-  {
-    section: "accueil",
-    label: "Accueil",
-    icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3a1 1 0 001-1V10",
-    items: [
-      { to: "/dashboard", label: "Mon Apprentissage", icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253M13 18.747l2-2m0 0c1.666-1.669 3.716-1.668 5.396 0l2.214 2.214c1.665 1.668 1.665 4.22 0 5.876l-2.214 2.214c-.56.56-1.292.84-2.088.84H9.708c-.796 0-1.528-.28-2.088-.84l-2.214-2.214c-1.666-1.656-1.666-4.208 0-5.876l2.214-2.214z", end: true },
-    ],
-  },
-  {
-    section: "parcours",
-    label: "Parcours",
-    icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253M13 18.747l2-2m0 0c1.666-1.669 3.716-1.668 5.396 0l2.214 2.214c1.665 1.668 1.665 4.22 0 5.876l-2.214 2.214c-.56.56-1.292.84-2.088.84H9.708c-.796 0-1.528-.28-2.088-.84l-2.214-2.214c-1.666-1.656-1.666-4.208 0-5.876l2.214-2.214z",
-    items: [
-      { to: "/dashboard/courses", label: "Catalogue", icon: "M3 15a4 4 0 004 4h9a5 5 0 10-.207-1.99 4.993 4.993 0 00-2.525 1.92l-.321.965a1.5 1.5 0 01-1.424 0l-.715-.955A4.973 4.973 0 0010 18V6a3 3 0 00-3-3H6a3 3 0 00-3 3v12z" },
-      { to: "/dashboard/parcours-catalog", label: "Parcours", icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" },
-      { to: "/dashboard/mon-parcours", label: "Mon Parcours", icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" },
-      { to: "/dashboard/assimilation", label: "Mon Niveau", icon: "M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" },
-      { to: "/dashboard/assignments", label: "Devoirs", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" },
-    ],
-  },
-  {
-    section: "ia",
-    label: "IA",
-    icon: "M8 9l3 3-3 3m5 0h3M9 19V5m0 14l4-4 4 4-4-4z",
-    items: [
-      { to: "/dashboard/ai-tutor", label: "Tuteur IA", icon: "M8 9l3 3-3 3m5 0h3M9 19V5m0 14l4-4 4 4-4-4z" },
-    ],
-  },
-  {
-    section: "objectifs",
-    label: "Commercial",
-    icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4",
-    items: [
-      { to: "/dashboard/my-pack", label: "Mon Pack", icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" },
-      { to: "/dashboard/gamification", label: "Recompenses", icon: "M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" },
-      { to: "/dashboard/wallet", label: "Portefeuille", icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" },
-      { to: "/dashboard/soft-skills", label: "Soft Skills", icon: "M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" },
-    ],
-  },
-  {
-    section: "profil",
-    label: "Profil",
-    icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
-    items: [
-      { to: "/dashboard/profile", label: "Profil", icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" },
-      { to: "/dashboard/inbox", label: "Messages", icon: "M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" },
-    ],
-  },
+const STUDENT_NAV: NavItem[] = [
+  { to: "/dashboard", label: "Tableau de bord", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3a1 1 0 001-1V10", end: true },
+  { to: "/dashboard/mon-parcours", label: "Mon Parcours", icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" },
+  { to: "/dashboard/ai-tutor", label: "Assistant IA", icon: "M8 9l3 3-3 3m5 0h3M9 19V5m0 14l4-4 4 4-4-4z" },
+  { to: "/dashboard/courses", label: "Catalogue de Cours", icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253M13 18.747l2-2m0 0c1.666-1.669 3.716-1.668 5.396 0l2.214 2.214c1.665 1.668 1.665 4.22 0 5.876l-2.214 2.214c-.56.56-1.292.84-2.088.84H9.708c-.796 0-1.528-.28-2.088-.84l-2.214-2.214c-1.666-1.656-1.666-4.208 0-5.876l2.214-2.214z" },
+  { to: "/dashboard/soft-skills", label: "Formations Soft Skills", icon: "M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" },
+  { to: "/dashboard/my-skills", label: "Mes Formations", icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" },
+  { to: "/dashboard/packs", label: "Boutique / Packs", icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" },
+  { to: "/dashboard/settings/subscription", label: "Mon Abonnement", icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" },
+  { to: "/dashboard/wallet", label: "Portefeuille", icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" },
+  { to: "/dashboard/inbox", label: "Messages", icon: "M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" },
+  { to: "/dashboard/profile", label: "Profil", icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" },
 ];
 
 const PARENT_NAV = [
@@ -109,12 +65,8 @@ export default function DashboardLayout() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const navItems = getNavItems(user?.role);
-
-  const toggleSection = (section: string) => {
-    setCollapsedSections((prev) => ({ ...prev, [section]: !prev[section] }));
-  };
+  const isStudent = user?.role?.toUpperCase() === "STUDENT";
 
   const handleLogout = () => {
     logout();
@@ -136,7 +88,28 @@ export default function DashboardLayout() {
         </div>
 
         <nav className="p-4 space-y-1 overflow-y-auto flex-1">
-          {navItems ? (
+          {isStudent ? (
+            STUDENT_NAV.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                onClick={() => setSidebarOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-4 px-5 py-3 rounded-xl text-sm font-medium transition-all ${
+                    isActive
+                      ? "bg-gradient-to-r from-orange to-orange-l text-white"
+                      : "text-white/50 hover:bg-white/5 hover:text-white"
+                  }`
+                }
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d={item.icon} />
+                </svg>
+                {item.label}
+              </NavLink>
+            ))
+          ) : navItems ? (
             navItems.map((item) => (
               <NavLink
                 key={item.to}
@@ -157,44 +130,7 @@ export default function DashboardLayout() {
                 {item.label}
               </NavLink>
             ))
-          ) : (
-            STUDENT_NAV_SECTIONS.map((section) => {
-              const isCollapsed = collapsedSections[section.section] ?? false;
-              return (
-                <div key={section.section} className="mb-1">
-                  <button
-                    onClick={() => toggleSection(section.section)}
-                    className="flex items-center gap-3 w-full px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white/30 hover:text-white/50 transition-colors"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={isCollapsed ? "M9 5l7 7-7 7" : "M19 9l-7 7-7-7"} />
-                    </svg>
-                    {section.label}
-                  </button>
-                  {!isCollapsed && section.items.map((item) => (
-                    <NavLink
-                      key={item.to}
-                      to={item.to}
-                      end={item.end}
-                      onClick={() => setSidebarOpen(false)}
-                      className={({ isActive }) =>
-                        `flex items-center gap-4 ps-10 pe-5 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                          isActive
-                            ? "bg-gradient-to-r from-orange to-orange-l text-white"
-                            : "text-white/50 hover:bg-white/5 hover:text-white"
-                        }`
-                      }
-                    >
-                      <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d={item.icon} />
-                      </svg>
-                      {item.label}
-                    </NavLink>
-                  ))}
-                </div>
-              );
-            })
-          )}
+          ) : null}
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">

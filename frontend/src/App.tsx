@@ -253,9 +253,10 @@ export default function App() {
               <Route path="ai-tutor" element={<RequireRole roles={["student", "admin_school", "teacher"]}><LearnerAIChatPage /></RequireRole>} />
               <Route path="wallet" element={<RequireRole roles={["student", "admin_school"]}><StudentWallet /></RequireRole>} />
               <Route path="packs" element={<RequireRole roles={["student", "admin_school"]}><PacksPage /></RequireRole>} />
-              <Route path="my-pack" element={<RequireRole roles={["student", "admin_school"]}><StudentPackPage /></RequireRole>} />
+              <Route path="settings/subscription" element={<RequireRole roles={["student", "admin_school"]}><StudentPackPage /></RequireRole>} />
               <Route path="tier" element={<RequireRole roles={["student", "admin_school"]}><StudentTierPage /></RequireRole>} />
               <Route path="soft-skills" element={<RequireAuth><SoftSkillsCatalogPage /></RequireAuth>} />
+              <Route path="my-skills" element={<RequireAuth><SoftSkillsCatalogPage /></RequireAuth>} />
               <Route path="placement/:testId" element={<RequireRole roles={["student", "admin_school"]}><PlacementTestPage /></RequireRole>} />
               <Route path="profile" element={<RequireRole roles={["student", "teacher", "admin_school"]}><ProfilePage /></RequireRole>} />
               <Route path="assimilation" element={<RequireRole roles={["student", "admin_school"]}><StudentAssimilationProfilePage /></RequireRole>} />

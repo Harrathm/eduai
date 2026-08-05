@@ -33,13 +33,26 @@ export interface PackDefinition {
 
 // ─── Endpoints ──────────────────────────────────────────────────────────────
 
+export interface MatiereOption {
+  id: number;
+  name: string;
+  category: "langue" | "specialite";
+  niveau_scolaire: string;
+}
+
 export const abonnementApi = {
   mesAbonnements: () => api.get<Abonnement[]>("/api/abonnements/mes-abonnements"),
 
   listPacks: () => api.get<PackDefinition[]>("/api/abonnements/packs"),
 
-  purchasePack: (packId: number) =>
-    api.post<any>(`/api/abonnements/packs/${packId}/purchase`),
+  purchasePack: (packId: number, options?: { matieres?: number[] }) =>
+    api.post<any>(`/api/abonnements/packs/${packId}/purchase`, { matieres: options?.matieres }),
 
   listMyAbonnements: () => api.get<Abonnement[]>("/api/abonnements/mes-abonnements"),
+
+  getAvailableMatieres: (niveauScolaire: string) =>
+    api.get<MatiereOption[]>(`/api/pathway/matieres?niveau_scolaire=${encodeURIComponent(niveauScolaire)}`),
+
+  reconfigureMatieres: (abonnementId: number, matieres: number[]) =>
+    api.post<any>(`/api/abonnements/${abonnementId}/reconfigure`, { matieres }),
 };
