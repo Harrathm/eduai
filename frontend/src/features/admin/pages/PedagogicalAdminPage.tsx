@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../../../store/authStore";
 import { BookOpen, CheckCircle, XCircle, Clock, AlertTriangle, Eye, RefreshCw, Filter } from "lucide-react";
-
-const API_URL = "";
+import { pedagogicalAdmin } from "../../../api";
 
 interface Course {
   id: number;
@@ -33,13 +32,8 @@ export default function PedagogicalAdminPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/pedagogical/courses/pending`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setCourses(Array.isArray(data) ? data : data.courses || data.items || []);
-      }
+      const data = await pedagogicalAdmin.listPending();
+      setCourses(Array.isArray(data) ? data : (data as any).courses || (data as any).items || []);
     } catch (err) {
       console.error(err);
     }
@@ -50,25 +44,13 @@ export default function PedagogicalAdminPage() {
     if (!token) return;
     setProcessing(courseId);
     try {
-      const res = await fetch(`${API_URL}/api/pedagogical/courses/${courseId}/review`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ action }),
-      });
-      if (res.ok) {
-        const messages: Record<string, string> = {
-          approved_for_b2b: "Cours approuvé pour la distribution B2B",
-          needs_revision: "Révision demandée",
-        };
-        setToast({ show: true, message: messages[action], type: "success" });
-        fetchCourses();
-      } else {
-        const err = await res.json();
-        setToast({ show: true, message: err.detail || "Erreur", type: "error" });
-      }
+      await pedagogicalAdmin.review(courseId, action);
+      const messages: Record<string, string> = {
+        approved_for_b2b: "Cours approuvé pour la distribution B2B",
+        needs_revision: "Révision demandée",
+      };
+      setToast({ show: true, message: messages[action], type: "success" });
+      fetchCourses();
     } catch (err) {
       setToast({ show: true, message: "Erreur de connexion", type: "error" });
     }

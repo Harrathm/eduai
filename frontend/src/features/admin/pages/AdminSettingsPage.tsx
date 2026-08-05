@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { Save, RefreshCw, Eye, EyeOff, Check, AlertCircle, Loader2, Globe, Key, Coins, Gauge, Wrench, FileWarning, ChevronDown, TestTube, Bot, Sparkles } from "lucide-react";
-import { adminSettings, adminLogs } from "../api";
-import type { PlatformSettingItem, TokenLimits, ErrorLogResponse } from "../api";
+import { adminSettings, adminLogs } from "../../../api";
+import type { PlatformSettingItem, TokenLimits, ErrorLogResponse } from "../../../api/adminApi";
 import { useAuthStore } from "@/store/authStore";
-import { tokenStorage } from "../../../utils/tokenStorage";
 
 type TabId = "general" | "api-keys" | "pricing" | "token-limits" | "maintenance" | "logs";
 
@@ -208,15 +207,7 @@ export default function AdminSettingsPage() {
         setTestConnection(null);
         return;
       }
-      const res = await fetch(`/api/admin/settings/test-provider`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${tokenStorage.getToken()}`,
-        },
-        body: JSON.stringify({ provider_id: providerId, key: config.key, model: config.model }),
-      });
-      const data = await res.json();
+      const data = await adminSettings.testProvider(providerId, config.key, config.model);
       setTestResult({ success: data.ok, message: data.ok ? data.message : data.error });
     } catch (err: any) {
       setTestResult({ success: false, message: err.message || "Erreur de connexion" });

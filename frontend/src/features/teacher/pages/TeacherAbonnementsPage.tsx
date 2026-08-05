@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { useAuthStore } from "../../../store/authStore";
+import { api, abonnementApi } from "../../../api";
 import { ShoppingCart, Check, X, ArrowUpCircle, AlertCircle, Package, CreditCard } from "lucide-react";
-
-const API = "";
 
 interface Pack {
   id: number;
@@ -50,7 +48,6 @@ const STATUT_COLORS: Record<string, string> = {
 };
 
 export default function TeacherAbonnementsPage() {
-  const { token } = useAuthStore();
   const [packs, setPacks] = useState<Pack[]>([]);
   const [abonnements, setAbonnements] = useState<Abonnement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,40 +59,26 @@ export default function TeacherAbonnementsPage() {
     setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
   };
 
-  const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
-
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [packsRes, abRes] = await Promise.all([
-        fetch(`${API}/api/abonnements/packs`, { headers }),
-        fetch(`${API}/api/abonnements/mes-abonnements`, { headers }),
+      const [packsData, abData] = await Promise.all([
+        abonnementApi.listPacks(),
+        abonnementApi.mesAbonnements(),
       ]);
-      if (packsRes.ok) {
-        const data = await packsRes.json();
-        setPacks(data.items || data);
-      }
-      if (abRes.ok) {
-        const data = await abRes.json();
-        setAbonnements(data.items || data);
-      }
+      setPacks(Array.isArray(packsData) ? packsData : packsData.items || []);
+      setAbonnements(Array.isArray(abData) ? abData : abData.items || []);
     } catch (e: any) {
       showToast(e.message, "error");
     }
     setLoading(false);
-  }, [token]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
   const handleSubscribe = async (packId: number) => {
     try {
-      const res = await fetch(`${API}/api/abonnements`, {
-        method: "POST", headers, body: JSON.stringify({ pack_id: packId }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        return showToast(err.detail || "Erreur", "error");
-      }
+      await api.post("/api/abonnements", { pack_id: packId });
       showToast("Abonnement créé !");
       setConfirmModal(null);
       load();
@@ -104,13 +87,7 @@ export default function TeacherAbonnementsPage() {
 
   const handleUpgrade = async (abId: number) => {
     try {
-      const res = await fetch(`${API}/api/abonnements/${abId}/upgrade`, {
-        method: "PUT", headers,
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        return showToast(err.detail || "Erreur", "error");
-      }
+      await api.put(`/api/abonnements/${abId}/upgrade`);
       showToast("Upgrade effectué !");
       setConfirmModal(null);
       load();
@@ -119,13 +96,7 @@ export default function TeacherAbonnementsPage() {
 
   const handleCancel = async (abId: number) => {
     try {
-      const res = await fetch(`${API}/api/abonnements/${abId}/cancel`, {
-        method: "PUT", headers,
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        return showToast(err.detail || "Erreur", "error");
-      }
+      await api.put(`/api/abonnements/${abId}/cancel`);
       showToast("Abonnement annulé (grâce 7 jours)");
       setConfirmModal(null);
       load();

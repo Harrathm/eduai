@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../../../store/authStore";
+import { courseAcademy, courseLearner } from "../../../api";
 import { Search, BookOpen, Clock, User, ShoppingCart, AlertCircle, CheckCircle, X } from "lucide-react";
-
-const API_URL = "";
 
 interface Course {
   id: number;
@@ -31,7 +30,7 @@ interface Purchase {
 
 export default function StudentCourseCatalog() {
   const { t } = useTranslation();
-  const { token, user } = useAuthStore();
+  const { user } = useAuthStore();
   const [courses, setCourses] = useState<Course[]>([]);
   const [myEnrollments, setMyEnrollments] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,19 +46,13 @@ export default function StudentCourseCatalog() {
   useEffect(() => {
     fetchCourses();
     fetchEnrollments();
-  }, [token]);
+  }, []);
 
   const fetchCourses = async () => {
-    if (!token) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/academy/courses`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setCourses(Array.isArray(data) ? data : data.items || []);
-      }
+      const data = await courseAcademy.list();
+      setCourses(Array.isArray(data) ? data : (data as any).items || []);
     } catch (err) {
       console.error(err);
     }
@@ -67,50 +60,30 @@ export default function StudentCourseCatalog() {
   };
 
   const fetchEnrollments = async () => {
-    if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/api/learner/courses`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const list = Array.isArray(data) ? data : data.items || [];
-        setMyEnrollments(list.map((c: Course) => c.id));
-      }
+      const data = await courseLearner.myCourses();
+      const list = Array.isArray(data) ? data : (data as any).items || [];
+      setMyEnrollments(list.map((c: Course) => c.id));
     } catch (err) {
       console.error(err);
     }
   };
 
   const purchaseCourse = async (courseId: number) => {
-    if (!token) return;
     setPurchasing(courseId);
     try {
-      const res = await fetch(`${API_URL}/api/courses/${courseId}/purchase`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data: Purchase = await res.json();
-        setToast({
-          show: true,
-          message: t('courseCatalog.purchaseSuccess', { amount: data.amount_paid, currency: data.currency }),
-          type: "success"
-        });
-        fetchEnrollments();
-        fetchCourses();
-      } else {
-        const err = await res.json();
-        setToast({
-          show: true,
-          message: err.detail || t('courseCatalog.purchaseFailed'),
-          type: "error"
-        });
-      }
-    } catch (err) {
+      const data: Purchase = await courseLearner.purchase(courseId);
       setToast({
         show: true,
-        message: t('courseCatalog.purchaseError'),
+        message: t('courseCatalog.purchaseSuccess', { amount: data.amount_paid, currency: data.currency }),
+        type: "success"
+      });
+      fetchEnrollments();
+      fetchCourses();
+    } catch (err: any) {
+      setToast({
+        show: true,
+        message: err.message || t('courseCatalog.purchaseFailed'),
         type: "error"
       });
     }
@@ -118,35 +91,22 @@ export default function StudentCourseCatalog() {
   };
 
   const requestRefund = async () => {
-    if (!token || !refundModal || !refundReason.trim()) return;
+    if (!refundModal || !refundReason.trim()) return;
     setRefundLoading(true);
     try {
-      const res = await fetch(
-        `${API_URL}/api/courses/${refundModal.courseId}/refund-request?reason=${encodeURIComponent(refundReason)}`,
-        { method: "POST", headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (res.ok) {
-        const data = await res.json();
-        setToast({
-          show: true,
-          message: data.message || t('courseCatalog.refundSent'),
-          type: "success"
-        });
-        setRefundModal(null);
-        setRefundReason("");
-        fetchEnrollments();
-      } else {
-        const err = await res.json();
-        setToast({
-          show: true,
-          message: err.detail || t('courseCatalog.refundFailed'),
-          type: "error"
-        });
-      }
-    } catch (err) {
+      const data = await courseLearner.refundRequest(refundModal.courseId, refundReason);
       setToast({
         show: true,
-        message: t('courseCatalog.refundError'),
+        message: data.message || t('courseCatalog.refundSent'),
+        type: "success"
+      });
+      setRefundModal(null);
+      setRefundReason("");
+      fetchEnrollments();
+    } catch (err: any) {
+      setToast({
+        show: true,
+        message: err.message || t('courseCatalog.refundFailed'),
         type: "error"
       });
     }
@@ -262,11 +222,7 @@ export default function StudentCourseCatalog() {
                     ) : (
                       <button
                         onClick={() => {
-                          // Free enrollment
-                          fetch(`${API_URL}/api/learner/courses/${course.id}/enroll`, {
-                            method: "POST",
-                            headers: { Authorization: `Bearer ${token}` },
-                          }).then(() => {
+                          courseLearner.enroll(course.id).then(() => {
                             fetchEnrollments();
                             fetchCourses();
                           });

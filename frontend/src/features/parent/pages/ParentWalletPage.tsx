@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useAuthStore } from "../../../store/authStore";
 import { ArrowLeft, Wallet, Coins, Clock, AlertCircle, CreditCard } from "lucide-react";
+import { parentEnfants, parentWallet } from "../../../api";
 
 interface WalletBalance {
   user_id: number;
@@ -46,29 +47,19 @@ export default function ParentWalletPage() {
     if (!token || !childId) return;
     setLoading(true);
     try {
-      const [suiviRes, enfantRes] = await Promise.all([
-        fetch(`/api/parents/me/enfants/${childId}/suivi`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch("/api/parents/me/enfants", {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+      const [suivi, enfantData] = await Promise.all([
+        parentEnfants.suivi(childId),
+        parentEnfants.list(),
       ]);
-      if (suiviRes.ok) {
-        const suivi = await suiviRes.json();
-        setWallet({
-          user_id: childId,
-          total: suivi.dt_balance || 0,
-          pools: [
-            { pool: "dt_purchased", balance: suivi.dt_balance || 0, expires_at: null },
-          ],
-        });
-      }
-      if (enfantRes.ok) {
-        const data = await enfantRes.json();
-        const child = (data.enfants || []).find((e: any) => e.eleve_id === childId);
-        if (child) setChildInfo(child);
-      }
+      setWallet({
+        user_id: childId,
+        total: suivi.dt_balance || 0,
+        pools: [
+          { pool: "dt_purchased", balance: suivi.dt_balance || 0, expires_at: null },
+        ],
+      });
+      const child = (enfantData.enfants || []).find((e: any) => e.eleve_id === childId);
+      if (child) setChildInfo(child);
     } catch (err) {
       console.error(err);
     }
@@ -80,24 +71,14 @@ export default function ParentWalletPage() {
     setRechargeLoading(true);
     setMessage(null);
     try {
-      const res = await fetch(`/api/konnect/parents/me/enfants/${childId}/credit-wallet`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ amount_tnd: rechargeAmount }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.pay_url) {
-          window.open(data.pay_url, "_blank");
-          setMessage({ type: "success", text: "Redirection vers Konnect pour le paiement..." });
-        } else {
-          setMessage({ type: "success", text: "Recharge effectuee avec succes." });
-        }
-        fetchData();
+      const data = await parentWallet.creditWallet(childId, rechargeAmount);
+      if (data.pay_url) {
+        window.open(data.pay_url, "_blank");
+        setMessage({ type: "success", text: "Redirection vers Konnect pour le paiement..." });
       } else {
-        const err = await res.json();
-        setMessage({ type: "error", text: err.detail || "Erreur lors de la recharge." });
+        setMessage({ type: "success", text: "Recharge effectuee avec succes." });
       }
+      fetchData();
     } catch {
       setMessage({ type: "error", text: "Erreur reseau." });
     }

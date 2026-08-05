@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Search, X, UserPlus, Users } from "lucide-react";
-
-const API_URL = "";
+import { studentSearchApi } from "../../../api";
 
 interface SearchResult {
   id: number;
@@ -31,18 +30,13 @@ export default function AddStudentModal({ token, classId, open, onClose, onEnrol
     }
     setSearching(true);
     try {
-      const res = await fetch(
-        `${API_URL}/api/teacher/students/search?q=${encodeURIComponent(query)}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (res.ok) {
-        setSearchResults(await res.json());
-      }
+      const data = await studentSearchApi.search(query);
+      setSearchResults(data);
     } catch (err) {
       console.error(err);
     }
     setSearching(false);
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -61,21 +55,9 @@ export default function AddStudentModal({ token, classId, open, onClose, onEnrol
   const enrollStudent = async (studentId: number) => {
     setEnrolling(studentId);
     try {
-      const res = await fetch(
-        `${API_URL}/api/teacher/classes/${classId}/students`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ student_id: studentId }),
-        }
-      );
-      if (res.ok) {
-        onEnrolled();
-        setSearchResults((prev) => prev.filter((s) => s.id !== studentId));
-      }
+      await studentSearchApi.addToClass(classId, studentId);
+      onEnrolled();
+      setSearchResults((prev) => prev.filter((s) => s.id !== studentId));
     } catch (err) {
       console.error(err);
     }

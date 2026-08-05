@@ -19,8 +19,7 @@ import {
   Upload
 } from "lucide-react";
 import CsvImportStudents from "./CsvImportStudents";
-
-const API_URL = "";
+import { userApi, schoolApi, walletAdmin } from "../../../api";
 
 interface Notification {
   show: boolean;
@@ -76,47 +75,26 @@ export default function UserManagementView() {
   };
 
   useEffect(() => {
-    if (token) {
-      fetchUsers();
-      fetchSchools();
-    }
-  }, [token, roleFilter, statusFilter]);
+    fetchUsers();
+    fetchSchools();
+  }, [roleFilter, statusFilter]);
 
   const fetchSchools = async () => {
-    if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/api/admin/schools`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSchools(Array.isArray(data) ? data : data.items || []);
-      }
+      const data = await schoolApi.list();
+      setSchools(Array.isArray(data) ? data : data.items || []);
     } catch (err) {
       console.error("fetchSchools error:", err);
     }
   };
 
   const fetchUsers = async () => {
-    if (!token) return;
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      params.append("_t", Date.now().toString()); // cache buster
-      if (roleFilter !== "all") params.append("role", roleFilter);
-      if (statusFilter === "active") params.append("is_active", "true");
-      if (statusFilter === "inactive") params.append("is_active", "false");
-      
-      const res = await fetch(`${API_URL}/api/admin/users?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setUsers(Array.isArray(data) ? data : data.items || []);
-      } else {
-        console.error("fetchUsers error:", res.status, await res.text());
-        setUsers([]);
-      }
+      const params: Record<string, any> = {};
+      if (roleFilter !== "all") params.role = roleFilter;
+      const data = await userApi.list(params);
+      setUsers(Array.isArray(data) ? data : data.items || []);
     } catch (err) {
       console.error("fetchUsers exception:", err);
       setUsers([]);
@@ -125,32 +103,20 @@ export default function UserManagementView() {
   };
 
 const toggleUserStatus = async (userId: number, isActive: boolean) => {
-    if (!token) return;
     setProcessing(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/users/${userId}/toggle-active`, {
-        method: "PUT",
-        headers: { 
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}` 
-        },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        showNotification(isActive ? `✓ Utilisateur suspendu` : `✓ Utilisateur réactivé`);
-        fetchUsers();
-      } else {
-        showNotification("✗ Erreur lors de la modification du statut", "error");
-      }
+      await userApi.toggleActive(userId);
+      showNotification(isActive ? `✓ Utilisateur suspendu` : `✓ Utilisateur réactivé`);
+      fetchUsers();
     } catch (err) {
       console.error(err);
-      showNotification("✗ Erreur réseau", "error");
+      showNotification("✗ Erreur lors de la modification du statut", "error");
     }
     setProcessing(false);
   };
 
   const handleBalanceChange = async () => {
-    if (!token || !balanceModal || !balanceModal.amount) return;
+    if (!balanceModal || !balanceModal.amount) return;
     if (balanceModal.amount <= 0) {
       showNotification("✗ Veuillez entrer un montant valide", "error");
       return;
@@ -170,61 +136,32 @@ const toggleUserStatus = async (userId: number, isActive: boolean) => {
     
     setProcessing(true);
     try {
-      const action = balanceModal.mode === "add" ? "add" : "deduct";
-      const endpoint = balanceModal.type === "tokens" 
-        ? `${API_URL}/api/admin/wallets/${balanceModal.user.id}/${action}?amount_tokens=${balanceModal.amount}`
-        : `${API_URL}/api/admin/wallets/${balanceModal.user.id}/${action}?amount_dt=${balanceModal.amount}`;
+      const action = balanceModal.mode === "add" ? walletAdmin.add : walletAdmin.deduct;
+      const amountTokens = balanceModal.type === "tokens" ? balanceModal.amount : 0;
+      const amountDt = balanceModal.type === "dt" ? balanceModal.amount : 0;
       
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}` 
-        },
-        body: JSON.stringify({ reason: `Admin ${action} ${balanceModal.type}` }),
-      });
+      await action(balanceModal.user.id, amountTokens, amountDt, `Admin ${balanceModal.mode} ${balanceModal.type}`);
       
-      const responseText = await res.text();
+      const actionText = balanceModal.mode === "add" ? "ajoutés" : "retirés";
+      const typeText = balanceModal.type === "tokens" ? "Tokens" : "DT";
+      showNotification(`✓ Succès: ${balanceModal.amount} ${typeText} ${actionText} à ${balanceModal.user.email}`);
       
-      if (res.ok) {
-        const data = JSON.parse(responseText);
-        const actionText = balanceModal.mode === "add" ? "ajoutés" : "retirés";
-        const typeText = balanceModal.type === "tokens" ? "Tokens" : "DT";
-        showNotification(`✓ Succès: ${balanceModal.amount} ${typeText} ${actionText} à ${balanceModal.user.email}`);
-        
-        setTimeout(() => {
-          setBalanceModal(null);
-          window.location.reload();
-        }, 2000);
-      } else {
-        try {
-          const errorData = JSON.parse(responseText);
-          showNotification(`✗ ${errorData.detail || "Erreur"}`, "error");
-        } catch {
-          showNotification(`✗ Erreur: ${responseText}`, "error");
-        }
-        setProcessing(false);
-      }
+      setTimeout(() => {
+        setBalanceModal(null);
+        window.location.reload();
+      }, 2000);
     } catch (err) {
       console.error("handleBalanceChange error:", err);
       showNotification("✗ Erreur réseau", "error");
-      setProcessing(false);
     }
+    setProcessing(false);
   };
 
   const approveTeacher = async (userId: number) => {
-    if (!token) return;
     setProcessing(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/users/${userId}/approve`, {
-        method: "PUT",
-        headers: { 
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}` 
-        },
-        body: JSON.stringify({ approved: true }),
-      });
-      if (res.ok) fetchUsers();
+      await userApi.approve(userId);
+      fetchUsers();
     } catch (err) {
       console.error(err);
     }
@@ -247,32 +184,23 @@ const toggleUserStatus = async (userId: number, isActive: boolean) => {
   };
 
   const handleCreateUser = async () => {
-    if (!token || !newUser.email || !newUser.password) return;
+    if (!newUser.email || !newUser.password) return;
     setCreating(true);
     try {
-      const params = new URLSearchParams();
-      params.append("email", newUser.email);
-      params.append("password", newUser.password);
-      if (newUser.full_name) params.append("full_name", newUser.full_name);
-      params.append("role", newUser.role);
-      if (newUser.school_id) params.append("school_id", newUser.school_id.toString());
-
-      const res = await fetch(`${API_URL}/api/admin/users?${params}`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        showNotification(`✓ Utilisateur ${newUser.email} créé`);
-        setCreateModal(false);
-        setNewUser({ email: "", password: "", full_name: "", role: "student", school_id: 0 });
-        fetchUsers();
-      } else {
-        const err = await res.json().catch(() => ({}));
-        showNotification(`✗ ${err.detail || "Erreur lors de la création"}`, "error");
-      }
+      await userApi.create({
+        email: newUser.email,
+        password: newUser.password,
+        full_name: newUser.full_name,
+        role: newUser.role,
+        school_id: newUser.school_id || undefined,
+      } as any);
+      showNotification(`✓ Utilisateur ${newUser.email} créé`);
+      setCreateModal(false);
+      setNewUser({ email: "", password: "", full_name: "", role: "student", school_id: 0 });
+      fetchUsers();
     } catch (err) {
       console.error(err);
-      showNotification("✗ Erreur réseau", "error");
+      showNotification("✗ Erreur lors de la création", "error");
     }
     setCreating(false);
   };

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { CheckCircle, XCircle, Clock, AlertTriangle, Eye } from "lucide-react";
 import { useAuthStore } from "../../../store/authStore";
+import { pathwayResponsables, pathwayContenus } from "../../../api";
 
 interface ContenuItem {
   id: number;
@@ -27,8 +28,6 @@ export default function TeacherValidationContenuPage() {
     setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
   };
 
-  const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
-
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -38,32 +37,19 @@ export default function TeacherValidationContenuPage() {
         setLoading(false);
         return;
       }
-      const res = await fetch(`/api/pathway/responsables-pedagogiques/${user.id}/contenus`, { headers });
-      if (res.ok) {
-        setContenus(await res.json());
-      } else if (res.status === 403) {
-        setError("Vous devez être désigné Responsable Pédagogique pour valider des contenus.");
-      } else {
-        setError("Aucun contenu à valider dans votre périmètre pédagogique.");
-      }
+      const data = await pathwayResponsables.listContenus(user.id);
+      setContenus(data);
     } catch {
       setError("Erreur de connexion. Veuillez réessayer.");
     }
     setLoading(false);
-  }, [token, user?.id]);
+  }, [user?.id]);
 
   useEffect(() => { load(); }, [load]);
 
   const handleValider = async (contenuId: number) => {
     try {
-      const res = await fetch(`/api/pathway/contenus-notion/${contenuId}/valider`, {
-        method: "POST",
-        headers,
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        return showToast(err.detail || "Erreur", "error");
-      }
+      await pathwayContenus.valider(contenuId);
       showToast("Contenu validé");
       setContenus(prev => prev.map(c =>
         c.id === contenuId ? { ...c, statut_validation_pedagogique: "valide" } : c
@@ -76,15 +62,7 @@ export default function TeacherValidationContenuPage() {
   const handleRejeter = async () => {
     if (!rejectModal || !commentaire.trim()) return;
     try {
-      const res = await fetch(`/api/pathway/contenus-notion/${rejectModal.contenuId}/rejeter`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ commentaire }),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        return showToast(err.detail || "Erreur", "error");
-      }
+      await pathwayContenus.rejeter(rejectModal.contenuId, commentaire);
       showToast("Contenu rejeté");
       setContenus(prev => prev.map(c =>
         c.id === rejectModal.contenuId ? { ...c, statut_validation_pedagogique: "rejete" } : c

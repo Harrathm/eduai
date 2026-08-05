@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../../../store/authStore";
 import { Check, X, Search, Download } from "lucide-react";
-
-const API_URL = "";
+import { adminTeacherRegistrations } from "../../../api";
 
 interface TeacherRegistration {
   id: number;
@@ -28,13 +27,8 @@ export default function EnrollmentManager() {
     if (!token) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/teacher-registrations`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setRegistrations(Array.isArray(data) ? data : data.items || []);
-      }
+      const data = await adminTeacherRegistrations.list();
+      setRegistrations(Array.isArray(data) ? data : (data as any).items || []);
     } catch (err) {
       console.error(err);
     }
@@ -44,13 +38,8 @@ export default function EnrollmentManager() {
   const approveRegistration = async (id: number) => {
     if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/api/admin/teacher-registrations/${id}/review?status=approved`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (res.ok) fetchRegistrations();
+      await adminTeacherRegistrations.approve(id);
+      fetchRegistrations();
     } catch (err) {
       console.error(err);
     }
@@ -59,13 +48,8 @@ export default function EnrollmentManager() {
   const rejectRegistration = async (id: number) => {
     if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/api/admin/teacher-registrations/${id}/review?status=rejected&rejection_reason=Rejected%20by%20admin`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (res.ok) fetchRegistrations();
+      await adminTeacherRegistrations.reject(id);
+      fetchRegistrations();
     } catch (err) {
       console.error(err);
     }

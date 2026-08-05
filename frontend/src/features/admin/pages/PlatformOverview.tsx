@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../../../store/authStore";
+import { api, userApi, courseAdmin, adminTransactions } from "../../../api";
 import { 
   TrendingUp, 
   Users, 
@@ -14,8 +15,6 @@ import {
   Coins,
   CreditCard
 } from "lucide-react";
-
-const API_URL = "";
 
 interface PlatformStats {
   total_users: number;
@@ -50,7 +49,7 @@ interface TokenDay {
 }
 
 export default function PlatformOverview() {
-  const { token, user } = useAuthStore();
+  const { user } = useAuthStore();
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [activity, setActivity] = useState<UserActivity[]>([]);
   const [revenueData, setRevenueData] = useState<RevenueDay[]>([]);
@@ -58,28 +57,15 @@ export default function PlatformOverview() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (token) {
-      fetchDashboardData();
-    }
-  }, [token]);
+    fetchDashboardData();
+  }, []);
 
   const fetchDashboardData = async () => {
-    if (!token) return;
     setLoading(true);
     
     try {
-      // Fetch stats
-      const statsRes = await fetch(`${API_URL}/api/admin/dashboard`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      
-      if (statsRes.ok) {
-        const data = await statsRes.json();
-        setStats(data);
-      } else {
-        // Fetch individual data if dashboard endpoint not available
-        await fetchAllData();
-      }
+      const data = await api.get<PlatformStats>("/api/admin/dashboard");
+      setStats(data);
     } catch (err) {
       console.error(err);
       await fetchAllData();
@@ -89,28 +75,21 @@ export default function PlatformOverview() {
   };
 
   const fetchAllData = async () => {
-    if (!token) return;
-    
     try {
-      // Users
-      const usersRes = await fetch(`${API_URL}/api/admin/users`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const users = usersRes.ok ? await usersRes.json() : [];
+      const [usersResult, coursesResult, transactionsResult] = await Promise.allSettled([
+        userApi.list(),
+        courseAdmin.list(),
+        adminTransactions.list(),
+      ]);
+
+      const users = usersResult.status === "fulfilled"
+        ? (Array.isArray(usersResult.value) ? usersResult.value : usersResult.value.items || [])
+        : [];
+      const courses = coursesResult.status === "fulfilled"
+        ? (Array.isArray(coursesResult.value) ? coursesResult.value : coursesResult.value.items || [])
+        : [];
+      const transactions = transactionsResult.status === "fulfilled" ? transactionsResult.value : [];
       
-      // Courses  
-      const coursesRes = await fetch(`${API_URL}/api/admin/courses`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const courses = coursesRes.ok ? await coursesRes.json() : [];
-      
-      // Transactions
-      const transRes = await fetch(`${API_URL}/api/admin/transactions`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const transactions = transRes.ok ? await transRes.json() : [];
-      
-      // Calculate stats
       const teachers = users.filter((u: any) => u.role === "teacher");
       const students = users.filter((u: any) => u.role === "student");
       const pendingCourses = courses.filter((c: any) => c.status === "pending");

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAuthStore } from "../../../store/authStore";
+import { api, userApi } from "../../../api";
 import { 
   Send, 
   Inbox, 
@@ -16,8 +16,6 @@ import {
   AlertOctagon,
   Loader2
 } from "lucide-react";
-
-const API_URL = "";
 
 interface Message {
   id: number;
@@ -41,7 +39,6 @@ interface UserList {
 }
 
 export default function AdminInboxView() {
-  const { token, user } = useAuthStore();
   const [messages, setMessages] = useState<Message[]>([]);
   const [users, setUsers] = useState<UserList[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,23 +56,15 @@ export default function AdminInboxView() {
   const [sendResult, setSendResult] = useState<{success: boolean; message: string} | null>(null);
 
   useEffect(() => {
-    if (token) {
-      fetchMessages();
-      fetchUsers();
-    }
-  }, [token]);
+    fetchMessages();
+    fetchUsers();
+  }, []);
 
   const fetchMessages = async () => {
-    if (!token) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/messages`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setMessages(Array.isArray(data) ? data : data.items || []);
-      }
+      const data = await api.get<Message[] | { items: Message[] }>("/api/admin/messages");
+      setMessages(Array.isArray(data) ? data : data.items || []);
     } catch (err) {
       console.error(err);
     }
@@ -83,22 +72,16 @@ export default function AdminInboxView() {
   };
 
   const fetchUsers = async () => {
-    if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/api/admin/users`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setUsers(Array.isArray(data) ? data : data.items || []);
-      }
+      const data = await userApi.list();
+      setUsers(Array.isArray(data) ? data : data.items || []);
     } catch (err) {
       console.error(err);
     }
   };
 
   const sendMessage = async () => {
-    if (!token || !composeForm.title || !composeForm.content) return;
+    if (!composeForm.title || !composeForm.content) return;
     setSending(true);
     setSendResult(null);
     try {
@@ -109,26 +92,15 @@ export default function AdminInboxView() {
         ...(composeType === "direct" && selectedUser ? { recipient_id: selectedUser.id } : {}),
         ...(composeType === "broadcast" && composeForm.targetRole !== "all" ? { recipient_role: composeForm.targetRole } : {}),
       };
-      const res = await fetch(`${API_URL}/api/admin/messages`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}` 
-        },
-        body: JSON.stringify(payload),
-      });
-      if (res.ok) {
-        setSendResult({ success: true, message: "Message envoyé avec succès!" });
-        setTimeout(() => {
-          setShowComposeModal(false);
-          setComposeForm({ title: "", content: "", targetRole: "all" });
-          setSelectedUser(null);
-          setSendResult(null);
-          fetchMessages();
-        }, 1500);
-      } else {
-        setSendResult({ success: false, message: "Erreur lors de l'envoi" });
-      }
+      await api.post("/api/admin/messages", payload);
+      setSendResult({ success: true, message: "Message envoyé avec succès!" });
+      setTimeout(() => {
+        setShowComposeModal(false);
+        setComposeForm({ title: "", content: "", targetRole: "all" });
+        setSelectedUser(null);
+        setSendResult(null);
+        fetchMessages();
+      }, 1500);
     } catch (err) {
       setSendResult({ success: false, message: "Erreur de connexion" });
     }
@@ -136,13 +108,10 @@ export default function AdminInboxView() {
   };
 
   const deleteMessage = async (messageId: number) => {
-    if (!token || !confirm("Supprimer ce message?")) return;
+    if (!confirm("Supprimer ce message?")) return;
     try {
-      const res = await fetch(`${API_URL}/api/admin/messages/${messageId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) fetchMessages();
+      await api.delete(`/api/admin/messages/${messageId}`);
+      fetchMessages();
     } catch (err) {
       console.error(err);
     }

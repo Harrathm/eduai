@@ -1,11 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { ShoppingCart, CheckCircle, BookOpen, ChevronRight, Clock, GraduationCap, Lock, Unlock } from "lucide-react";
-import { useAuthStore } from "../../../store/authStore";
 import { getPathwayCatalog, enrollPathway } from "../../pathway/api";
 import type { PathwayCatalogItem } from "../../pathway/api";
 
 export default function PathwayCatalogPage() {
-  const { user, token } = useAuthStore();
   const [catalog, setCatalog] = useState<PathwayCatalogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<number | null>(null);
@@ -36,14 +34,9 @@ export default function PathwayCatalogPage() {
 
     setPurchasing(item.niveau.id);
     try {
-      // Use existing pack purchase endpoint
-      const res = await fetch(`/api/packs/${item.pack.id}/purchase`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Erreur d'achat");
-
+      // Use existing pack purchase endpoint via centralized api client
+      const { api } = await import("../../../api");
+      const data = await api.post<any>(`/api/packs/${item.pack.id}/purchase`);
       showToast(data.message || "Pack acheté avec succès !");
 
       // Auto-enroll in pathway

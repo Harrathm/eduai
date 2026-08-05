@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useAuthStore } from "../../../store/authStore";
-
-const API_URL = "";
+import { inboxApi } from "../../../api";
 
 interface InboxMessage {
   id: number;
@@ -18,7 +16,6 @@ interface InboxMessage {
 
 export default function InboxPage() {
   const { t } = useTranslation();
-  const { token } = useAuthStore();
   const [messages, setMessages] = useState<InboxMessage[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [total, setTotal] = useState(0);
@@ -29,17 +26,10 @@ export default function InboxPage() {
   const fetchMessages = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ skip: "0", limit: "50" });
-      if (filter === "unread") params.set("unread_only", "true");
-      const res = await fetch(`${API_URL}/api/inbox/messages?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setMessages(data.items || []);
-        setTotal(data.total || 0);
-        setUnreadCount(data.unread || 0);
-      }
+      const data = await inboxApi.list({ unread_only: filter === "unread" });
+      setMessages((data as any).items || data || []);
+      setTotal((data as any).total || 0);
+      setUnreadCount((data as any).unread || 0);
     } catch (err) {
       console.error("Failed to load inbox", err);
     }
@@ -50,10 +40,7 @@ export default function InboxPage() {
 
   const markRead = async (id: number) => {
     try {
-      await fetch(`${API_URL}/api/inbox/messages/${id}/read`, {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await inboxApi.markRead(id);
       setMessages((prev) =>
         prev.map((m) => (m.id === id ? { ...m, is_read: true } : m))
       );

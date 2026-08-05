@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../../store/authStore";
 import { Search, BookOpen, Clock, User } from "lucide-react";
-
-const API_URL = "";
+import { teacherMyCoursesApi } from "../../../api";
 
 interface Training {
   id: number;
@@ -41,13 +40,8 @@ export default function MyLearning() {
   const fetchMyCourses = async () => {
     if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/api/courses/my-courses`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setMyCourses(data.items || data || []);
-      }
+      const data = await teacherMyCoursesApi.listMyCourses();
+      setMyCourses(Array.isArray(data) ? data : (data as any).items || data || []);
     } catch (err) {
       console.error(err);
     }
@@ -57,13 +51,8 @@ export default function MyLearning() {
     if (!token) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/courses`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setCatalog(data.items || data || []);
-      }
+      const data = await teacherMyCoursesApi.listCatalog();
+      setCatalog(Array.isArray(data) ? data : (data as any).items || data || []);
     } catch (err) {
       console.error(err);
     }

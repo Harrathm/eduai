@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuthStore } from "../../../store/authStore";
 import { Link } from "react-router-dom";
 import { Users, Percent, ArrowRight, UserPlus, Trash2 } from "lucide-react";
+import { parentFamille, parentEnfants } from "../../../api";
 
 interface CompteFamille {
   id: number;
@@ -44,20 +45,14 @@ export default function ParentFamillePage() {
     if (!token) return;
     setLoading(true);
     try {
-      const [compteRes, enfantsRes, dashRes] = await Promise.all([
-        fetch("/api/famille/compte", { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("/api/famille/enfants", { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("/api/parents/me/enfants", { headers: { Authorization: `Bearer ${token}` } }),
+      const [compteData, enfantsData, dashData] = await Promise.all([
+        parentFamille.getCompte(),
+        parentFamille.getEnfants(),
+        parentEnfants.list(),
       ]);
-      if (compteRes.ok) setCompte(await compteRes.json());
-      if (enfantsRes.ok) {
-        const data = await enfantsRes.json();
-        setEnfants(data.items || data.enfants || []);
-      }
-      if (dashRes.ok) {
-        const data = await dashRes.json();
-        setDashboardEnfants(data.enfants || []);
-      }
+      setCompte(compteData);
+      setEnfants(enfantsData.items || enfantsData.enfants || []);
+      setDashboardEnfants(dashData.enfants || []);
     } catch (err) {
       console.error(err);
     }
@@ -69,19 +64,10 @@ export default function ParentFamillePage() {
     setLinkLoading(true);
     setMessage(null);
     try {
-      const res = await fetch("/api/parents/me/enfants/lier", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ email_eleve: linkEmail.trim() }),
-      });
-      if (res.ok) {
-        setMessage({ type: "success", text: "Enfant lie avec succes." });
-        setLinkEmail("");
-        fetchData();
-      } else {
-        const err = await res.json();
-        setMessage({ type: "error", text: err.detail || "Erreur lors de la liaison." });
-      }
+      await parentEnfants.lie(linkEmail.trim());
+      setMessage({ type: "success", text: "Enfant lie avec succes." });
+      setLinkEmail("");
+      fetchData();
     } catch {
       setMessage({ type: "error", text: "Erreur reseau." });
     }
@@ -91,17 +77,9 @@ export default function ParentFamillePage() {
   const handleUnlink = async (eleveId: number) => {
     if (!token || !confirm("Retirer cet enfant de la famille ?")) return;
     try {
-      const res = await fetch(`/api/parents/me/enfants/${eleveId}/delier`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        setMessage({ type: "success", text: "Enfant retire." });
-        fetchData();
-      } else {
-        const err = await res.json();
-        setMessage({ type: "error", text: err.detail || "Erreur." });
-      }
+      await parentEnfants.delier(eleveId);
+      setMessage({ type: "success", text: "Enfant retire." });
+      fetchData();
     } catch {
       setMessage({ type: "error", text: "Erreur reseau." });
     }

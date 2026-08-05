@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { useAuthStore } from "../../store/authStore";
 import { Link } from "react-router-dom";
 import { Sparkles, Search, Filter, BookOpen } from "lucide-react";
+import { catalogApi } from "../../api";
 
 interface Formation {
   id: number;
@@ -15,7 +15,6 @@ interface Formation {
 }
 
 export default function SoftSkillsCatalogPage() {
-  const { token, user } = useAuthStore();
   const [formations, setFormations] = useState<Formation[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -28,13 +27,8 @@ export default function SoftSkillsCatalogPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/catalog/courses?category=soft_skills", {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setFormations(data.items || data.courses || []);
-      }
+      const data = await catalogApi.list({ category: "soft_skills" });
+      setFormations(Array.isArray(data) ? data : (data as any).items || (data as any).courses || []);
     } catch (err) {
       console.error(err);
     }

@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../../../store/authStore";
 import { Check, X, Eye, User, Clock, Trash2 } from "lucide-react";
-
-const API_URL = "";
+import { adminCourseModeration } from "../../../api";
 
 interface Course {
   id: number;
@@ -34,16 +33,8 @@ export default function UGCModeration() {
     if (!token) return;
     setLoading(true);
     try {
-      const url = filter === "all" 
-        ? `${API_URL}/api/admin/courses`
-        : `${API_URL}/api/admin/courses?status=${filter}`;
-      const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setCourses(Array.isArray(data) ? data : data.items || []);
-      }
+      const data = await adminCourseModeration.list(filter === "all" ? undefined : filter);
+      setCourses(Array.isArray(data) ? data : (data as any).items || []);
     } catch (err) {
       console.error(err);
     }
@@ -53,15 +44,8 @@ export default function UGCModeration() {
   const approveCourse = async (id: number) => {
     if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/api/admin/courses/${id}/status`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ status: "published" }),
-      });
-      if (res.ok) fetchCourses();
+      await adminCourseModeration.setStatus(id, "published");
+      fetchCourses();
     } catch (err) {
       console.error(err);
     }
@@ -70,15 +54,8 @@ export default function UGCModeration() {
   const rejectCourse = async (id: number) => {
     if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/api/admin/courses/${id}/status`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ status: "rejected" }),
-      });
-      if (res.ok) fetchCourses();
+      await adminCourseModeration.setStatus(id, "rejected");
+      fetchCourses();
     } catch (err) {
       console.error(err);
     }
@@ -87,11 +64,8 @@ export default function UGCModeration() {
   const deleteCourse = async (id: number) => {
     if (!token || !confirm("Êtes-vous sûr de vouloir supprimer ce cours?")) return;
     try {
-      const res = await fetch(`${API_URL}/api/admin/courses/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) fetchCourses();
+      await adminCourseModeration.delete(id);
+      fetchCourses();
     } catch (err) {
       console.error(err);
     }

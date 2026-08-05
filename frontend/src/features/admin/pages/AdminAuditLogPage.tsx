@@ -1,10 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Shield, UserX, Pencil, Trash2, Check, Coins, BookOpen, Building2 } from "lucide-react";
 import { AdminTable, KPICard, StatusBadge } from "../components";
-import { tokenStorage } from "../../../utils/tokenStorage";
-
-const API_URL = "";
-const token = tokenStorage.getToken();
+import { adminLogs } from "../../../api";
 
 interface AuditLog {
   id: number;
@@ -58,24 +55,13 @@ export default function AdminAuditLogPage() {
   const fetchLogs = useCallback(async (isRefresh = false) => {
     isRefresh ? setRefreshing(true) : setLoading(true);
     try {
-      const sp = new URLSearchParams();
-      sp.set("page", String(page));
-      sp.set("per_page", String(perPage));
-      if (actionFilter) sp.set("action", actionFilter);
-      if (dateFrom) sp.set("date_from", dateFrom);
-      if (dateTo) sp.set("date_to", dateTo);
-      const res = await fetch(`${API_URL}/api/admin/audit-logs?${sp}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setLogs(data.items);
-        setTotal(data.total);
-      }
+      const data = await adminLogs.list({ skip: (page - 1) * perPage, limit: perPage });
+      setLogs((data as any).items || data);
+      setTotal((data as any).total || 0);
     } catch (err) { console.error(err); }
     setLoading(false);
     setRefreshing(false);
-  }, [actionFilter, dateFrom, dateTo, page]);
+  }, [page]);
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 

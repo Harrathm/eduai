@@ -11,8 +11,7 @@ import {
   Wallet,
   Loader2
 } from "lucide-react";
-
-const API_URL = "";
+import { adminSchoolDashboard } from "../../../api";
 
 interface SchoolStats {
   total_users: number;
@@ -39,13 +38,8 @@ export default function SchoolOverview() {
     if (!token) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/dashboard`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setStats(data);
-      }
+      const data = await adminSchoolDashboard.get();
+      setStats(data);
     } catch (err) {
       console.error("fetchStats error:", err);
     }

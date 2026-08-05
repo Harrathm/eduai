@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAuthStore } from "../../../store/authStore";
+import { courseAdmin, api } from "../../../api";
 import { 
   Search,
   BookOpen,
@@ -15,8 +15,6 @@ import {
   Loader2,
   GraduationCap
 } from "lucide-react";
-
-const API_URL = "";
 
 interface Course {
   id: number;
@@ -43,7 +41,6 @@ interface Enrollment {
 }
 
 export default function ContentModerationView() {
-  const { token } = useAuthStore();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -55,38 +52,30 @@ export default function ContentModerationView() {
   const [showEnrollments, setShowEnrollments] = useState(false);
 
   useEffect(() => {
-    if (token) {
-      fetchCourses();
-    }
-  }, [token, statusFilter]);
+    fetchCourses();
+  }, [statusFilter]);
 
   const fetchCourses = async () => {
-    if (!token) return;
     setLoading(true);
     try {
-      const params = statusFilter !== "all" ? `?status=${statusFilter}` : "";
-      const res = await fetch(`${API_URL}/api/admin/courses${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const data = await courseAdmin.list({ 
+        status_filter: statusFilter !== "all" ? statusFilter : undefined 
       });
-      if (res.ok) {
-        const data = await res.json();
-        // Transform data to match expected format
-        setCourses(data.map((c: any) => ({
-          id: c.id,
-          title: c.title,
-          description: c.description,
-          status: c.status,
-          price_tokens: c.price_tokens,
-          price_dt: c.price_dt,
-          teacher_id: c.teacher_id,
-          teacher_name: c.author_name || c.teacher_name || "Unknown",
-          modules_count: c.modules_count || 0,
-          lessons_count: c.lessons_count || 0,
-          students_enrolled: c.students_enrolled || 0,
-          created_at: c.created_at,
-          is_published: c.is_published,
-        })));
-      }
+      setCourses(data.items.map((c: any) => ({
+        id: c.id,
+        title: c.title,
+        description: c.description,
+        status: c.status,
+        price_tokens: c.price_tokens,
+        price_dt: c.price_dt,
+        teacher_id: c.teacher_id,
+        teacher_name: c.author_name || c.teacher_name || "Unknown",
+        modules_count: c.modules_count || 0,
+        lessons_count: c.lessons_count || 0,
+        students_enrolled: c.students_enrolled || 0,
+        created_at: c.created_at,
+        is_published: c.is_published,
+      })));
     } catch (err) {
       console.error(err);
       setCourses([]);
@@ -95,18 +84,10 @@ export default function ContentModerationView() {
   };
 
   const approveCourse = async (courseId: number) => {
-    if (!token) return;
     setProcessing(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/courses/${courseId}`, {
-        method: "PUT",
-        headers: { 
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}` 
-        },
-        body: JSON.stringify({ status: "published", is_published: true }),
-      });
-      if (res.ok) fetchCourses();
+      await courseAdmin.update(courseId, { status: "published", is_published: true });
+      fetchCourses();
     } catch (err) {
       console.error(err);
     }
@@ -114,18 +95,11 @@ export default function ContentModerationView() {
   };
 
   const rejectCourse = async (courseId: number) => {
-    if (!token || !confirm("Êtes-vous sûr de vouloir rejeter ce cours?")) return;
+    if (!confirm("Êtes-vous sûr de vouloir rejeter ce cours?")) return;
     setProcessing(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/courses/${courseId}`, {
-        method: "PUT",
-        headers: { 
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}` 
-        },
-        body: JSON.stringify({ status: "rejected", is_published: false }),
-      });
-      if (res.ok) fetchCourses();
+      await courseAdmin.update(courseId, { status: "rejected", is_published: false });
+      fetchCourses();
     } catch (err) {
       console.error(err);
     }
@@ -136,11 +110,8 @@ export default function ContentModerationView() {
     if (!confirm("ATTENTION: Cette action est irréversible. Voulez-vous vraiment supprimer?")) return;
     setProcessing(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/courses/${courseId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) fetchCourses();
+      await courseAdmin.delete(courseId);
+      fetchCourses();
     } catch (err) {
       console.error(err);
     }
@@ -148,18 +119,10 @@ export default function ContentModerationView() {
   };
 
   const toggleVisibility = async (courseId: number, currentStatus: boolean) => {
-    if (!token) return;
     setProcessing(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/courses/${courseId}`, {
-        method: "PUT",
-        headers: { 
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}` 
-        },
-        body: JSON.stringify({ is_published: !currentStatus }),
-      });
-      if (res.ok) fetchCourses();
+      await courseAdmin.update(courseId, { is_published: !currentStatus });
+      fetchCourses();
     } catch (err) {
       console.error(err);
     }
@@ -168,15 +131,9 @@ export default function ContentModerationView() {
 
   const viewEnrollments = async (course: Course) => {
     setSelectedCourse(course);
-    if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/api/admin/courses/${course.id}/enrollments`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setEnrollments(data);
-      }
+      const data = await api.get<Enrollment[]>(`/api/admin/courses/${course.id}/enrollments`);
+      setEnrollments(data);
     } catch (err) {
       console.error(err);
     }

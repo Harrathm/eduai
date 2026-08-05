@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../../../store/authStore";
 import { Search, Download, Edit2, Save, X, Wallet, Coins, TrendingUp } from "lucide-react";
-
-const API_URL = "";
+import { adminUsersAll } from "../../../api";
 
 interface UserAccount {
   id: number;
@@ -34,13 +33,8 @@ export default function FinancialHub() {
     if (!token) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/users-all`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setUsers(Array.isArray(data) ? data : data.items || []);
-      }
+      const data = await adminUsersAll.list();
+      setUsers(Array.isArray(data) ? data : (data as any).items || []);
     } catch (err) {
       console.error(err);
     }
@@ -50,21 +44,12 @@ export default function FinancialHub() {
   const updateBalance = async (userId: number) => {
     if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/api/admin/users/${userId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          token_balance: editValues.token_balance,
-          dt_balance: editValues.dt_balance,
-        }),
+      await adminUsersAll.update(userId, {
+        token_balance: editValues.token_balance,
+        dt_balance: editValues.dt_balance,
       });
-      if (res.ok) {
-        setEditingId(null);
-        fetchUsers();
-      }
+      setEditingId(null);
+      fetchUsers();
     } catch (err) {
       console.error(err);
     }

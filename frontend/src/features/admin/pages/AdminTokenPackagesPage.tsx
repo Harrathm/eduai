@@ -1,9 +1,7 @@
 import { useState, useEffect } from "react";
 import { Coins, Plus, RefreshCw, Pencil, Trash2, Save } from "lucide-react";
 import { KPICard, AdminTable, Modal, ConfirmModal } from "../components";
-import { tokenStorage } from "../../../utils/tokenStorage";
-
-const API_URL = "";
+import { adminTokenPackages } from "../../../api";
 
 interface TokenPackage {
   id: number;
@@ -28,18 +26,11 @@ export default function AdminTokenPackagesPage() {
     setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
   };
 
-  const token = tokenStorage.getToken();
-
   const fetchPackages = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/token-packages`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setPackages(Array.isArray(data) ? data : data.items || []);
-      }
+      const data = await adminTokenPackages.list();
+      setPackages(Array.isArray(data) ? data : (data as any).items || []);
     } catch (err) { console.error(err); showToast("Failed to load packages", "error"); }
     setLoading(false);
   };
@@ -49,12 +40,7 @@ export default function AdminTokenPackagesPage() {
   const handleCreate = async (data: Partial<TokenPackage>) => {
     setProcessing(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/token-packages`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error(await res.text());
+      await adminTokenPackages.create(data);
       showToast("Package created");
       setCreateModal(false);
       fetchPackages();
@@ -66,12 +52,7 @@ export default function AdminTokenPackagesPage() {
     if (!editModal) return;
     setProcessing(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/token-packages/${editModal.id}`, {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error(await res.text());
+      await adminTokenPackages.update(editModal.id, data);
       showToast("Package updated");
       setEditModal(null);
       fetchPackages();
@@ -83,11 +64,7 @@ export default function AdminTokenPackagesPage() {
     if (!deleteTarget) return;
     setProcessing(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/token-packages/${deleteTarget.id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error(await res.text());
+      await adminTokenPackages.delete(deleteTarget.id);
       showToast("Package deleted");
       setDeleteTarget(null);
       fetchPackages();

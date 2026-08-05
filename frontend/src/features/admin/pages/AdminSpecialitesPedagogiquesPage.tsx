@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Plus, Trash2, Users, BookOpen } from "lucide-react";
-import { tokenStorage } from "../../../utils/tokenStorage";
+import { pathwayMatieres, pathwaySpecialites, pathwayResponsables } from "../../../api";
 
 interface Specialite {
   id: number;
@@ -31,25 +31,19 @@ export default function AdminSpecialitesPedagogiquesPage() {
     setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
   };
 
-  const token = tokenStorage.getToken();
-  const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
-
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [specRes, matRes] = await Promise.all([
-        fetch("/api/pathway/specialites-pedagogiques", { headers }),
-        fetch("/api/pathway/matieres", { headers }),
+      const [specData, matData] = await Promise.all([
+        pathwaySpecialites.list(),
+        pathwayMatieres.list(),
       ]);
-      if (specRes.ok) setSpecialites(await specRes.json());
-      if (matRes.ok) {
-        const matieresRaw = await matRes.json();
-        setMatieres(matieresRaw.map((m: any) => ({
-          id: m.id,
-          nom: m.nom,
-          niveau_etude_nom: m.niveau_etude_nom || `Niveau ${m.niveau_etude_id}`,
-        })));
-      }
+      setSpecialites(specData);
+      setMatieres(matData.map((m: any) => ({
+        id: m.id,
+        nom: m.nom,
+        niveau_etude_nom: m.niveau_etude_nom || `Niveau ${m.niveau_etude_id}`,
+      })));
     } catch { /* ignore */ }
     setLoading(false);
   }, []);
@@ -59,15 +53,7 @@ export default function AdminSpecialitesPedagogiquesPage() {
   const handleCreate = async () => {
     if (!newSpec.nom.trim()) return showToast("Nom requis", "error");
     try {
-      const res = await fetch("/api/pathway/specialites-pedagogiques", {
-        method: "POST",
-        headers,
-        body: JSON.stringify(newSpec),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        return showToast(err.detail || "Erreur", "error");
-      }
+      await pathwaySpecialites.create(newSpec);
       showToast("Spécialité créée");
       setShowCreate(false);
       setNewSpec({ nom: "", cycle_scolaire: "2eme_cycle", matiere_ids: [] });
@@ -80,15 +66,7 @@ export default function AdminSpecialitesPedagogiquesPage() {
   const handleAssign = async () => {
     if (!assignData.user_id) return showToast("Enseignant requis", "error");
     try {
-      const res = await fetch("/api/pathway/responsables-pedagogiques", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ specialite_id: assignModal!.specId, ...assignData }),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        return showToast(err.detail || "Erreur", "error");
-      }
+      await pathwayResponsables.assign({ specialite_id: assignModal!.specId, ...assignData });
       showToast("Responsable assigné");
       setAssignModal(null);
       setAssignData({ user_id: 0, niveaux_etude_ids: [] });

@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../../../store/authStore";
 import { BookOpen, CheckCircle, Clock, AlertTriangle, RefreshCw, Filter, Users, BarChart3 } from "lucide-react";
-
-const API_URL = "";
+import { pedagogicalLead } from "../../../api";
 
 interface Course {
   id: number;
@@ -39,23 +38,12 @@ export default function PedagogicalLeadPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const [coursesRes, perfRes] = await Promise.all([
-        fetch(`${API_URL}/api/pedagogical-lead/courses/pending`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(`${API_URL}/api/pedagogical-lead/performance`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+      const [coursesData, perfData] = await Promise.all([
+        pedagogicalLead.listPendingCourses(),
+        pedagogicalLead.getPerformance(),
       ]);
-
-      if (coursesRes.ok) {
-        const data = await coursesRes.json();
-        setCourses(Array.isArray(data) ? data : data.items || []);
-      }
-      if (perfRes.ok) {
-        const data = await perfRes.json();
-        setPerformance(data);
-      }
+      setCourses(Array.isArray(coursesData) ? coursesData : (coursesData as any).items || []);
+      setPerformance(perfData);
     } catch (err) {
       console.error(err);
     }
@@ -66,25 +54,13 @@ export default function PedagogicalLeadPage() {
     if (!token) return;
     setProcessing(courseId);
     try {
-      const res = await fetch(`${API_URL}/api/pedagogical-lead/courses/${courseId}/review-local`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ action }),
+      await pedagogicalLead.reviewLocal(courseId, action);
+      setToast({
+        show: true,
+        message: action === "approve_local" ? "Cours approuvé localement" : "Cours rejeté",
+        type: "success"
       });
-      if (res.ok) {
-        setToast({
-          show: true,
-          message: action === "approve_local" ? "Cours approuvé localement" : "Cours rejeté",
-          type: "success"
-        });
-        fetchData();
-      } else {
-        const err = await res.json();
-        setToast({ show: true, message: err.detail || "Erreur", type: "error" });
-      }
+      fetchData();
     } catch (err) {
       setToast({ show: true, message: "Erreur de connexion", type: "error" });
     }
@@ -95,17 +71,9 @@ export default function PedagogicalLeadPage() {
     if (!token) return;
     setProcessing(courseId);
     try {
-      const res = await fetch(`${API_URL}/api/pedagogical-lead/escalate/${courseId}`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        setToast({ show: true, message: "Cours escaladé vers la plateforme", type: "success" });
-        fetchData();
-      } else {
-        const err = await res.json();
-        setToast({ show: true, message: err.detail || "Erreur", type: "error" });
-      }
+      await pedagogicalLead.escalate(courseId);
+      setToast({ show: true, message: "Cours escaladé vers la plateforme", type: "success" });
+      fetchData();
     } catch (err) {
       setToast({ show: true, message: "Erreur de connexion", type: "error" });
     }

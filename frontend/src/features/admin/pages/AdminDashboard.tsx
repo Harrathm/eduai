@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../../../store/authStore";
-
-const API_URL = "";
+import { adminDashboard, userApi, courseAdmin } from "../../../api";
 
 interface Stats {
   total_users: number;
@@ -45,37 +44,27 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(false);
 
   const fetchStats = async () => {
-    if (!token) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/dashboard/stats`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) setStats(await res.json());
+      setStats(await adminDashboard.stats());
     } catch (err) { console.error(err); }
     setLoading(false);
   };
 
   const fetchUsers = async () => {
-    if (!token) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/users`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) setUsers(await res.json());
+      const data = await userApi.list();
+      setUsers(data.items || []);
     } catch (err) { console.error(err); }
     setLoading(false);
   };
 
   const fetchCourses = async () => {
-    if (!token) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/courses`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) setCourses(await res.json());
+      const data = await courseAdmin.list();
+      setCourses(data.items || []);
     } catch (err) { console.error(err); }
     setLoading(false);
   };
@@ -88,23 +77,21 @@ export default function AdminDashboard() {
   }, [activeTab, token]);
 
   const approveUser = async (userId: number) => {
-    if (!token) return;
-    await fetch(`${API_URL}/api/admin/users/${userId}/approve`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ approved: true }),
-    });
-    fetchUsers();
+    try {
+      await userApi.approve(userId);
+      fetchUsers();
+    } catch (err) { console.error(err); }
   };
 
   const updateCourseStatus = async (courseId: number, status: string) => {
-    if (!token) return;
-    await fetch(`${API_URL}/api/admin/courses/${courseId}/status`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ status }),
-    });
-    fetchCourses();
+    try {
+      if (status === "published") {
+        await courseAdmin.publish(courseId);
+      } else if (status === "rejected") {
+        await courseAdmin.update(courseId, { status: "rejected" });
+      }
+      fetchCourses();
+    } catch (err) { console.error(err); }
   };
 
   const tabs = [

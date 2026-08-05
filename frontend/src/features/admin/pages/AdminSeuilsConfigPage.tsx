@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Settings, Save, RotateCcw } from "lucide-react";
-import { tokenStorage } from "../../../utils/tokenStorage";
+import { pathwayMatieres } from "../../../api";
 
 interface MatiereThreshold {
   matiere_id: number;
@@ -25,19 +25,15 @@ export default function AdminSeuilsConfigPage() {
   };
 
   const load = useCallback(async () => {
-    const token = tokenStorage.getToken();
     try {
-      const res = await fetch("/api/pathway/matieres", { headers: { Authorization: `Bearer ${token}` } });
-      if (res.ok) {
-        const matieres = await res.json();
-        setThresholds(matieres.map((m: any) => ({
-          matiere_id: m.id,
-          matiere_nom: m.nom,
-          remediation_threshold: m.remediation_threshold ?? 40,
-          standard_threshold: m.standard_threshold ?? 75,
-          avance_threshold: m.avance_threshold ?? 75,
-        })));
-      }
+      const matieres = await pathwayMatieres.list();
+      setThresholds(matieres.map((m: any) => ({
+        matiere_id: m.id,
+        matiere_nom: m.nom,
+        remediation_threshold: m.remediation_threshold ?? 40,
+        standard_threshold: m.standard_threshold ?? 75,
+        avance_threshold: m.avance_threshold ?? 75,
+      })));
     } catch { /* use defaults */ }
   }, []);
 
@@ -49,18 +45,13 @@ export default function AdminSeuilsConfigPage() {
 
   const handleSave = async () => {
     setSaving(true);
-    const token = tokenStorage.getToken();
     try {
       for (const t of thresholds) {
         if (t.matiere_id === 0) continue;
-        await fetch(`/api/pathway/matieres/${t.matiere_id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({
-            remediation_threshold: t.remediation_threshold,
-            standard_threshold: t.standard_threshold,
-            avance_threshold: t.avance_threshold,
-          }),
+        await pathwayMatieres.update(t.matiere_id, {
+          remediation_threshold: t.remediation_threshold,
+          standard_threshold: t.standard_threshold,
+          avance_threshold: t.avance_threshold,
         });
       }
       showToast("Seuils enregistrés");

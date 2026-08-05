@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../../../store/authStore";
 import { DollarSign, TrendingUp, ShoppingCart, Calendar, RefreshCw } from "lucide-react";
-
-const API_URL = "";
+import { teacherSalesApi } from "../../../api";
 
 interface Sale {
   id: number;
@@ -38,15 +37,8 @@ export default function TeacherSalesPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_URL}/api/courses/my-sales`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSalesData(data);
-      } else {
-        setError("Erreur lors du chargement des ventes");
-      }
+      const data = await teacherSalesApi.mySales();
+      setSalesData(data);
     } catch (err) {
       setError("Erreur de connexion");
     }

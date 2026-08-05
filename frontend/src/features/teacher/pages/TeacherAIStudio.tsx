@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../../../store/authStore";
+import { aiApi } from "../../../api";
 import { Sparkles, BookOpen, FileText, Clock, Zap, Send, Coins, Loader2 } from "lucide-react";
 import { exportMessagePdf, exportMessageDocx } from "../../../api/conversations";
-
-const API_URL = "";
 
 const SUBJECTS = [
   "Mathématiques",
@@ -63,10 +62,8 @@ export default function TeacherAIStudio() {
     if (!token) return;
     setLoadingHistory(true);
     try {
-      const res = await fetch(`${API_URL}/api/ai/history`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) setHistory(await res.json());
+      const data = await aiApi.history();
+      setHistory(data);
     } catch (err) {
       console.error(err);
     }
@@ -76,13 +73,8 @@ export default function TeacherAIStudio() {
   const fetchBalance = async () => {
     if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/api/wallet/balance`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setBalanceData(data);
-      }
+      const data = await aiApi.wallet();
+      setBalanceData(data);
     } catch (err) {
       console.error(err);
     }
@@ -95,26 +87,11 @@ export default function TeacherAIStudio() {
     if (!token || !prompt) return;
     setGenerating(true);
     try {
-      const res = await fetch(`${API_URL}/api/ai/generate`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          type: selectedType,
-          prompt,
-          subject,
-          level,
-          trimester,
-        }),
+      const data = await aiApi.generate({
+        prompt,
+        type: selectedType,
       });
-      if (res.ok) {
-        const data = await res.json();
-        setResult(data.content);
-      } else {
-        setResult("Erreur lors de la génération. Veuillez réessayer.");
-      }
+      setResult(data.content);
     } catch (err) {
       console.error(err);
       setResult("Erreur de connexion.");

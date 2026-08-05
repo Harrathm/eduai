@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuthStore } from "../../../store/authStore";
 import { Plus, Users, Trash2, UserPlus } from "lucide-react";
 import AddStudentModal from "./AddStudentModal";
-
-const API_URL = "";
+import { teacherClassesApi } from "../../../api";
 
 interface Class {
   id: number;
@@ -49,16 +48,10 @@ export default function ClassroomManager() {
   }, [selectedClass]);
 
   const fetchClasses = async () => {
-    if (!token) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/teacher/classes`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setClasses(data.items || data || []);
-      }
+      const data = await teacherClassesApi.list();
+      setClasses(data.items || []);
     } catch (err) {
       console.error(err);
     }
@@ -66,66 +59,43 @@ export default function ClassroomManager() {
   };
 
   const fetchClassDetails = async (classId: number) => {
-    if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/api/teacher/classes/${classId}/students`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setStudents(data.items || data || []);
-      }
+      const data = await teacherClassesApi.listStudents(classId);
+      setStudents(data.items || []);
     } catch (err) {
       console.error(err);
     }
   };
 
   const createClass = async () => {
-    if (!token || !newClassName) return;
+    if (!newClassName) return;
     try {
-      const res = await fetch(`${API_URL}/api/teacher/classes`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ name: newClassName, description: newClassDescription }),
-      });
-      if (res.ok) {
-        setShowNewClass(false);
-        setNewClassName("");
-        setNewClassDescription("");
-        fetchClasses();
-      }
+      await teacherClassesApi.create({ name: newClassName, description: newClassDescription });
+      setShowNewClass(false);
+      setNewClassName("");
+      setNewClassDescription("");
+      fetchClasses();
     } catch (err) {
       console.error(err);
     }
   };
 
   const removeStudent = async (studentId: number) => {
-    if (!token || !selectedClass) return;
+    if (!selectedClass) return;
     try {
-      const res = await fetch(
-        `${API_URL}/api/teacher/classes/${selectedClass}/students/${studentId}`,
-        { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (res.ok) fetchClassDetails(selectedClass);
+      await teacherClassesApi.removeStudent(selectedClass, studentId);
+      fetchClassDetails(selectedClass);
     } catch (err) {
       console.error(err);
     }
   };
 
   const deleteClass = async (classId: number) => {
-    if (!token || !confirm("Supprimer cette classe?")) return;
+    if (!confirm("Supprimer cette classe?")) return;
     try {
-      const res = await fetch(`${API_URL}/api/teacher/classes/${classId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        setSelectedClass(null);
-        fetchClasses();
-      }
+      await teacherClassesApi.delete(classId);
+      setSelectedClass(null);
+      fetchClasses();
     } catch (err) {
       console.error(err);
     }
