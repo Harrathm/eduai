@@ -197,6 +197,463 @@
     "info": "Informations",
     "saved": "Sauvegardé !"
   },
+  "admin": {
+    "courses": {
+      "title": "Cours",
+      "titleSuffix": "Management",
+      "subtitle": "{{count}} cours sur la plateforme",
+      "btnNew": "Nouveau Cours",
+      "free": "Gratuit",
+      "currency": "TND",
+      "loading": "Chargement...",
+      "status": {
+        "draft": "Brouillon",
+        "published": "Publié",
+        "archived": "Archivé",
+        "pending": "En attente"
+      },
+      "pedagogicalStatus": {
+        "draft": "Brouillon",
+        "pending_review": "En revue",
+        "rejected": "Rejeté",
+        "approved_for_platform": "Approuvé (Plateforme)",
+        "approved_for_b2b": "Approuvé (B2B)",
+        "revision_requested": "Révision demandée"
+      },
+      "level": {
+        "beginner": "Débutant",
+        "intermediate": "Intermédiaire",
+        "advanced": "Avancé"
+      },
+      "owner": {
+        "school": "École",
+        "independent_teacher": "Enseignant indépendant",
+        "eduai_catalog": "Catalogue EDUAI"
+      },
+      "visibility": {
+        "public": "Public",
+        "private": "Privé",
+        "school": "Par école",
+        "role": "Par rôle"
+      },
+      "enrollment": {
+        "open": "Inscription libre",
+        "manual": "Manuelle"
+      },
+      "kpi": {
+        "total": "Total",
+        "published": "Publiés",
+        "draft": "Brouillons",
+        "inReview": "En revue",
+        "archived": "Archivés"
+      },
+      "filter": {
+        "searchPlaceholder": "Rechercher un cours...",
+        "allStatus": "Tous les statuts",
+        "allCategories": "Toutes catégories",
+        "allLevels": "Tous niveaux",
+        "allPedagogicalStatus": "Tous statuts pédago."
+      },
+      "table": {
+        "colTitle": "Cours",
+        "colStatus": "Statut",
+        "colContent": "Contenu",
+        "colPedagogical": "Statut Pédago.",
+        "colOwner": "Propriétaire",
+        "colPrice": "Prix",
+        "colActions": "Actions",
+        "chapters": "chapitres",
+        "lessons": "leçons"
+      },
+      "btn": {
+        "edit": "Éditer",
+        "preview": "Aperçu",
+        "duplicate": "Dupliquer",
+        "unpublish": "Dépublier",
+        "publish": "Publier",
+        "archive": "Archiver",
+        "submitReview": "Soumettre pour review",
+        "delete": "Supprimer",
+        "retry": "Réessayer",
+        "createNew": "Créer un cours"
+      },
+      "empty": {
+        "noResults": "Aucun cours trouvé",
+        "noResultsDesc": "Aucun cours ne correspond à vos filtres. Essayez de modifier vos critères.",
+        "startCreate": "Commencez par créer votre premier cours."
+      },
+      "toast": {
+        "published": "Cours publié avec succès",
+        "unpublished": "Cours dépublié",
+        "publishBlocked": "Publication bloquée: champs obligatoires manquants (titre, description, chapitres, leçons)",
+        "submittedReview": "Cours soumis pour review pédagogique",
+        "archived": "Cours archivé",
+        "duplicated": "Cours dupliqué avec succès",
+        "deleted": "Cours supprimé",
+        "created": "Cours créé avec succès"
+      },
+      "errors": {
+        "loadFailed": "Échec du chargement des cours. Veuillez réessayer.",
+        "previewFailed": "Échec du chargement de l'aperçu"
+      },
+      "modal": {
+        "confirmDelete": {
+          "title": "Supprimer le cours",
+          "message": "Supprimer \"{{name}}\" ? Cette action est irréversible.",
+          "confirm": "Supprimer"
+        },
+        "preview": {
+          "title": "Aperçu du cours",
+          "chapters": "Chapitres",
+          "lessons": "Leçons",
+          "duration": "Durée",
+          "prerequisites": "Prérequis",
+          "objectives": "Objectifs pédagogiques",
+          "program": "Programme du cours"
+        },
+        "create": {
+          "title": "Créer un cours",
+          "titleLabel": "Titre *",
+          "titlePlaceholder": "Titre du cours",
+          "descLabel": "Description courte",
+          "descPlaceholder": "Résumé du cours en quelques lignes",
+          "fullDescLabel": "Description complète",
+          "categoryLabel": "Catégorie",
+          "categoryPlaceholder": "Ex: Informatique",
+          "levelLabel": "Niveau",
+          "visibilityLabel": "Visibilité",
+          "enrollmentLabel": "Inscription",
+          "tagsLabel": "Tags (séparés par virgules)",
+          "tagsPlaceholder": "python, débutant, programmation",
+          "prereqLabel": "Prérequis",
+          "prereqPlaceholder": "Connaissances requises avant de suivre ce cours",
+          "objectivesLabel": "Objectifs pédagogiques",
+          "objectivesPlaceholder": "Ce que les apprenants sauront faire à la fin du cours",
+          "btnCancel": "Annuler",
+          "btnCreate": "Créer",
+          "validation": {
+            "titleRequired": "Le titre est obligatoire"
+          }
+        }
+      }
+    },
+    "users": {
+      "title": "Utilisateurs",
+      "titleSuffix": "Management",
+      "subtitle": "{{count}} utilisateurs au total",
+      "loading": "Chargement...",
+      "btnNew": "Ajouter un utilisateur",
+      "btnExport": "Export CSV",
+      "btnRetry": "Réessayer",
+      "roles": {
+        "student": "Étudiant",
+        "teacher": "Enseignant",
+        "admin_school": "Admin École",
+        "pedagogical_admin": "Resp. Pédago. (Plateforme)",
+        "pedagogical_lead": "Resp. Pédago. (École)",
+        "super_admin": "Super Admin"
+      },
+      "status": {
+        "active": "Actif",
+        "inactive": "Inactif"
+      },
+      "kpi": {
+        "total": "Total Utilisateurs",
+        "active": "Utilisateurs Actifs",
+        "ofTotal": "sur {{total}} total",
+        "tokens": "Tokens Système",
+        "dt": "DT Système"
+      },
+      "filter": {
+        "searchPlaceholder": "Rechercher par nom ou email...",
+        "allRoles": "Tous les rôles",
+        "students": "Étudiants",
+        "teachers": "Enseignants",
+        "allStatus": "Tous les statuts",
+        "resultsFor": "Résultats pour \"{{query}}\""
+      },
+      "table": {
+        "colUser": "Utilisateur",
+        "colRole": "Rôle",
+        "colSchool": "École",
+        "colStatus": "Statut",
+        "colTokens": "Tokens",
+        "colBalance": "Solde (DT)",
+        "colJoined": "Inscrit",
+        "colActions": "Actions"
+      },
+      "btn": {
+        "edit": "Modifier",
+        "addTokens": "Ajouter des Tokens",
+        "changeRole": "Changer le rôle",
+        "delete": "Supprimer",
+        "retry": "Réessayer"
+      },
+      "empty": {
+        "noMatch": "Aucun utilisateur ne correspond à \"{{query}}\"",
+        "noUsers": "Aucun utilisateur trouvé"
+      },
+      "toast": {
+        "deactivated": "{{name}} désactivé",
+        "activated": "{{name}} activé",
+        "added": "{{amount}} {{type}} ajoutés à",
+        "deducted": "{{amount}} {{type}} déduits de",
+        "roleChanged": "Rôle changé en {{role}}",
+        "updated": "Utilisateur mis à jour",
+        "deleted": "Utilisateur supprimé",
+        "created": "Utilisateur créé avec succès"
+      },
+      "errors": {
+        "loadFailed": "Échec du chargement des utilisateurs. Veuillez réessayer.",
+        "createFailed": "Échec de la création de l'utilisateur"
+      },
+      "balanceModal": {
+        "addTitle": {
+          "tokens": "Ajouter des Tokens",
+          "dt": "Ajouter des DT"
+        },
+        "deductTitle": {
+          "tokens": "Déduire des Tokens",
+          "dt": "Déduire des DT"
+        },
+        "user": "Utilisateur",
+        "current": "Actuel : {{balance}}",
+        "tokens": "Tokens",
+        "mode": {
+          "add": "+ Ajouter",
+          "deduct": "− Déduire"
+        },
+        "amount": "Montant",
+        "btnCancel": "Annuler",
+        "btnConfirm": "Confirmer"
+      },
+      "roleModal": {
+        "title": "Changer le rôle",
+        "btnCancel": "Annuler",
+        "btnSave": "Enregistrer"
+      },
+      "editModal": {
+        "title": "Modifier l'utilisateur",
+        "fullName": "Nom complet",
+        "email": "Email",
+        "role": "Rôle",
+        "active": "Actif",
+        "approved": "Approuvé",
+        "btnCancel": "Annuler",
+        "btnSave": "Enregistrer",
+        "saving": "Enregistrement..."
+      },
+      "deleteModal": {
+        "title": "Supprimer l'utilisateur",
+        "message": "Êtes-vous sûr de vouloir supprimer {{name}} ? Cette action est irréversible.",
+        "confirm": "Supprimer"
+      },
+      "createModal": {
+        "title": "Ajouter un utilisateur",
+        "emailLabel": "Email *",
+        "emailPlaceholder": "utilisateur@eduai.tn",
+        "passwordLabel": "Mot de passe *",
+        "passwordPlaceholder": "Mot de passe",
+        "fullNameLabel": "Nom complet",
+        "fullNamePlaceholder": "Nom et prénom",
+        "roleLabel": "Rôle",
+        "schoolLabel": "École",
+        "noSchool": "— Aucune école —",
+        "schoolInfo": "L'utilisateur sera associé à l'école et bénéficiera des droits de son abonnement.",
+        "btnCancel": "Annuler",
+        "btnCreate": "Créer l'utilisateur",
+        "creating": "Création..."
+      }
+    },
+    "dashboard": {
+      "title": "Plateforme",
+      "titleSuffix": "Overview",
+      "subtitle": "Métriques en temps réel et performance",
+      "period": {
+        "7d": "7 Jours",
+        "30d": "30 Jours",
+        "90d": "90 Jours",
+        "12m": "12 Mois"
+      },
+      "btn": {
+        "retry": "Réessayer"
+      },
+      "kpi": {
+        "totalRevenue": "Revenu Total",
+        "totalUsers": "Total Utilisateurs",
+        "students": "étudiants",
+        "teachers": "enseignants",
+        "tokensSold": "Tokens Vendus",
+        "aiCost": "Coût IA",
+        "totalCourses": "Total Cours",
+        "published": "publiés",
+        "annualRunRate": "Taux Annualisé",
+        "activeUsers": "Utilisateurs Actifs",
+        "ofTotal": "sur {{total}} total",
+        "conversion": "Conversion",
+        "freeToPaid": "Gratuit vers payant",
+        "estProfit": "Profit Est.",
+        "afterAiCosts": "Après coûts IA"
+      },
+      "chart": {
+        "enrollmentTitle": "Nouvelles Inscriptions",
+        "enrollmentSubtitle": "Inscriptions quotidiennes ({{period}})",
+        "noEnrollmentData": "Aucune donnée d'inscription",
+        "registrations": "Inscriptions",
+        "apiCostTitle": "Coûts API IA",
+        "apiCostSubtitle": "Coût journalier de consommation ({{period}})",
+        "noApiCostData": "Aucune donnée de coût API",
+        "cost": "Coût",
+        "costDT": "Coût (DT)"
+      },
+      "section": {
+        "userDistribution": "Distribution Utilisateurs",
+        "planDistribution": "Distribution des Plans",
+        "quickStats": "Statistiques Rapides",
+        "topSchools": "Top Écoles par Revenu"
+      },
+      "stats": {
+        "pendingCourses": "Cours en attente",
+        "publishedCourses": "Cours publiés",
+        "totalTransactions": "Transactions totales",
+        "teacherRegistrations": "Inscriptions enseignants"
+      },
+      "table": {
+        "colSchool": "École",
+        "colRevenue": "Revenu (DT)",
+        "colShare": "Part"
+      },
+      "empty": {
+        "noData": "Aucune donnée disponible",
+        "noPlanData": "Aucune donnée de plan"
+      },
+      "errors": {
+        "loadFailed": "Échec du chargement des données. Veuillez réessayer."
+      }
+    },
+    "schools": {
+      "title": "Écoles",
+      "titleSuffix": "Tenants",
+      "subtitle": "{{count}} écoles sur la plateforme",
+      "loading": "Chargement...",
+      "btnNew": "Nouvelle École",
+      "btnExport": "Export",
+      "unlimited": "Illimité",
+      "kpi": {
+        "total": "Total Écoles",
+        "active": "Actives",
+        "freeTier": "Tier Gratuit",
+        "institution": "Institution"
+      },
+      "filter": {
+        "searchPlaceholder": "Rechercher une école...",
+        "allPlans": "Tous les plans",
+        "allStatus": "Tous les statuts",
+        "resultsFor": "Résultats pour \"{{query}}\""
+      },
+      "status": {
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "table": {
+        "colSchool": "École",
+        "colPlan": "Plan",
+        "colMaxUsers": "Max Utilisateurs",
+        "colStatus": "Statut",
+        "colCreated": "Créée",
+        "colActions": "Actions"
+      },
+      "btn": {
+        "edit": "Modifier",
+        "delete": "Supprimer"
+      },
+      "empty": {
+        "noMatch": "Aucune école ne correspond à \"{{query}}\"",
+        "noSchools": "Aucune école trouvée"
+      },
+      "toast": {
+        "loadFailed": "Échec du chargement des écoles",
+        "updated": "École mise à jour",
+        "created": "École créée",
+        "deleted": "École supprimée"
+      },
+      "deleteModal": {
+        "title": "Supprimer l'école",
+        "message": "Supprimer \"{{name}}\" ? Tous les utilisateurs et données seront perdus.",
+        "confirm": "Supprimer"
+      },
+      "modal": {
+        "editTitle": "Modifier l'école",
+        "createTitle": "Créer une école",
+        "nameLabel": "Nom *",
+        "domainLabel": "Domaine",
+        "planLabel": "Plan",
+        "maxUsersLabel": "Max Utilisateurs",
+        "activeLabel": "Active",
+        "btnCancel": "Annuler",
+        "btnSave": "Enregistrer",
+        "btnCreate": "Créer"
+      }
+    },
+    "courseBuilder": {
+      "title": "Course Builder",
+      "subtitle": "Créez et gérez vos cours",
+      "btnNew": "Nouveau cours",
+      "loading": "Chargement...",
+      "noDescription": "Aucune description",
+      "chapters": "chapitres",
+      "lessons": "leçons",
+      "status": {
+        "draft": "Brouillon",
+        "published": "Publié",
+        "archived": "Archivé"
+      },
+      "level": {
+        "beginner": "Débutant",
+        "intermediate": "Intermédiaire",
+        "advanced": "Avancé"
+      },
+      "filter": {
+        "searchPlaceholder": "Rechercher un cours...",
+        "allStatus": "Tous les statuts",
+        "allLevels": "Tous les niveaux"
+      },
+      "btn": {
+        "edit": "Éditer",
+        "publish": "Publier",
+        "unpublish": "Dépublier",
+        "duplicate": "Dupliquer"
+      },
+      "empty": {
+        "noResults": "Aucun cours trouvé",
+        "createFirst": "Créer mon premier cours"
+      },
+      "alerts": {
+        "titleRequired": "Le titre est requis",
+        "error": "Erreur: {{message}}",
+        "confirmDelete": "Supprimer ce cours ?",
+        "deleteError": "Erreur de suppression",
+        "errorGeneric": "Erreur",
+        "copied": "Cours copié: {{title}}",
+        "duplicateError": "Erreur de duplication"
+      },
+      "modal": {
+        "createTitle": "Créer un nouveau cours",
+        "titleLabel": "Titre *",
+        "titlePlaceholder": "Introduction à Python",
+        "descLabel": "Description courte",
+        "descPlaceholder": "Un résumé du cours...",
+        "categoryLabel": "Catégorie",
+        "selectPlaceholder": "Sélectionner...",
+        "levelLabel": "Niveau",
+        "priceTokensLabel": "Prix (Tokens)",
+        "priceDtLabel": "Prix (DT)",
+        "btnCancel": "Annuler",
+        "btnCreate": "Créer",
+        "creating": "Création..."
+      }
+    }
+  },
   "niveaux": {
     "primaire": "Primaire",
     "preparatoire": "Préparatoire",

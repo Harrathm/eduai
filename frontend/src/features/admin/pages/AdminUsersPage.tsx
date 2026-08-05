@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Search, Coins, Wallet, Ban, CheckCircle, Shield, ShieldCheck, GraduationCap, Users, RefreshCw, Trash2, Pencil, Download, ArrowUp, ArrowDown, Save, X, Plus, BookOpen, Loader2 } from "lucide-react";
 import { AdminTable, KPICard, StatusBadge, ConfirmModal, Modal } from "../components";
 import { adminUsers, adminSchools } from "../../../api";
@@ -19,6 +20,7 @@ const ROLE_ICONS: Record<string, React.ReactNode> = {
 };
 
 export default function AdminUsersPage() {
+  const { t } = useTranslation();
   const [result, setResult] = useState<PaginatedResponse<AdminUser> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,15 +43,14 @@ export default function AdminUsersPage() {
   const [processing, setProcessing] = useState(false);
   const [toast, setToast] = useState<{ show: boolean; message: string; type: "success" | "error" }>({ show: false, message: "", type: "success" });
 
-  // Create user
   const [createModal, setCreateModal] = useState(false);
   const [schools, setSchools] = useState<AdminSchool[]>([]);
   const [newUserData, setNewUserData] = useState({ email: "", password: "", full_name: "", role: "student", school_id: 0 });
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 400);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(timer);
   }, [search]);
 
   const showToast = (message: string, type: "success" | "error" = "success") => {
@@ -73,7 +74,7 @@ export default function AdminUsersPage() {
       setResult(data);
     } catch (err) {
       console.error(err);
-      setError("Failed to load users. Please try again.");
+      setError(t("admin.users.errors.loadFailed"));
     }
     setLoading(false);
     setRefreshing(false);
@@ -105,7 +106,7 @@ export default function AdminUsersPage() {
   const toggleActive = async (user: AdminUser) => {
     try {
       await adminUsers.toggleActive(user.id);
-      showToast(`${user.full_name || user.email} ${user.is_active ? "deactivated" : "activated"}`);
+      showToast(t(`admin.users.toast.${user.is_active ? "deactivated" : "activated"}`, { name: user.full_name || user.email }));
       fetchUsers();
     } catch (err: any) { showToast(err.message || "Failed", "error"); }
   };
@@ -120,7 +121,7 @@ export default function AdminUsersPage() {
       } else {
         await adminUsers.deductWallet(user!.id, type === "tokens" ? amount : undefined, type === "dt" ? amount : undefined);
       }
-      showToast(`${mode === "add" ? "Added" : "Deducted"} ${amount} ${type}`);
+      showToast(t(`admin.users.toast.${mode === "add" ? "added" : "deducted"}`, { amount, type }));
       setBalanceModal(null);
       fetchUsers();
     } catch (err: any) { showToast(err.message || "Failed", "error"); }
@@ -132,7 +133,7 @@ export default function AdminUsersPage() {
     setProcessing(true);
     try {
       await adminUsers.changeRole(roleModal.id, newRole);
-      showToast(`Role changed to ${newRole}`);
+      showToast(t("admin.users.toast.roleChanged", { role: t(`admin.users.roles.${newRole}`) }));
       setRoleModal(null);
       fetchUsers();
     } catch (err: any) { showToast(err.message || "Failed", "error"); }
@@ -156,7 +157,7 @@ export default function AdminUsersPage() {
     setProcessing(true);
     try {
       await adminUsers.update(editModal.id, editData);
-      showToast("User updated");
+      showToast(t("admin.users.toast.updated"));
       setEditModal(null);
       fetchUsers();
     } catch (err: any) { showToast(err.message || "Failed", "error"); }
@@ -168,7 +169,7 @@ export default function AdminUsersPage() {
     setProcessing(true);
     try {
       await adminUsers.delete(deleteTarget.id);
-      showToast("User deleted");
+      showToast(t("admin.users.toast.deleted"));
       setDeleteTarget(null);
       fetchUsers();
     } catch (err: any) { showToast(err.message || "Failed", "error"); }
@@ -186,11 +187,11 @@ export default function AdminUsersPage() {
         role: newUserData.role,
         school_id: newUserData.school_id || undefined,
       });
-      showToast("User created successfully");
+      showToast(t("admin.users.toast.created"));
       setCreateModal(false);
       setNewUserData({ email: "", password: "", full_name: "", role: "student", school_id: 0 });
       fetchUsers();
-    } catch (err: any) { showToast(err.message || "Failed to create user", "error"); }
+    } catch (err: any) { showToast(err.message || t("admin.users.errors.createFailed"), "error"); }
     setCreating(false);
   };
 
@@ -210,7 +211,7 @@ export default function AdminUsersPage() {
   const users = result?.items || [];
 
   const columns = [
-    { key: "full_name", header: <button onClick={() => handleSort("full_name")} className="flex items-center gap-1">User <SortIcon field="full_name" /></button>, render: (u: AdminUser) => (
+    { key: "full_name", header: <button onClick={() => handleSort("full_name")} className="flex items-center gap-1">{t("admin.users.table.colUser")} <SortIcon field="full_name" /></button>, render: (u: AdminUser) => (
       <div className="flex items-center gap-3">
         <div className="w-9 h-9 rounded-full bg-gradient-to-r from-orange to-orange-l text-white flex items-center justify-center font-semibold text-xs">
           {u.full_name?.charAt(0) || u.email.charAt(0).toUpperCase()}
@@ -221,35 +222,35 @@ export default function AdminUsersPage() {
         </div>
       </div>
     )},
-    { key: "role", header: <button onClick={() => handleSort("role")} className="flex items-center gap-1">Role <SortIcon field="role" /></button>, render: (u: AdminUser) => (
+    { key: "role", header: <button onClick={() => handleSort("role")} className="flex items-center gap-1">{t("admin.users.table.colRole")} <SortIcon field="role" /></button>, render: (u: AdminUser) => (
       <div className="flex items-center gap-1.5 text-xs font-medium capitalize">
         {ROLE_ICONS[u.role] || ROLE_ICONS.member}
-        <span className={u.role === "super_admin" ? "text-orange" : u.role === "pedagogical_admin" ? "text-blue" : u.role === "pedagogical_lead" ? "text-teal" : "text-navy"}>{u.role.replace("_", " ")}</span>
+        <span className={u.role === "super_admin" ? "text-orange" : u.role === "pedagogical_admin" ? "text-blue" : u.role === "pedagogical_lead" ? "text-teal" : "text-navy"}>{t(`admin.users.roles.${u.role}`) || u.role}</span>
       </div>
     )},
-    { key: "school", header: "School", render: (u: AdminUser) => <span className="text-sm text-gray">{u.school_name || "—"}</span> },
-    { key: "is_active", header: "Status", render: (u: AdminUser) => (
+    { key: "school", header: t("admin.users.table.colSchool"), render: (u: AdminUser) => <span className="text-sm text-gray">{u.school_name || "—"}</span> },
+    { key: "is_active", header: t("admin.users.table.colStatus"), render: (u: AdminUser) => (
       <button onClick={() => toggleActive(u)} className={`px-2 py-1 text-xs rounded-full font-medium transition-all ${u.is_active ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-gray-100 text-gray-400 hover:bg-gray-200"}`}>
-        {u.is_active ? "Active" : "Inactive"}
+        {u.is_active ? t("admin.users.status.active") : t("admin.users.status.inactive")}
       </button>
     )},
-    { key: "token_balance", header: "Tokens", render: (u: AdminUser) => <span className="font-semibold text-blue-600">{u.token_balance?.toLocaleString("fr-TN")}</span> },
-    { key: "dt_balance", header: "Balance (DT)", render: (u: AdminUser) => <span className="font-semibold text-green-600">{u.dt_balance?.toLocaleString("fr-TN")} DT</span> },
-    { key: "created_at", header: <button onClick={() => handleSort("created_at")} className="flex items-center gap-1">Joined <SortIcon field="created_at" /></button>, render: (u: AdminUser) => (
+    { key: "token_balance", header: t("admin.users.table.colTokens"), render: (u: AdminUser) => <span className="font-semibold text-blue-600">{u.token_balance?.toLocaleString("fr-TN")}</span> },
+    { key: "dt_balance", header: t("admin.users.table.colBalance"), render: (u: AdminUser) => <span className="font-semibold text-green-600">{u.dt_balance?.toLocaleString("fr-TN")} DT</span> },
+    { key: "created_at", header: <button onClick={() => handleSort("created_at")} className="flex items-center gap-1">{t("admin.users.table.colJoined")} <SortIcon field="created_at" /></button>, render: (u: AdminUser) => (
       <span className="text-xs text-gray">{new Date(u.created_at).toLocaleDateString("fr-TN")}</span>
     )},
-    { key: "actions", header: "Actions", render: (u: AdminUser) => (
+    { key: "actions", header: t("admin.users.table.colActions"), render: (u: AdminUser) => (
       <div className="flex items-center gap-1">
-        <button onClick={() => openEditModal(u)} className="p-1.5 bg-cream-m text-navy rounded-lg hover:bg-cream" title="Edit User">
+        <button onClick={() => openEditModal(u)} className="p-1.5 bg-cream-m text-navy rounded-lg hover:bg-cream" title={t("admin.users.btn.edit")}>
           <Pencil className="w-4 h-4" />
         </button>
-        <button onClick={() => setBalanceModal({ user: u, type: "tokens", mode: "add", amount: 0 })} className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100" title="Add Tokens">
+        <button onClick={() => setBalanceModal({ user: u, type: "tokens", mode: "add", amount: 0 })} className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100" title={t("admin.users.btn.addTokens")}>
           <Coins className="w-4 h-4" />
         </button>
-        <button onClick={() => setRoleModal(u)} className="p-1.5 bg-purple-50 text-purple-500 rounded-lg hover:bg-purple-100" title="Change Role">
+        <button onClick={() => setRoleModal(u)} className="p-1.5 bg-purple-50 text-purple-500 rounded-lg hover:bg-purple-100" title={t("admin.users.btn.changeRole")}>
           <Shield className="w-4 h-4" />
         </button>
-        <button onClick={() => setDeleteTarget(u)} className="p-1.5 bg-red-50 text-red-400 rounded-lg hover:bg-red-100" title="Delete">
+        <button onClick={() => setDeleteTarget(u)} className="p-1.5 bg-red-50 text-red-400 rounded-lg hover:bg-red-100" title={t("admin.users.btn.delete")}>
           <Trash2 className="w-4 h-4" />
         </button>
       </div>
@@ -258,59 +259,56 @@ export default function AdminUsersPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-display font-light text-navy">Users <span className="italic text-orange">& Management</span></h1>
-          <p className="text-gray text-sm mt-1">{result ? `${result.total.toLocaleString("fr-TN")} total users` : "Loading..."}</p>
+          <h1 className="text-3xl font-display font-light text-navy">{t("admin.users.title")} <span className="italic text-orange">& {t("admin.users.titleSuffix")}</span></h1>
+          <p className="text-gray text-sm mt-1">{result ? t("admin.users.subtitle", { count: result.total }) : t("admin.users.loading")}</p>
         </div>
         <div className="flex items-center gap-3">
           <button onClick={() => setCreateModal(true)} className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange to-orange-l text-white rounded-xl font-medium text-sm hover:shadow-lg transition-shadow">
-            <Plus className="w-4 h-4" /> Ajouter un utilisateur
+            <Plus className="w-4 h-4" /> {t("admin.users.btnNew")}
           </button>
           <button onClick={() => fetchUsers(true)} className="p-2.5 bg-white rounded-xl shadow-sm border border-black/5 hover:bg-cream">
             <RefreshCw className={`w-5 h-5 text-gray ${refreshing ? "animate-spin" : ""}`} />
           </button>
           <button onClick={exportCSV} disabled={!users.length} className="flex items-center gap-2 px-4 py-2.5 bg-navy text-white rounded-xl font-medium text-sm hover:bg-navy-m disabled:opacity-50 shadow-sm">
-            <Download className="w-4 h-4" /> Export CSV
+            <Download className="w-4 h-4" /> {t("admin.users.btnExport")}
           </button>
         </div>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard label="Total Users" value={result?.total || "—"} icon={<Users className="w-5 h-5" />} color="blue" loading={loading} />
-        <KPICard label="Active Users" value={users.filter(u => u.is_active).length || "—"} subValue={`of ${result?.total || 0} total`} icon={<CheckCircle className="w-5 h-5" />} color="green" loading={loading} />
-        <KPICard label="Tokens in System" value={users.reduce((s, u) => s + (u.token_balance || 0), 0).toLocaleString("fr-TN")} icon={<Coins className="w-5 h-5" />} color="orange" loading={loading} />
-        <KPICard label="DT in System" value={`${users.reduce((s, u) => s + (u.dt_balance || 0), 0).toLocaleString("fr-TN")} DT`} icon={<Wallet className="w-5 h-5" />} color="purple" loading={loading} />
+        <KPICard label={t("admin.users.kpi.total")} value={result?.total || "—"} icon={<Users className="w-5 h-5" />} color="blue" loading={loading} />
+        <KPICard label={t("admin.users.kpi.active")} value={users.filter(u => u.is_active).length || "—"} subValue={t("admin.users.kpi.ofTotal", { total: result?.total || 0 })} icon={<CheckCircle className="w-5 h-5" />} color="green" loading={loading} />
+        <KPICard label={t("admin.users.kpi.tokens")} value={users.reduce((s, u) => s + (u.token_balance || 0), 0).toLocaleString("fr-TN")} icon={<Coins className="w-5 h-5" />} color="orange" loading={loading} />
+        <KPICard label={t("admin.users.kpi.dt")} value={`${users.reduce((s, u) => s + (u.dt_balance || 0), 0).toLocaleString("fr-TN")} DT`} icon={<Wallet className="w-5 h-5" />} color="purple" loading={loading} />
       </div>
 
-      {/* Filters */}
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-black/5 flex flex-wrap items-center gap-4">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray" />
           <input type="text" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Search by name or email..." className="w-full ps-12 pe-4 py-3 bg-cream-m rounded-xl border border-black/5 text-sm focus:outline-none focus:ring-2 focus:ring-orange/20" />
+            placeholder={t("admin.users.filter.searchPlaceholder")} className="w-full ps-12 pe-4 py-3 bg-cream-m rounded-xl border border-black/5 text-sm focus:outline-none focus:ring-2 focus:ring-orange/20" />
         </div>
         <select value={roleFilter} onChange={e => { setRoleFilter(e.target.value as RoleFilter); setPage(1); }}
           className="px-4 py-3 bg-cream-m rounded-xl border border-black/5 text-sm focus:outline-none">
-          <option value="all">All Roles</option>
-          <option value="student">Students</option>
-          <option value="teacher">Teachers</option>
-          <option value="admin_school">Admin École</option>
-          <option value="pedagogical_admin">Resp. Pédago. (Plateforme)</option>
-          <option value="pedagogical_lead">Resp. Pédago. (École)</option>
-          <option value="super_admin">Super Admin</option>
+          <option value="all">{t("admin.users.filter.allRoles")}</option>
+          <option value="student">{t("admin.users.filter.students")}</option>
+          <option value="teacher">{t("admin.users.filter.teachers")}</option>
+          <option value="admin_school">{t("admin.users.roles.admin_school")}</option>
+          <option value="pedagogical_admin">{t("admin.users.roles.pedagogical_admin")}</option>
+          <option value="pedagogical_lead">{t("admin.users.roles.pedagogical_lead")}</option>
+          <option value="super_admin">{t("admin.users.roles.super_admin")}</option>
         </select>
         <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value as StatusFilter); setPage(1); }}
           className="px-4 py-3 bg-cream-m rounded-xl border border-black/5 text-sm focus:outline-none">
-          <option value="all">All Status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
+          <option value="all">{t("admin.users.filter.allStatus")}</option>
+          <option value="active">{t("admin.users.status.active")}</option>
+          <option value="inactive">{t("admin.users.status.inactive")}</option>
         </select>
         {debouncedSearch && (
           <span className="text-sm text-orange font-medium">
-            Results for "{debouncedSearch}"
+            {t("admin.users.filter.resultsFor", { query: debouncedSearch })}
           </span>
         )}
       </div>
@@ -319,45 +317,43 @@ export default function AdminUsersPage() {
         <div className="bg-red-50 border border-red-200 rounded-2xl p-6 flex flex-col items-center justify-center text-center">
           <p className="text-red-600 mb-4">{error}</p>
           <button onClick={() => fetchUsers()} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium">
-            Retry
+            {t("admin.users.btn.retry")}
           </button>
         </div>
       )}
 
-      {/* Table */}
       <AdminTable
         columns={columns}
         data={users}
         loading={loading}
-        emptyMessage={debouncedSearch ? `No users matching "${debouncedSearch}"` : "No users found"}
+        emptyMessage={debouncedSearch ? t("admin.users.empty.noMatch", { query: debouncedSearch }) : t("admin.users.empty.noUsers")}
         rowKey="id"
         pagination={result ? { page, per_page: perPage, total: result.total, onPageChange: setPage } : undefined}
       />
 
-      {/* Balance Modal */}
       {balanceModal && (
         <Modal open onClose={() => setBalanceModal(null)}
-          title={`${balanceModal.mode === "add" ? "Add" : "Deduct"} ${balanceModal.type === "tokens" ? "Tokens" : "DT"}`}
+          title={t(`admin.users.balanceModal.${balanceModal.mode === "add" ? "addTitle" : "deductTitle"}.${balanceModal.type}`)}
           footer={
             <>
-              <button onClick={() => setBalanceModal(null)} className="flex-1 py-3 bg-cream-m rounded-xl font-medium">Annuler</button>
+              <button onClick={() => setBalanceModal(null)} className="flex-1 py-3 bg-cream-m rounded-xl font-medium">{t("admin.users.balanceModal.btnCancel")}</button>
               <button onClick={handleBalance} disabled={processing || !balanceModal.amount} className="flex-1 py-3 bg-orange text-white rounded-xl font-medium disabled:opacity-50">
-                {processing ? "..." : "Confirmer"}
+                {processing ? "..." : t("admin.users.balanceModal.btnConfirm")}
               </button>
             </>
           }>
           <div className="space-y-4">
             <div className="bg-cream-m rounded-xl p-4">
-              <p className="text-sm text-gray">User</p>
+              <p className="text-sm text-gray">{t("admin.users.balanceModal.user")}</p>
               <p className="font-medium">{balanceModal.user?.full_name}</p>
               <p className="text-xs text-gray">{balanceModal.user?.email}</p>
-              <p className="text-xs text-gray mt-1">Current: {balanceModal.type === "tokens" ? `${balanceModal.user?.token_balance} tokens` : `${balanceModal.user?.dt_balance} DT`}</p>
+              <p className="text-xs text-gray mt-1">{t("admin.users.balanceModal.current", { balance: balanceModal.type === "tokens" ? `${balanceModal.user?.token_balance} tokens` : `${balanceModal.user?.dt_balance} DT` })}</p>
             </div>
             <div className="flex gap-2 mb-2">
-              {(["tokens", "dt"] as const).map(t => (
-                <button key={t} onClick={() => setBalanceModal({ ...balanceModal, type: t })}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${balanceModal.type === t ? "bg-orange text-white" : "bg-cream-m text-navy"}`}>
-                  {t === "tokens" ? "Tokens" : "DT"}
+              {(["tokens", "dt"] as const).map(tp => (
+                <button key={tp} onClick={() => setBalanceModal({ ...balanceModal, type: tp })}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${balanceModal.type === tp ? "bg-orange text-white" : "bg-cream-m text-navy"}`}>
+                  {tp === "tokens" ? t("admin.users.balanceModal.tokens") : "DT"}
                 </button>
               ))}
             </div>
@@ -365,12 +361,12 @@ export default function AdminUsersPage() {
               {(["add", "deduct"] as const).map(m => (
                 <button key={m} onClick={() => setBalanceModal({ ...balanceModal, mode: m })}
                   className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${balanceModal.mode === m ? "bg-navy text-white" : "bg-cream-m text-navy"}`}>
-                  {m === "add" ? "+ Add" : "− Deduct"}
+                  {t(`admin.users.balanceModal.mode.${m}`)}
                 </button>
               ))}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray mb-2">Amount</label>
+              <label className="block text-sm font-medium text-gray mb-2">{t("admin.users.balanceModal.amount")}</label>
               <input type="number" value={balanceModal.amount} onChange={e => setBalanceModal({ ...balanceModal, amount: Number(e.target.value) })}
                 className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5 focus:outline-none focus:ring-2 focus:ring-orange/20" min={1} />
             </div>
@@ -378,14 +374,13 @@ export default function AdminUsersPage() {
         </Modal>
       )}
 
-      {/* Role Modal */}
       {roleModal && (
-        <Modal open onClose={() => setRoleModal(null)} title="Change User Role"
+        <Modal open onClose={() => setRoleModal(null)} title={t("admin.users.roleModal.title")}
           footer={
             <>
-              <button onClick={() => setRoleModal(null)} className="flex-1 py-3 bg-cream-m rounded-xl font-medium">Annuler</button>
+              <button onClick={() => setRoleModal(null)} className="flex-1 py-3 bg-cream-m rounded-xl font-medium">{t("admin.users.roleModal.btnCancel")}</button>
               <button onClick={handleRoleChange} disabled={processing || newRole === roleModal.role} className="flex-1 py-3 bg-orange text-white rounded-xl font-medium disabled:opacity-50">
-                {processing ? "..." : "Save"}
+                {processing ? "..." : t("admin.users.roleModal.btnSave")}
               </button>
             </>
           }>
@@ -393,57 +388,56 @@ export default function AdminUsersPage() {
             {(["student", "teacher", "admin_school", "pedagogical_admin", "pedagogical_lead"] as const).map(r => (
               <button key={r} onClick={() => setNewRole(r)}
                 className={`w-full p-4 rounded-xl text-start font-medium capitalize transition-all ${newRole === r ? "bg-orange text-white" : "bg-cream-m hover:bg-cream text-navy"}`}>
-                {r === "admin_school" ? "Admin École" : r === "pedagogical_admin" ? "Resp. Pédago. (Plateforme)" : r === "pedagogical_lead" ? "Resp. Pédago. (École)" : r}
+                {t(`admin.users.roles.${r}`)}
               </button>
             ))}
           </div>
         </Modal>
       )}
 
-      {/* Edit User Modal */}
       {editModal && (
-        <Modal open onClose={() => setEditModal(null)} title="Edit User" size="lg"
+        <Modal open onClose={() => setEditModal(null)} title={t("admin.users.editModal.title")} size="lg"
           footer={
             <>
-              <button onClick={() => setEditModal(null)} className="flex-1 py-3 bg-cream-m rounded-xl font-medium">Cancel</button>
+              <button onClick={() => setEditModal(null)} className="flex-1 py-3 bg-cream-m rounded-xl font-medium">{t("admin.users.editModal.btnCancel")}</button>
               <button onClick={handleEditSave} disabled={processing} className="flex-1 py-3 bg-orange text-white rounded-xl font-medium disabled:opacity-50">
-                {processing ? "Saving..." : "Save Changes"}
+                {processing ? t("admin.users.editModal.saving") : t("admin.users.editModal.btnSave")}
               </button>
             </>
           }>
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-gray mb-1.5">Full Name</label>
+              <label className="block text-xs font-medium text-gray mb-1.5">{t("admin.users.editModal.fullName")}</label>
               <input type="text" value={editData.full_name} onChange={e => setEditData({ ...editData, full_name: e.target.value })}
                 className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5 text-sm focus:outline-none focus:ring-2 focus:ring-orange/20" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray mb-1.5">Email</label>
+              <label className="block text-xs font-medium text-gray mb-1.5">{t("admin.users.editModal.email")}</label>
               <input type="email" value={editData.email} onChange={e => setEditData({ ...editData, email: e.target.value })}
                 className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5 text-sm focus:outline-none focus:ring-2 focus:ring-orange/20" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray mb-1.5">Role</label>
+              <label className="block text-xs font-medium text-gray mb-1.5">{t("admin.users.editModal.role")}</label>
               <select value={editData.role} onChange={e => setEditData({ ...editData, role: e.target.value })}
                 className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5 text-sm focus:outline-none">
-                <option value="student">Student</option>
-                <option value="teacher">Teacher</option>
-                <option value="admin_school">Admin École</option>
-                <option value="pedagogical_admin">Resp. Pédago. (Plateforme)</option>
-                <option value="pedagogical_lead">Resp. Pédago. (École)</option>
-                <option value="super_admin">Super Admin</option>
+                <option value="student">{t("admin.users.roles.student")}</option>
+                <option value="teacher">{t("admin.users.roles.teacher")}</option>
+                <option value="admin_school">{t("admin.users.roles.admin_school")}</option>
+                <option value="pedagogical_admin">{t("admin.users.roles.pedagogical_admin")}</option>
+                <option value="pedagogical_lead">{t("admin.users.roles.pedagogical_lead")}</option>
+                <option value="super_admin">{t("admin.users.roles.super_admin")}</option>
               </select>
             </div>
             <div className="flex items-center gap-6">
               <label className="flex items-center gap-2 text-sm text-navy">
                 <input type="checkbox" checked={editData.is_active} onChange={e => setEditData({ ...editData, is_active: e.target.checked })}
                   className="rounded border-gray-300 text-orange focus:ring-orange" />
-                Active
+                {t("admin.users.editModal.active")}
               </label>
               <label className="flex items-center gap-2 text-sm text-navy">
                 <input type="checkbox" checked={editData.is_approved} onChange={e => setEditData({ ...editData, is_approved: e.target.checked })}
                   className="rounded border-gray-300 text-orange focus:ring-orange" />
-                Approved
+                {t("admin.users.editModal.approved")}
               </label>
             </div>
           </div>
@@ -451,58 +445,57 @@ export default function AdminUsersPage() {
       )}
 
       <ConfirmModal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete}
-        title="Delete User" message={`Are you sure you want to delete ${deleteTarget?.full_name}? This action cannot be undone.`}
-        confirmLabel="Delete" danger loading={processing} />
+        title={t("admin.users.deleteModal.title")} message={t("admin.users.deleteModal.message", { name: deleteTarget?.full_name })}
+        confirmLabel={t("admin.users.deleteModal.confirm")} danger loading={processing} />
 
-      {/* Create User Modal */}
       {createModal && (
-        <Modal open onClose={() => setCreateModal(false)} title="Ajouter un utilisateur" size="lg"
+        <Modal open onClose={() => setCreateModal(false)} title={t("admin.users.createModal.title")} size="lg"
           footer={
             <>
-              <button onClick={() => setCreateModal(false)} className="flex-1 py-3 bg-cream-m rounded-xl font-medium">Annuler</button>
+              <button onClick={() => setCreateModal(false)} className="flex-1 py-3 bg-cream-m rounded-xl font-medium">{t("admin.users.createModal.btnCancel")}</button>
               <button onClick={handleCreateUser} disabled={creating || !newUserData.email || !newUserData.password}
                 className="flex-1 py-3 bg-orange text-white rounded-xl font-medium disabled:opacity-50">
-                {creating ? "Création..." : "Créer l'utilisateur"}
+                {creating ? t("admin.users.createModal.creating") : t("admin.users.createModal.btnCreate")}
               </button>
             </>
           }>
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-gray mb-1.5">Email *</label>
+              <label className="block text-xs font-medium text-gray mb-1.5">{t("admin.users.createModal.emailLabel")}</label>
               <input type="email" value={newUserData.email} onChange={e => setNewUserData({ ...newUserData, email: e.target.value })}
                 className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5 text-sm focus:outline-none focus:ring-2 focus:ring-orange/20"
-                placeholder="utilisateur@eduai.tn" />
+                placeholder={t("admin.users.createModal.emailPlaceholder")} />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray mb-1.5">Mot de passe *</label>
+              <label className="block text-xs font-medium text-gray mb-1.5">{t("admin.users.createModal.passwordLabel")}</label>
               <input type="password" value={newUserData.password} onChange={e => setNewUserData({ ...newUserData, password: e.target.value })}
                 className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5 text-sm focus:outline-none focus:ring-2 focus:ring-orange/20"
-                placeholder="Mot de passe" />
+                placeholder={t("admin.users.createModal.passwordPlaceholder")} />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray mb-1.5">Nom complet</label>
+              <label className="block text-xs font-medium text-gray mb-1.5">{t("admin.users.createModal.fullNameLabel")}</label>
               <input type="text" value={newUserData.full_name} onChange={e => setNewUserData({ ...newUserData, full_name: e.target.value })}
                 className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5 text-sm focus:outline-none focus:ring-2 focus:ring-orange/20"
-                placeholder="Nom et prénom" />
+                placeholder={t("admin.users.createModal.fullNamePlaceholder")} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-gray mb-1.5">Rôle</label>
+                <label className="block text-xs font-medium text-gray mb-1.5">{t("admin.users.createModal.roleLabel")}</label>
                 <select value={newUserData.role} onChange={e => setNewUserData({ ...newUserData, role: e.target.value })}
                   className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5 text-sm">
-                  <option value="student">Étudiant</option>
-                  <option value="teacher">Enseignant</option>
-                  <option value="admin_school">Admin École</option>
-                  <option value="pedagogical_admin">Resp. Pédago. (Plateforme)</option>
-                  <option value="pedagogical_lead">Resp. Pédago. (École)</option>
-                  <option value="super_admin">Super Admin</option>
+                  <option value="student">{t("admin.users.roles.student")}</option>
+                  <option value="teacher">{t("admin.users.roles.teacher")}</option>
+                  <option value="admin_school">{t("admin.users.roles.admin_school")}</option>
+                  <option value="pedagogical_admin">{t("admin.users.roles.pedagogical_admin")}</option>
+                  <option value="pedagogical_lead">{t("admin.users.roles.pedagogical_lead")}</option>
+                  <option value="super_admin">{t("admin.users.roles.super_admin")}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray mb-1.5">École</label>
+                <label className="block text-xs font-medium text-gray mb-1.5">{t("admin.users.createModal.schoolLabel")}</label>
                 <select value={newUserData.school_id} onChange={e => setNewUserData({ ...newUserData, school_id: Number(e.target.value) })}
                   className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5 text-sm">
-                  <option value={0}>— Aucune école —</option>
+                  <option value={0}>{t("admin.users.createModal.noSchool")}</option>
                   {schools.map(s => (
                     <option key={s.id} value={s.id}>{s.name} ({s.subscription_tier})</option>
                   ))}
@@ -511,7 +504,7 @@ export default function AdminUsersPage() {
             </div>
             {newUserData.school_id > 0 && (
               <div className="bg-blue-50 rounded-xl p-3 text-sm text-blue-700">
-                L'utilisateur sera associé à l'école et bénéficiera des droits de son abonnement.
+                {t("admin.users.createModal.schoolInfo")}
               </div>
             )}
           </div>

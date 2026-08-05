@@ -197,6 +197,463 @@
     "info": "Information",
     "saved": "Saved!"
   },
+  "admin": {
+    "courses": {
+      "title": "Courses",
+      "titleSuffix": "Management",
+      "subtitle": "{{count}} courses on the platform",
+      "btnNew": "New Course",
+      "free": "Free",
+      "currency": "TND",
+      "loading": "Loading...",
+      "status": {
+        "draft": "Draft",
+        "published": "Published",
+        "archived": "Archived",
+        "pending": "Pending"
+      },
+      "pedagogicalStatus": {
+        "draft": "Draft",
+        "pending_review": "In Review",
+        "rejected": "Rejected",
+        "approved_for_platform": "Approved (Platform)",
+        "approved_for_b2b": "Approved (B2B)",
+        "revision_requested": "Revision Requested"
+      },
+      "level": {
+        "beginner": "Beginner",
+        "intermediate": "Intermediate",
+        "advanced": "Advanced"
+      },
+      "owner": {
+        "school": "School",
+        "independent_teacher": "Independent Teacher",
+        "eduai_catalog": "EDUAI Catalog"
+      },
+      "visibility": {
+        "public": "Public",
+        "private": "Private",
+        "school": "By School",
+        "role": "By Role"
+      },
+      "enrollment": {
+        "open": "Open Enrollment",
+        "manual": "Manual"
+      },
+      "kpi": {
+        "total": "Total",
+        "published": "Published",
+        "draft": "Drafts",
+        "inReview": "In Review",
+        "archived": "Archived"
+      },
+      "filter": {
+        "searchPlaceholder": "Search courses...",
+        "allStatus": "All Status",
+        "allCategories": "All Categories",
+        "allLevels": "All Levels",
+        "allPedagogicalStatus": "All Pedagogical Status"
+      },
+      "table": {
+        "colTitle": "Course",
+        "colStatus": "Status",
+        "colContent": "Content",
+        "colPedagogical": "Pedagogy Status",
+        "colOwner": "Owner",
+        "colPrice": "Price",
+        "colActions": "Actions",
+        "chapters": "chapters",
+        "lessons": "lessons"
+      },
+      "btn": {
+        "edit": "Edit",
+        "preview": "Preview",
+        "duplicate": "Duplicate",
+        "unpublish": "Unpublish",
+        "publish": "Publish",
+        "archive": "Archive",
+        "submitReview": "Submit for Review",
+        "delete": "Delete",
+        "retry": "Retry",
+        "createNew": "Create a course"
+      },
+      "empty": {
+        "noResults": "No courses found",
+        "noResultsDesc": "No courses match your filters. Try modifying your criteria.",
+        "startCreate": "Start by creating your first course."
+      },
+      "toast": {
+        "published": "Course published successfully",
+        "unpublished": "Course unpublished",
+        "publishBlocked": "Publish blocked: required fields missing (title, description, chapters, lessons)",
+        "submittedReview": "Course submitted for pedagogical review",
+        "archived": "Course archived",
+        "duplicated": "Course duplicated successfully",
+        "deleted": "Course deleted",
+        "created": "Course created successfully"
+      },
+      "errors": {
+        "loadFailed": "Failed to load courses. Please try again.",
+        "previewFailed": "Failed to load preview"
+      },
+      "modal": {
+        "confirmDelete": {
+          "title": "Delete Course",
+          "message": "Delete \"{{name}}\"? This action cannot be undone.",
+          "confirm": "Delete"
+        },
+        "preview": {
+          "title": "Course Preview",
+          "chapters": "Chapters",
+          "lessons": "Lessons",
+          "duration": "Duration",
+          "prerequisites": "Prerequisites",
+          "objectives": "Learning Objectives",
+          "program": "Course Program"
+        },
+        "create": {
+          "title": "Create Course",
+          "titleLabel": "Title *",
+          "titlePlaceholder": "Course title",
+          "descLabel": "Short Description",
+          "descPlaceholder": "Brief course summary",
+          "fullDescLabel": "Full Description",
+          "categoryLabel": "Category",
+          "categoryPlaceholder": "E.g. Computer Science",
+          "levelLabel": "Level",
+          "visibilityLabel": "Visibility",
+          "enrollmentLabel": "Enrollment",
+          "tagsLabel": "Tags (comma-separated)",
+          "tagsPlaceholder": "python, beginner, programming",
+          "prereqLabel": "Prerequisites",
+          "prereqPlaceholder": "Required knowledge before taking this course",
+          "objectivesLabel": "Learning Objectives",
+          "objectivesPlaceholder": "What learners will be able to do by the end of the course",
+          "btnCancel": "Cancel",
+          "btnCreate": "Create",
+          "validation": {
+            "titleRequired": "Title is required"
+          }
+        }
+      }
+    },
+    "users": {
+      "title": "Users",
+      "titleSuffix": "Management",
+      "subtitle": "{{count}} total users",
+      "loading": "Loading...",
+      "btnNew": "Add User",
+      "btnExport": "Export CSV",
+      "btnRetry": "Retry",
+      "roles": {
+        "student": "Student",
+        "teacher": "Teacher",
+        "admin_school": "School Admin",
+        "pedagogical_admin": "Pedagogy Lead (Platform)",
+        "pedagogical_lead": "Pedagogy Lead (School)",
+        "super_admin": "Super Admin"
+      },
+      "status": {
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "kpi": {
+        "total": "Total Users",
+        "active": "Active Users",
+        "ofTotal": "of {{total}} total",
+        "tokens": "Tokens in System",
+        "dt": "DT in System"
+      },
+      "filter": {
+        "searchPlaceholder": "Search by name or email...",
+        "allRoles": "All Roles",
+        "students": "Students",
+        "teachers": "Teachers",
+        "allStatus": "All Status",
+        "resultsFor": "Results for \"{{query}}\""
+      },
+      "table": {
+        "colUser": "User",
+        "colRole": "Role",
+        "colSchool": "School",
+        "colStatus": "Status",
+        "colTokens": "Tokens",
+        "colBalance": "Balance (DT)",
+        "colJoined": "Joined",
+        "colActions": "Actions"
+      },
+      "btn": {
+        "edit": "Edit User",
+        "addTokens": "Add Tokens",
+        "changeRole": "Change Role",
+        "delete": "Delete",
+        "retry": "Retry"
+      },
+      "empty": {
+        "noMatch": "No users matching \"{{query}}\"",
+        "noUsers": "No users found"
+      },
+      "toast": {
+        "deactivated": "{{name}} deactivated",
+        "activated": "{{name}} activated",
+        "added": "Added {{amount}} {{type}} to",
+        "deducted": "Deducted {{amount}} {{type}} from",
+        "roleChanged": "Role changed to {{role}}",
+        "updated": "User updated",
+        "deleted": "User deleted",
+        "created": "User created successfully"
+      },
+      "errors": {
+        "loadFailed": "Failed to load users. Please try again.",
+        "createFailed": "Failed to create user"
+      },
+      "balanceModal": {
+        "addTitle": {
+          "tokens": "Add Tokens",
+          "dt": "Add DT"
+        },
+        "deductTitle": {
+          "tokens": "Deduct Tokens",
+          "dt": "Deduct DT"
+        },
+        "user": "User",
+        "current": "Current: {{balance}}",
+        "tokens": "Tokens",
+        "mode": {
+          "add": "+ Add",
+          "deduct": "− Deduct"
+        },
+        "amount": "Amount",
+        "btnCancel": "Cancel",
+        "btnConfirm": "Confirm"
+      },
+      "roleModal": {
+        "title": "Change User Role",
+        "btnCancel": "Cancel",
+        "btnSave": "Save"
+      },
+      "editModal": {
+        "title": "Edit User",
+        "fullName": "Full Name",
+        "email": "Email",
+        "role": "Role",
+        "active": "Active",
+        "approved": "Approved",
+        "btnCancel": "Cancel",
+        "btnSave": "Save Changes",
+        "saving": "Saving..."
+      },
+      "deleteModal": {
+        "title": "Delete User",
+        "message": "Are you sure you want to delete {{name}}? This action cannot be undone.",
+        "confirm": "Delete"
+      },
+      "createModal": {
+        "title": "Add User",
+        "emailLabel": "Email *",
+        "emailPlaceholder": "user@eduai.tn",
+        "passwordLabel": "Password *",
+        "passwordPlaceholder": "Password",
+        "fullNameLabel": "Full Name",
+        "fullNamePlaceholder": "First and last name",
+        "roleLabel": "Role",
+        "schoolLabel": "School",
+        "noSchool": "— No school —",
+        "schoolInfo": "The user will be linked to the school and benefit from its subscription rights.",
+        "btnCancel": "Cancel",
+        "btnCreate": "Create User",
+        "creating": "Creating..."
+      }
+    },
+    "dashboard": {
+      "title": "Platform",
+      "titleSuffix": "Overview",
+      "subtitle": "Real-time platform metrics and performance",
+      "period": {
+        "7d": "7 Days",
+        "30d": "30 Days",
+        "90d": "90 Days",
+        "12m": "12 Months"
+      },
+      "btn": {
+        "retry": "Retry"
+      },
+      "kpi": {
+        "totalRevenue": "Total Revenue",
+        "totalUsers": "Total Users",
+        "students": "students",
+        "teachers": "teachers",
+        "tokensSold": "Tokens Sold",
+        "aiCost": "AI Cost",
+        "totalCourses": "Total Courses",
+        "published": "published",
+        "annualRunRate": "Annual Run Rate",
+        "activeUsers": "Active Users",
+        "ofTotal": "of {{total}} total",
+        "conversion": "Conversion",
+        "freeToPaid": "Free to paid",
+        "estProfit": "Est. Profit",
+        "afterAiCosts": "After AI costs"
+      },
+      "chart": {
+        "enrollmentTitle": "New Registrations",
+        "enrollmentSubtitle": "Daily user sign-ups ({{period}})",
+        "noEnrollmentData": "No enrollment data",
+        "registrations": "Registrations",
+        "apiCostTitle": "AI API Costs",
+        "apiCostSubtitle": "Daily token consumption cost ({{period}})",
+        "noApiCostData": "No API cost data",
+        "cost": "Cost",
+        "costDT": "Cost (DT)"
+      },
+      "section": {
+        "userDistribution": "User Distribution",
+        "planDistribution": "Plan Distribution",
+        "quickStats": "Quick Stats",
+        "topSchools": "Top Schools by Revenue"
+      },
+      "stats": {
+        "pendingCourses": "Pending Courses",
+        "publishedCourses": "Published Courses",
+        "totalTransactions": "Total Transactions",
+        "teacherRegistrations": "Teacher Registrations"
+      },
+      "table": {
+        "colSchool": "School",
+        "colRevenue": "Revenue (DT)",
+        "colShare": "Share"
+      },
+      "empty": {
+        "noData": "No data available",
+        "noPlanData": "No plan data"
+      },
+      "errors": {
+        "loadFailed": "Failed to load dashboard data. Please try again."
+      }
+    },
+    "schools": {
+      "title": "Schools",
+      "titleSuffix": "& Tenants",
+      "subtitle": "{{count}} schools on platform",
+      "loading": "Loading...",
+      "btnNew": "New School",
+      "btnExport": "Export",
+      "unlimited": "Unlimited",
+      "kpi": {
+        "total": "Total Schools",
+        "active": "Active",
+        "freeTier": "Free Tier",
+        "institution": "Institution"
+      },
+      "filter": {
+        "searchPlaceholder": "Search schools...",
+        "allPlans": "All Plans",
+        "allStatus": "All Status",
+        "resultsFor": "Results for \"{{query}}\""
+      },
+      "status": {
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "table": {
+        "colSchool": "School",
+        "colPlan": "Plan",
+        "colMaxUsers": "Max Users",
+        "colStatus": "Status",
+        "colCreated": "Created",
+        "colActions": "Actions"
+      },
+      "btn": {
+        "edit": "Edit",
+        "delete": "Delete"
+      },
+      "empty": {
+        "noMatch": "No schools matching \"{{query}}\"",
+        "noSchools": "No schools found"
+      },
+      "toast": {
+        "loadFailed": "Failed to load schools",
+        "updated": "School updated",
+        "created": "School created",
+        "deleted": "School deleted"
+      },
+      "deleteModal": {
+        "title": "Delete School",
+        "message": "Delete \"{{name}}\"? All users and data will be lost.",
+        "confirm": "Delete"
+      },
+      "modal": {
+        "editTitle": "Edit School",
+        "createTitle": "Create School",
+        "nameLabel": "Name *",
+        "domainLabel": "Domain",
+        "planLabel": "Plan",
+        "maxUsersLabel": "Max Users",
+        "activeLabel": "Active",
+        "btnCancel": "Cancel",
+        "btnSave": "Save",
+        "btnCreate": "Create"
+      }
+    },
+    "courseBuilder": {
+      "title": "Course Builder",
+      "subtitle": "Create and manage your courses",
+      "btnNew": "New Course",
+      "loading": "Loading...",
+      "noDescription": "No description",
+      "chapters": "chapters",
+      "lessons": "lessons",
+      "status": {
+        "draft": "Draft",
+        "published": "Published",
+        "archived": "Archived"
+      },
+      "level": {
+        "beginner": "Beginner",
+        "intermediate": "Intermediate",
+        "advanced": "Advanced"
+      },
+      "filter": {
+        "searchPlaceholder": "Search courses...",
+        "allStatus": "All Status",
+        "allLevels": "All Levels"
+      },
+      "btn": {
+        "edit": "Edit",
+        "publish": "Publish",
+        "unpublish": "Unpublish",
+        "duplicate": "Duplicate"
+      },
+      "empty": {
+        "noResults": "No courses found",
+        "createFirst": "Create my first course"
+      },
+      "alerts": {
+        "titleRequired": "Title is required",
+        "error": "Error: {{message}}",
+        "confirmDelete": "Delete this course?",
+        "deleteError": "Delete error",
+        "errorGeneric": "Error",
+        "copied": "Course copied: {{title}}",
+        "duplicateError": "Duplicate error"
+      },
+      "modal": {
+        "createTitle": "Create a new course",
+        "titleLabel": "Title *",
+        "titlePlaceholder": "Introduction to Python",
+        "descLabel": "Short Description",
+        "descPlaceholder": "A brief course summary...",
+        "categoryLabel": "Category",
+        "selectPlaceholder": "Select...",
+        "levelLabel": "Level",
+        "priceTokensLabel": "Price (Tokens)",
+        "priceDtLabel": "Price (DT)",
+        "btnCancel": "Cancel",
+        "btnCreate": "Create",
+        "creating": "Creating..."
+      }
+    }
+  },
   "niveaux": {
     "primaire": "Primary",
     "preparatoire": "Preparatory",
