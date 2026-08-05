@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { adminTeacherClasses, TeacherCourseCatalogEntry, TeacherClassInfo, ClassCourseAccessInfo, StudentEnrollmentInfo } from "../api";
+import { adminTeacherClasses, TeacherCourseCatalogEntry, TeacherClassInfo, ClassCourseAccessInfo, StudentEnrollmentInfo } from "../../../api";
 
 export default function SuperAdminCourseFactory() {
   const [catalog, setCatalog] = useState<TeacherCourseCatalogEntry[]>([]);

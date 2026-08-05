@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Search, Library, BookOpen, Award } from "lucide-react";
 import { useAuthStore } from "../../../store/authStore";
-import { searchElements, listCompetences, type ElementPedagogique, type Competence } from "../api/moduleApi";
+import { searchElements, listCompetences, type ElementPedagogique, type Competence } from "../../../api";
 
 const STATUT_COLORS: Record<string, string> = {
   brouillon: "bg-gray-100 text-gray-600",

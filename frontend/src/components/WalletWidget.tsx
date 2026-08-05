@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { getWalletBalance } from "../api/wallet";
+import { walletApi } from "../api";
+const getWalletBalance = walletApi.balance;
 import { useAuthStore } from "../store/authStore";
 
 interface PoolBalance {

@@ -377,3 +377,7 @@ export const quizLearner = {
 
   certificate: (id: number) => api.get<any>(`/api/learner/certificates/${id}`),
 };
+
+// ─── Backward compat aliases ───────────────────────────────────────────────
+
+export const adminCourses = courseAdmin;

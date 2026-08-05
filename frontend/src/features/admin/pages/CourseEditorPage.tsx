@@ -6,8 +6,10 @@ import {
   Archive, AlertCircle, CheckCircle
 } from "lucide-react";
 
-import { adminCoursesAPI, adminChaptersAPI, adminLessonsAPI } from "../../../api/lms";
-import { adminCourses } from "../../admin/api";
+import { courseAdmin, chapterAdmin, lessonAdmin } from "../../../api";
+const adminCoursesAPI = courseAdmin;
+const adminChaptersAPI = chapterAdmin;
+const adminLessonsAPI = lessonAdmin;
 import { tokenStorage } from "../../../utils/tokenStorage";
 
 const LESSON_TYPES = [

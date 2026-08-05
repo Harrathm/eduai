@@ -3,16 +3,12 @@
  */
 import { create } from "zustand";
 import {
-  listConversations,
-  getConversation,
-  createConversation,
-  addMessage,
-  deleteConversation,
-  deleteAllConversations,
+  conversationApi,
   type ConversationSummary,
   type ConversationDetail,
   type ChatMessage,
-} from "../api/conversations";
+} from "../api";
+const { list: listConversations, get: getConversation, create: createConversation, addMessage, delete: deleteConversation, deleteAll: deleteAllConversations } = conversationApi;
 
 interface ConversationState {
   conversations: ConversationSummary[];

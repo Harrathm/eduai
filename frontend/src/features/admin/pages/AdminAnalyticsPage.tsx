@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { DollarSign, TrendingUp, Users, BookOpen, Activity } from "lucide-react";
 import { KPICard } from "../components";
-import { adminAnalytics } from "../api";
-import type { RevenueData, DashboardStats } from "../api";
+import { adminAnalytics } from "../../../api";
+import type { RevenueData, DashboardStats } from "../../../api";
 
 export default function AdminAnalyticsPage() {
   const [revenue, setRevenue] = useState<RevenueData | null>(null);

@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { CheckCircle, AlertCircle, BookOpen, FileText, Eye } from "lucide-react";
 import {
   getNiveauxEtude, getMatieres, getChapters, getNotions, getContenus, getStatutPublication,
-} from "../../pathway/api";
-import type { NiveauEtude, Matiere, ChapterPathway, Notion, ContenuNotion, StatutPublication } from "../../pathway/api";
+} from "../../../api";
+import type { NiveauEtude, Matiere, ChapterPathway, Notion, ContenuNotion, StatutPublication } from "../../../api";
 
 type NotionWithStatus = Notion & {
   statut?: StatutPublication;

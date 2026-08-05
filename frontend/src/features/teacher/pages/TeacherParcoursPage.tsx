@@ -7,7 +7,7 @@ import {
   listLecons, createLecon, updateLecon,
   listParagraphes, createParagraphe, updateParagraphe,
   type Parcours, type Chapitre, type Lecon, type Paragraphe,
-} from "../api/moduleApi";
+} from "../../../api";
 
 type TreeItem = {
   parcours: Parcours;

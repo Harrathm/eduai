@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { adminCoursesAPI } from "../../../api/lms";
+import { courseAdmin } from "../../../api";
+const adminCoursesAPI = courseAdmin;
 import { Plus, Trash2, Edit, Eye, EyeOff, BookOpen, Search, Copy, X, Check } from "lucide-react";
 
 const CATEGORIES = ["Programmation", "Mathématiques", "Sciences", "Langues", "Business", "Design", "Marketing", "Autre"];

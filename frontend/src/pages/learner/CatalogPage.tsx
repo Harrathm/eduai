@@ -1,7 +1,9 @@
 // Learner Course Catalog Page
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { catalogAPI, CatalogCourse, enrollmentAPI } from "../../api/catalog";
+import { catalogApi, type CatalogCourse, enrollmentApi } from "../../api";
+const catalogAPI = catalogApi;
+const enrollmentAPI = enrollmentApi;
 import { Search, BookOpen, Clock, Users, Award, ChevronRight } from "lucide-react";
 
 const LEVELS = { beginner: "Débutant", intermediate: "Intermédiaire", advanced: "Avancé" };

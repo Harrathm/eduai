@@ -37,3 +37,7 @@ export const schoolApi = {
   regenerateInviteCode: (id: number) =>
     api.post<{ invite_code: string }>(`/api/admin/schools/${id}/regenerate-invite-code`),
 };
+
+// ─── Backward compat alias ─────────────────────────────────────────────────
+
+export const adminSchools = schoolApi;

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { parentAPI, ProgressionData, SuiviData } from "../api";
+import { parentAPI, ProgressionData, SuiviData } from "../../../api";
 import { Wallet, ExternalLink } from "lucide-react";
 
 const RECHARGE_AMOUNTS = [5, 10, 20, 50];

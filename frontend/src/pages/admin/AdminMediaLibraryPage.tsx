@@ -1,6 +1,7 @@
 // Admin Media Library Page
 import { useState, useEffect } from "react";
-import { adminCoursesAPI } from "../../api/lms";
+import { courseAdmin } from "../../api";
+const adminCoursesAPI = courseAdmin;
 import { Plus, Trash2, Upload, Image, Video, File, Search, Filter, X } from "lucide-react";
 
 interface MediaAsset {

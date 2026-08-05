@@ -4,13 +4,10 @@ import {
   FileText, File, Trash2, Search, Sparkles, Clock,
 } from "lucide-react";
 import {
-  listConversations,
-  getConversation,
-  deleteConversation,
-  exportMessagePdf,
-  exportMessageDocx,
+  conversationApi,
   type ConversationSummary,
-} from "../../api/conversations";
+} from "../../api";
+const { list: listConversations, get: getConversation, delete: deleteConversation, exportMessagePdf, exportMessageDocx } = conversationApi;
 import { tokenStorage } from "../../utils/tokenStorage";
 
 const BASE_URL = "";

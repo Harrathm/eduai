@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { Bell, CheckCircle, XCircle, Clock, AlertTriangle } from "lucide-react";
 import { useAuthStore } from "../../../store/authStore";
-import { getNotificationsReorientation, validerReorientation } from "../../pathway/api";
-import type { NotificationReorientation } from "../../pathway/api";
+import { getNotificationsReorientation, validerReorientation } from "../../../api";
+import type { NotificationReorientation } from "../../../api";
 
 export default function TeacherReorientationPage() {
   const { token, user } = useAuthStore();

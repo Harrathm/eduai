@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { BookOpen, Plus, RefreshCw, Eye, EyeOff, Pencil, Trash2, Search, Copy, Archive, X, FileText, Clock, Users, Tag, Send } from "lucide-react";
 import { AdminTable, KPICard, StatusBadge, Modal, ConfirmModal } from "../components";
-import { adminCourses } from "../api";
-import type { AdminCourse } from "../api";
+import { adminCourses } from "../../../api";
+import type { AdminCourse } from "../../../api";
 import DOMPurify from "dompurify";
 
 const statusColors: Record<string, string> = {

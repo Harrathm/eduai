@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { parentAPI } from "../api";
+import { parentAPI } from "../../../api";
 
 interface Message {
   id: number;

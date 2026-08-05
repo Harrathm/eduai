@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { Users, BookOpen, DollarSign, Coins, TrendingUp, GraduationCap, Building2, Activity } from "lucide-react";
 import { KPICard } from "../components/KPICard";
-import { adminAnalytics } from "../api";
-import type { DashboardStats, RevenueData, EnrollmentTrend, ApiCostTrend } from "../api";
+import { adminAnalytics } from "../../../api";
+import type { DashboardStats, RevenueData, EnrollmentTrend, ApiCostTrend } from "../../../api";
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { parentAPI, DashboardData } from "../api";
+import { parentAPI, DashboardData } from "../../../api";
 import ParentMessaging from "./ParentMessaging";
 import { Wallet, Package, Users } from "lucide-react";
 import { tokenStorage } from "../../../utils/tokenStorage";

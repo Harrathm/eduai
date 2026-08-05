@@ -1,5 +1,5 @@
 import React from "react";
-import type { RecommendedPath as RecommendedPathType } from "../api/tier";
+import type { RecommendedPath as RecommendedPathType } from "../api";
 import TierBadge from "./TierBadge";
 
 interface RecommendedPathProps {

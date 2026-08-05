@@ -117,3 +117,7 @@ export const teacherRegistrationApi = {
   reject: (id: number, reason?: string) =>
     api.post<any>(`/api/admin/teacher-registrations/${id}/reject`, { reason }),
 };
+
+// ─── Backward compat aliases ───────────────────────────────────────────────
+
+export const adminUsers = userApi;

@@ -94,3 +94,7 @@ export const teacherWalletApi = {
   history: (page = 1, pageSize = 20) =>
     api.get<any>(`/api/wallet/history?page=${page}&page_size=${pageSize}`),
 };
+
+// ─── Backward compat aliases ───────────────────────────────────────────────
+
+export const adminTeacherClasses = teacherClassesApi;

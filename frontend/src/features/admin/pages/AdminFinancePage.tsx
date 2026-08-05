@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { DollarSign, Coins, TrendingUp, ArrowUpRight, ArrowDownRight, RefreshCw, Search, Download, Calendar, Download as DownIcon } from "lucide-react";
 import { KPICard, AdminTable, StatusBadge } from "../components";
-import { adminTransactions, adminAnalytics } from "../api";
-import type { Transaction, DashboardStats, PaginatedResponse } from "../api";
+import { adminTransactions, adminAnalytics } from "../../../api";
+import type { Transaction, DashboardStats, PaginatedResponse } from "../../../api";
 
 const typeColors: Record<string, string> = {
   token_recharge: "bg-blue-50 text-blue-600",

@@ -6,8 +6,8 @@ import {
   getChapters, createChapter, updateChapter, deleteChapter,
   getNotions, createNotion, updateNotion, deleteNotion,
   getStatutPublication,
-} from "../../pathway/api";
-import type { NiveauEtude, Matiere, ChapterPathway, Notion, StatutPublication } from "../../pathway/api";
+} from "../../../api";
+import type { NiveauEtude, Matiere, ChapterPathway, Notion, StatutPublication } from "../../../api";
 
 type EditableItem = {
   id?: number;

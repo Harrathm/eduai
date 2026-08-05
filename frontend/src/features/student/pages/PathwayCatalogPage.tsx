@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { ShoppingCart, CheckCircle, BookOpen, ChevronRight, Clock, GraduationCap, Lock, Unlock } from "lucide-react";
-import { getPathwayCatalog, enrollPathway } from "../../pathway/api";
-import type { PathwayCatalogItem } from "../../pathway/api";
+import { getPathwayCatalog, enrollPathway } from "../../../api";
+import type { PathwayCatalogItem } from "../../../api";
 
 export default function PathwayCatalogPage() {
   const [catalog, setCatalog] = useState<PathwayCatalogItem[]>([]);

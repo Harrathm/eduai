@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../../../store/authStore";
-import { tierAPI, type DashboardData, type DailyObjective } from "../../../api/tier";
+import { tierApi, type DashboardData, type DailyObjective } from "../../../api";
+const tierAPI = tierApi;
 import { tokenStorage } from "../../../utils/tokenStorage";
 
 function StatSkeleton() {

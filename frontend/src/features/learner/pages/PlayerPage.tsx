@@ -1,6 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { learnerAPI } from "../../../api/lms";
+import { lessonLearner, quizLearner, courseLearner } from "../../../api";
+const learnerAPI = {
+  syllabus: courseLearner.syllabus,
+  lesson: lessonLearner.get,
+  updateProgress: lessonLearner.progress,
+  startQuiz: quizLearner.start,
+  submitQuiz: quizLearner.submit,
+  certificates: quizLearner.certificates,
+  certificate: quizLearner.certificate,
+  getCourseCertificate: courseLearner.certificate,
+};
 import { Play, Pause, CheckCircle, ChevronLeft, ChevronRight, BookOpen, Award, FileText, Video as VideoIcon, HelpCircle, Download } from "lucide-react";
 import { jsPDF } from "jspdf";
 import DOMPurify from "dompurify";

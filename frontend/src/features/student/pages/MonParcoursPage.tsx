@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { GraduationCap, ChevronDown, ChevronRight, Star, BookOpen, Clock, CheckCircle, AlertCircle, TrendingUp } from "lucide-react";
-import { getMonParcours } from "../../pathway/api";
-import type { MonParcoursNiveau } from "../../pathway/api";
+import { getMonParcours } from "../../../api";
+import type { MonParcoursNiveau } from "../../../api";
 
 const niveauColors: Record<string, string> = {
   decouverte: "bg-blue-500",

@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useAuthStore } from "../../../store/authStore";
 import { aiApi } from "../../../api";
 import { Sparkles, BookOpen, FileText, Clock, Zap, Send, Coins, Loader2 } from "lucide-react";
-import { exportMessagePdf, exportMessageDocx } from "../../../api/conversations";
+import { conversationApi } from "../../../api";
+const { exportMessagePdf, exportMessageDocx } = conversationApi;
 
 const SUBJECTS = [
   "Mathématiques",

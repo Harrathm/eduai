@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { Search, Coins, Wallet, Ban, CheckCircle, Shield, ShieldCheck, GraduationCap, Users, RefreshCw, Trash2, Pencil, Download, ArrowUp, ArrowDown, Save, X, Plus, BookOpen, Loader2 } from "lucide-react";
 import { AdminTable, KPICard, StatusBadge, ConfirmModal, Modal } from "../components";
-import { adminUsers, adminSchools } from "../api";
-import type { AdminUser, AdminSchool, PaginatedResponse } from "../api";
+import { adminUsers, adminSchools } from "../../../api";
+import type { AdminUser, AdminSchool, PaginatedResponse } from "../../../api";
 
 type RoleFilter = "all" | "student" | "teacher" | "admin_school" | "pedagogical_admin" | "pedagogical_lead" | "super_admin";
 type StatusFilter = "all" | "active" | "inactive";

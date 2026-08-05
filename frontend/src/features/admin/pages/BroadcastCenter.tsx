@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Send, Users, Megaphone, MessageSquare, History, Trash2, RefreshCw } from "lucide-react";
-import { adminBroadcast } from "../api";
-import type { BroadcastMessage } from "../api";
+import { adminBroadcast } from "../../../api";
+import type { BroadcastMessage } from "../../../api";
 
 const TARGET_OPTIONS = [
   { value: "all", label: "All Users", icon: "🌍", desc: "Every active user on the platform" },

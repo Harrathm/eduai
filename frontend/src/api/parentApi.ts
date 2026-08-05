@@ -64,3 +64,7 @@ export const parentWallet = {
   creditWallet: (eleveId: number, amountTnd: number) =>
     api.post<any>(`/api/konnect/parents/me/enfants/${eleveId}/credit-wallet`, { amount_tnd: amountTnd }),
 };
+
+// ─── Backward compat alias ─────────────────────────────────────────────────
+
+export const parentAPI = { famille: parentFamille, enfants: parentEnfants };

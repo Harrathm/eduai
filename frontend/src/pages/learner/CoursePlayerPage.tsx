@@ -6,7 +6,17 @@ import {
   FileText, Video, HelpCircle, File, BookmarkPlus, StickyNote,
   Clock, Award, ChevronDown, Play, MessageSquare, Download
 } from "lucide-react";
-import { learnerAPI } from "../../api/lms";
+import { lessonLearner, quizLearner } from "../../api";
+const learnerAPI = {
+  lesson: lessonLearner.get,
+  updateProgress: lessonLearner.progress,
+  startQuiz: quizLearner.start,
+  submitQuiz: quizLearner.submit,
+  certificates: quizLearner.certificates,
+  certificate: quizLearner.certificate,
+  getCourseCertificate: (id: number) => lessonLearner.get(id),
+  syllabus: (id: number) => import("../../api").then(m => m.courseLearner.syllabus(id)),
+};
 import { jsPDF } from "jspdf";
 import DOMPurify from "dompurify";
 import { tokenStorage } from "../../utils/tokenStorage";

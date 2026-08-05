@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuthStore } from "../../../store/authStore";
-import { tierAPI, type DashboardData, type RecommendedPath as RecommendedPathType } from "../../../api/tier";
+import { tierApi, type DashboardData, type RecommendedPath as RecommendedPathType } from "../../../api";
+const tierAPI = tierApi;
 import TierBadge from "../../../components/TierBadge";
 import DailyObjective from "../../../components/DailyObjective";
 import RecommendedPath from "../../../components/RecommendedPath";

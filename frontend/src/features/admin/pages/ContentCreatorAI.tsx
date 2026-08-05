@@ -2,8 +2,8 @@ import { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sparkles, Loader2, Check, ChevronRight, BookOpen, FileText, Image, Video, Eye, Save, ArrowLeft, AlertCircle, Puzzle, RotateCcw, Upload, X, File } from "lucide-react";
 import { Modal } from "../components";
-import { adminAIFactory } from "../api";
-import type { AIFactoryPlan, AIFactoryBundle, AIPreviewInfo } from "../api";
+import { adminAIFactory } from "../../../api";
+import type { AIFactoryPlan, AIFactoryBundle, AIPreviewInfo } from "../../../api";
 
 const STEPS = ["Topic", "Plan", "Generate", "Preview"];
 

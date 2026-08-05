@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { Brain, TrendingUp, TrendingDown, Minus, BookOpen, Layers } from "lucide-react";
 import { useAuthStore } from "../../../store/authStore";
-import { getMatieres, getChapters, getNotions, getNiveauEffectif } from "../../pathway/api";
-import type { Matiere, ChapterPathway, Notion, NiveauEffectif } from "../../pathway/api";
+import { getMatieres, getChapters, getNotions, getNiveauEffectif } from "../../../api";
+import type { Matiere, ChapterPathway, Notion, NiveauEffectif } from "../../../api";
 
 const LEVEL_COLORS: Record<string, { bg: string; text: string; label: string; icon: any }> = {
   remediation: { bg: "bg-red-100", text: "text-red-700", label: "Remédiation", icon: TrendingDown },

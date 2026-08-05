@@ -1,5 +1,5 @@
 import React from "react";
-import type { DailyObjective as DailyObjectiveType } from "../api/tier";
+import type { DailyObjective as DailyObjectiveType } from "../api";
 
 interface DailyObjectiveProps {
   objective: DailyObjectiveType;

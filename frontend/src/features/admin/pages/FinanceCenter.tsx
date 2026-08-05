@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Search, Plus, Minus, DollarSign, Coins, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
-import { adminUsers, adminAnalytics, adminTransactions } from "../api";
-import type { WalletEntry, GlobalStats } from "../api";
+import { adminUsers, adminAnalytics, adminTransactions } from "../../../api";
+import type { WalletEntry, GlobalStats } from "../../../api";
 
 export default function FinanceCenter() {
   const [wallets, setWallets] = useState<WalletEntry[]>([]);

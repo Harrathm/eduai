@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { UserPlus, Check, X, Clock, RefreshCw, FileText, GraduationCap, Mail } from "lucide-react";
 import { AdminTable, KPICard, StatusBadge, Modal, ConfirmModal } from "../components";
-import { adminTeacherRegistrations } from "../api";
-import type { TeacherRegistration } from "../api";
+import { adminTeacherRegistrations } from "../../../api";
+import type { TeacherRegistration } from "../../../api";
 
 export default function AdminTeacherQueuePage() {
   const [registrations, setRegistrations] = useState<TeacherRegistration[]>([]);

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Search, Copy, RefreshCw, Check, Key, Building2 } from "lucide-react";
-import { adminSchools } from "../api";
-import type { AdminSchool, PaginatedResponse } from "../api";
+import { adminSchools } from "../../../api";
+import type { AdminSchool, PaginatedResponse } from "../../../api";
 
 export default function AdminInviteCodesPage() {
   const [result, setResult] = useState<PaginatedResponse<AdminSchool> | null>(null);

@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { Search, Building2, Plus, RefreshCw, Trash2, Pencil, Download, Globe, Users as UsersIcon, Calendar } from "lucide-react";
 import { AdminTable, KPICard, StatusBadge, Modal, ConfirmModal } from "../components";
-import { adminSchools } from "../api";
-import type { AdminSchool, PaginatedResponse } from "../api";
+import { adminSchools } from "../../../api";
+import type { AdminSchool, PaginatedResponse } from "../../../api";
 
 const tierColors: Record<string, string> = {
   FREE: "bg-blue-50 text-blue-600",

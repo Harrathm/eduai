@@ -5,7 +5,7 @@ import {
   listElements, createElement, updateElement, submitElement, getWorkflow,
   createElementTexte, createElementVideo,
   type ElementPedagogique, type WorkflowEntry,
-} from "../api/moduleApi";
+} from "../../../api";
 
 const STATUT_COLORS: Record<string, string> = {
   brouillon: "bg-gray-100 text-gray-600",
