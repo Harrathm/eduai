@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../../../store/authStore";
 import { tierApi, type DashboardData, type RecommendedPath as RecommendedPathType } from "../../../api";
 const tierAPI = tierApi;
@@ -44,6 +45,7 @@ const TIER_DETAILS: Record<string, { title: string; description: string; color: 
 };
 
 export default function StudentTierPage() {
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [path, setPath] = useState<RecommendedPathType | null>(null);
@@ -60,7 +62,7 @@ export default function StudentTierPage() {
         setDashboard(dash);
         setPath(recPath);
       } catch (e: any) {
-        setError(e.message || "Erreur de chargement");
+        setError(e.message || t("student.tier.loadingError"));
       } finally {
         setLoading(false);
       }
@@ -84,7 +86,7 @@ export default function StudentTierPage() {
   if (error) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-red-700">
-        Erreur : {error}
+        {t("student.tier.errorPrefix")} {error}
       </div>
     );
   }
@@ -113,23 +115,23 @@ export default function StudentTierPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
           <div className="text-4xl font-[300] text-orange">{dashboard.total_enrolled_courses}</div>
-          <div className="text-sm text-gray mt-1">Cours inscrits</div>
+          <div className="text-sm text-gray mt-1">{t("student.tier.enrolledCourses")}</div>
         </div>
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
           <div className="text-4xl font-[300] text-green-600">{dashboard.overall_progress_pct}%</div>
-          <div className="text-sm text-gray mt-1">Progression globale</div>
+          <div className="text-sm text-gray mt-1">{t("student.tier.overallProgress")}</div>
         </div>
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
           <div className="text-4xl font-[300] text-blue-600">
             {dashboard.lessons_completed}/{dashboard.total_lessons}
           </div>
-          <div className="text-sm text-gray mt-1">Leçons complétées</div>
+          <div className="text-sm text-gray mt-1">{t("student.tier.completedLessons")}</div>
         </div>
       </div>
 
       {/* Tier features */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
-        <h2 className="font-medium text-navy mb-3">Vos fonctionnalités</h2>
+        <h2 className="font-medium text-navy mb-3">{t("student.tier.yourFeatures")}</h2>
         <ul className="space-y-2">
           {tierInfo.features.map((f, i) => (
             <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
@@ -149,7 +151,7 @@ export default function StudentTierPage() {
       {/* Matiere stats (excellence/etablissement) */}
       {dashboard.matiere_stats && Object.keys(dashboard.matiere_stats).length > 0 && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
-          <h2 className="font-medium text-navy mb-4">Progression par matière</h2>
+          <h2 className="font-medium text-navy mb-4">{t("student.tier.progressionBySubject")}</h2>
           <div className="space-y-3">
             {Object.entries(dashboard.matiere_stats).map(([matiere, stat]) => (
               <div key={matiere}>
@@ -172,7 +174,7 @@ export default function StudentTierPage() {
       {/* Suggested school courses (etablissement) */}
       {dashboard.suggested_school_courses && dashboard.suggested_school_courses.length > 0 && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
-          <h2 className="font-medium text-navy mb-4">Cours disponibles dans votre établissement</h2>
+          <h2 className="font-medium text-navy mb-4">{t("student.tier.schoolCoursesTitle")}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {dashboard.suggested_school_courses.map((c) => (
               <a
@@ -191,18 +193,18 @@ export default function StudentTierPage() {
       {/* Upgrade prompt */}
       {tier !== "etablissement" && (
         <div className="bg-gradient-to-r from-orange-p/20 to-cream rounded-2xl p-6 border border-orange/20">
-          <h3 className="font-medium text-navy mb-2">Passer au palier supérieur</h3>
+          <h3 className="font-medium text-navy mb-2">{t("student.tier.upgradeTitle")}</h3>
           <p className="text-sm text-gray-600 mb-4">
             {tier === "decouverte"
-              ? "Achetez un pack Excellence pour débloquer les exercices ciblés et le test de positionnement."
-              : "Contactez votre admin d'école pour activer le palier Établissement et accéder au contenu exclusif."}
+              ? t("student.tier.upgradeExcellence")
+              : t("student.tier.upgradeEtablissement")}
           </p>
           {tier === "decouverte" && (
             <a
               href="/dashboard/packs"
               className="inline-block px-5 py-2 bg-navy text-white rounded-xl text-sm font-medium hover:bg-navy/90 transition-colors"
             >
-              Voir les packs
+              {t("student.tier.viewPacks")}
             </a>
           )}
         </div>

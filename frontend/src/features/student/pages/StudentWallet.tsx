@@ -54,7 +54,7 @@ export default function StudentWallet() {
   };
 
   const poolLabel = (p: string) =>
-    ({ trial: "Essai", subscription: "Abonnement", school_allocated: "École", purchased: "Acheté", dt_purchased: "DT Achetés" })[p] || p;
+    ({ trial: t("student.wallet.poolTrial"), subscription: t("student.wallet.poolSubscription"), school_allocated: t("student.wallet.poolSchool"), purchased: t("student.wallet.poolPurchased"), dt_purchased: t("student.wallet.poolPurchased") })[p] || p;
 
   const getPoolData = (poolName: string): PoolEntry | undefined =>
     balance?.pools?.find((p) => p.pool === poolName);
@@ -74,7 +74,7 @@ export default function StudentWallet() {
             <span className="text-sm text-gray">{t('wallet.aiCredits')}</span>
           </div>
           <div className="text-3xl font-[300] text-navy">{balance?.total ?? 0}</div>
-          <div className="text-xs text-gray mt-1">{t('wallet.creditTokenRatio')}</div>
+          <div className="text-xs text-gray mt-1">{t('student.wallet.creditTokenRatio')}</div>
         </div>
         <div className="bg-gradient-to-br from-yellow-50 to-cream rounded-2xl p-6">
           <div className="flex items-center gap-2 mb-2">

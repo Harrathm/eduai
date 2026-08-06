@@ -116,7 +116,7 @@ export default function StudentDashboard() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
             </svg>
-            {t("student.dashboard.ouvrirAssistant").includes("assistant") ? "Améliorer mon pack" : t("student.dashboard.offresDisponibles")}
+            {t("student.dashboard.improvePack")}
           </Button>
         </div>
       </div>
@@ -205,7 +205,7 @@ export default function StudentDashboard() {
           {/* BLOC 2 — REPRENDRE L'APPRENTISSAGE */}
           <Card>
             <CardHeader>
-              <CardTitle>Reprendre l&apos;Apprentissage</CardTitle>
+              <CardTitle>{t("student.dashboard.resumeLearning")}</CardTitle>
             </CardHeader>
             {sourceErrors.dashboard ? (
               <WidgetError message={sourceErrors.dashboard} />
@@ -226,7 +226,7 @@ export default function StudentDashboard() {
                   </div>
                 </div>
                 <Button variant="primary" size="sm" onClick={() => navigate("/dashboard/courses")}>
-                  Continuer
+                  {t("student.dashboard.continue")}
                 </Button>
               </div>
             ) : (
@@ -243,8 +243,8 @@ export default function StudentDashboard() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Mes Matières Accessibles</CardTitle>
-                <span className="text-xs text-gray-400">{matieresCount} matière{matieresCount !== 1 ? "s" : ""}</span>
+                <CardTitle>{t("student.dashboard.accessibleSubjects")}</CardTitle>
+                <span className="text-xs text-gray-400">{matieresCount} {t("student.dashboard.subjectCount")}</span>
               </div>
             </CardHeader>
             {sourceErrors.dashboard ? (
@@ -261,7 +261,7 @@ export default function StudentDashboard() {
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-navy truncate">{course.title}</p>
                       <p className="text-[10px] text-gray-400">
-                        {course.lessons_completed}/{course.total_lessons} leçons
+                        {course.lessons_completed}/{course.total_lessons} {t("student.dashboard.lessons")}
                       </p>
                     </div>
                   </button>
@@ -275,7 +275,7 @@ export default function StudentDashboard() {
             {courses.length > 6 && (
               <div className="mt-3 text-center">
                 <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/courses")}>
-                  Voir toutes les matières ({courses.length})
+                  {t("student.dashboard.viewAllSubjects", { count: courses.length })}
                 </Button>
               </div>
             )}
@@ -288,7 +288,7 @@ export default function StudentDashboard() {
           {/* BLOC 1 — VUE SYNTHÉTIQUE STATS */}
           <Card>
             <CardHeader>
-              <CardTitle>Statistiques</CardTitle>
+              <CardTitle>{t("student.dashboard.statistics")}</CardTitle>
             </CardHeader>
             {sourceErrors.dashboard ? (
               <WidgetError message={sourceErrors.dashboard} />
@@ -301,7 +301,7 @@ export default function StudentDashboard() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <span className="text-sm text-gray-500">Temps d&apos;apprentissage</span>
+                  <span className="text-sm text-gray-500">{t("student.dashboard.learningTime")}</span>
                 </div>
                 <span className="text-sm font-semibold text-navy">{learningTimeMinutes} min</span>
               </div>
@@ -312,7 +312,7 @@ export default function StudentDashboard() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <span className="text-sm text-gray-500">Leçons terminées</span>
+                  <span className="text-sm text-gray-500">{t("student.dashboard.lessonsCompletedStat")}</span>
                 </div>
                 <span className="text-sm font-semibold text-navy">{dashboard?.lessons_completed ?? 0}</span>
               </div>
@@ -323,7 +323,7 @@ export default function StudentDashboard() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                     </svg>
                   </div>
-                  <span className="text-sm text-gray-500">Progression globale</span>
+                  <span className="text-sm text-gray-500">{t("student.dashboard.globalProgress")}</span>
                 </div>
                 <span className="text-sm font-semibold text-navy">{globalProgress}%</span>
               </div>
@@ -370,7 +370,7 @@ export default function StudentDashboard() {
           {/* BLOC 3 — ANNONCES & RAPPELS */}
           <Card>
             <CardHeader>
-              <CardTitle>Annonces & Rappels</CardTitle>
+              <CardTitle>{t("student.dashboard.announcements")}</CardTitle>
             </CardHeader>
             {sourceErrors.inbox ? (
               <WidgetError message={sourceErrors.inbox} />
@@ -387,7 +387,7 @@ export default function StudentDashboard() {
                     </svg>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-navy">{unreadCount} message{unreadCount !== 1 ? "s" : ""} non lu{unreadCount !== 1 ? "s" : ""}</p>
+                    <p className="text-sm font-medium text-navy">{t("student.dashboard.unreadMessages", { count: unreadCount })}</p>
                     {lastMessage && (
                       <p className="text-[10px] text-gray-400 truncate">{lastMessage.subject}</p>
                     )}
@@ -401,8 +401,8 @@ export default function StudentDashboard() {
                   </svg>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-navy">Aucun devoir à venir</p>
-                  <p className="text-[10px] text-gray-400">Prochains rappels</p>
+                  <p className="text-sm font-medium text-navy">{t("student.dashboard.noUpcomingHomework")}</p>
+                  <p className="text-[10px] text-gray-400">{t("student.dashboard.upcomingReminders")}</p>
                 </div>
               </div>
             </div>

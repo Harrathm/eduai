@@ -11,11 +11,11 @@ const niveauColors: Record<string, string> = {
   avance: "bg-orange-500",
 };
 
-const statusConfig: Record<string, { label: string; color: string; icon: typeof CheckCircle }> = {
-  a_commencer: { label: "À commencer", color: "bg-gray-100 text-gray", icon: Clock },
-  en_cours: { label: "En cours", color: "bg-blue-100 text-blue", icon: BookOpen },
-  termine: { label: "Terminé", color: "bg-green-100 text-green", icon: CheckCircle },
-  annule: { label: "Annulé", color: "bg-red-100 text-red", icon: AlertCircle },
+const STATUS_KEYS: Record<string, { key: string; color: string; icon: typeof CheckCircle }> = {
+  a_commencer: { key: "student.monParcours.toStart", color: "bg-gray-100 text-gray", icon: Clock },
+  en_cours: { key: "student.monParcours.inProgress", color: "bg-blue-100 text-blue", icon: BookOpen },
+  termine: { key: "student.monParcours.completed", color: "bg-green-100 text-green", icon: CheckCircle },
+  annule: { key: "student.monParcours.cancelled", color: "bg-red-100 text-red", icon: AlertCircle },
 };
 
 export default function MonParcoursPage() {
@@ -157,7 +157,7 @@ export default function MonParcoursPage() {
                   {expandedMatieres.has(matiere.id) && (
                     <div className="px-6 pb-4 space-y-2">
                       {matiere.chapters.map(ch => {
-                        const cfg = statusConfig[ch.status] || statusConfig.a_commencer;
+                        const cfg = STATUS_KEYS[ch.status] || STATUS_KEYS.a_commencer;
                         const Icon = cfg.icon;
                         return (
                           <div key={ch.id} className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl">
@@ -172,7 +172,7 @@ export default function MonParcoursPage() {
                               <p className="text-sm font-medium text-navy">{ch.nom}</p>
                               <div className="flex items-center gap-2 mt-0.5">
                                 <span className={`px-2 py-0.5 rounded-full text-xs ${cfg.color}`}>
-                                  <Icon className="w-3 h-3 inline me-1" />{cfg.label}
+                                  <Icon className="w-3 h-3 inline me-1" />{t(cfg.key)}
                                 </span>
                                 {ch.niveau_assimilation && (
                                   <span className="text-xs text-gray capitalize">{ch.niveau_assimilation}</span>
@@ -184,7 +184,7 @@ export default function MonParcoursPage() {
                               {ch.scores_count > 0 && (
                                 <p className="flex items-center gap-1 justify-end mt-0.5">
                                   <TrendingUp className="w-3 h-3" />
-                                  {ch.scores_count} quiz
+                                  {ch.scores_count} {t("student.monParcours.quizzes")}
                                 </p>
                               )}
                             </div>

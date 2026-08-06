@@ -68,7 +68,7 @@ function PackCard({ pack, userNiveau, onBuy }: { pack: Pack; userNiveau?: string
             )}
             {pack.is_current && (
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-700">
-                Actif
+                {t('packs.alreadyActive')}
               </span>
             )}
           </div>
@@ -164,7 +164,7 @@ export default function PacksPage() {
       title={t('packs.title')}
       subtitle={
         userNiveau
-          ? `Packs disponibles pour ${userNiveau}`
+          ? t('packs.niveauLabel') + " : " + userNiveau
           : t('packs.subtitle')
       }
       icon={<Package className="w-8 h-8" />}

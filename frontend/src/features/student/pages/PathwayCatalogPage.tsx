@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { ShoppingCart, CheckCircle, BookOpen, ChevronRight, Clock, GraduationCap, Lock, Unlock } from "lucide-react";
 import { getPathwayCatalog, enrollPathway } from "../../../api";
 import type { PathwayCatalogItem } from "../../../api";
 
 export default function PathwayCatalogPage() {
+  const { t } = useTranslation();
   const [catalog, setCatalog] = useState<PathwayCatalogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<number | null>(null);
@@ -27,27 +29,27 @@ export default function PathwayCatalogPage() {
 
   const handlePurchase = async (item: PathwayCatalogItem) => {
     if (!item.pack) {
-      showToast("Aucun pack disponible pour ce niveau", "error");
+      showToast(t("student.pathway.noPackForLevel"), "error");
       return;
     }
-    if (!confirm(`Acheter "${item.pack.name}" pour ${item.pack.price} ${item.pack.currency} ?`)) return;
+    if (!confirm(`${t("student.pathway.buyButton", { price: item.pack.price, currency: item.pack.currency })} ?`)) return;
 
     setPurchasing(item.niveau.id);
     try {
       // Use existing pack purchase endpoint via centralized api client
       const { api } = await import("../../../api");
       const data = await api.post<any>(`/api/packs/${item.pack.id}/purchase`);
-      showToast(data.message || "Pack acheté avec succès !");
+      showToast(data.message || t("student.pathway.purchaseSuccess"));
 
       // Auto-enroll in pathway
       try {
         const enrollRes = await enrollPathway(item.niveau.id);
-        showToast(`Parcours inscrit — ${enrollRes.chapters_initialized} chapitre(s) initialisé(s)`);
+        showToast(t("student.pathway.pathwayEnrolled", { count: enrollRes.chapters_initialized }));
       } catch { /* enrollment is best-effort */ }
 
       load();
     } catch (err: any) {
-      showToast(err.message || "Erreur d'achat", "error");
+      showToast(err.message || t("student.pathway.purchaseError"), "error");
     }
     setPurchasing(null);
   };
@@ -61,16 +63,16 @@ export default function PathwayCatalogPage() {
       )}
 
       <div>
-        <h1 className="text-3xl font-display font-light text-navy">Parcours <span className="italic text-orange">Éducatifs</span></h1>
-        <p className="text-gray text-sm mt-1">Choisissez votre niveau et accédez à un parcours adaptatif complet</p>
+        <h1 className="text-3xl font-display font-light text-navy">{t("student.pathway.title").split(" ").slice(0, 1).join(" ")} <span className="italic text-orange">{t("student.pathway.title").split(" ").slice(1).join(" ")}</span></h1>
+        <p className="text-gray text-sm mt-1">{t("student.pathway.subtitle")}</p>
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-gray">Chargement des parcours...</div>
+        <div className="text-center py-12 text-gray">{t("student.pathway.loading")}</div>
       ) : catalog.length === 0 ? (
         <div className="bg-white rounded-2xl shadow-sm border border-black/5 p-12 text-center">
           <GraduationCap className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray">Aucun parcours disponible</p>
+          <p className="text-gray">{t("student.pathway.noPathways")}</p>
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2">
@@ -84,13 +86,13 @@ export default function PathwayCatalogPage() {
                   <div>
                     <h2 className="text-lg font-semibold text-navy">{item.niveau.nom}</h2>
                     <p className="text-xs text-gray mt-0.5">
-                      {item.matieres.length} matière{item.matieres.length > 1 ? "s" : ""} • {" "}
-                      {item.matieres.reduce((acc, m) => acc + m.chapters_count, 0)} chapitres
+                      {item.matieres.length} {t("student.pathway.subjectsCount")} • {" "}
+                      {item.matieres.reduce((acc, m) => acc + m.chapters_count, 0)} {t("student.pathway.chaptersCount")}
                     </p>
                   </div>
                   {item.has_access ? (
                     <span className="flex items-center gap-1 px-3 py-1.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                      <CheckCircle className="w-3.5 h-3.5" /> Accès actif
+                      <CheckCircle className="w-3.5 h-3.5" /> {t("student.pathway.activeAccess")}
                     </span>
                   ) : item.pack ? (
                     <div className="text-end">
@@ -99,7 +101,7 @@ export default function PathwayCatalogPage() {
                     </div>
                   ) : (
                     <span className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray rounded-full text-xs font-medium">
-                      <Lock className="w-3.5 h-3.5" /> Non disponible
+                      <Lock className="w-3.5 h-3.5" /> {t("student.pathway.noPackAvailable")}
                     </span>
                   )}
                 </div>
@@ -112,7 +114,7 @@ export default function PathwayCatalogPage() {
                     <BookOpen className="w-4 h-4 text-blue-500 flex-shrink-0" />
                     <div className="flex-1">
                       <p className="text-sm font-medium text-navy">{m.nom}</p>
-                      <p className="text-xs text-gray">{m.chapters_count} chapitre{m.chapters_count > 1 ? "s" : ""}</p>
+                      <p className="text-xs text-gray">{m.chapters_count} {t("student.pathway.chaptersCount")}</p>
                     </div>
                     <ChevronRight className="w-4 h-4 text-gray-300" />
                   </div>
@@ -125,10 +127,10 @@ export default function PathwayCatalogPage() {
                   <div className="flex items-center gap-2 text-sm text-green-700">
                     <Unlock className="w-4 h-4" />
                     <span>
-                      Accès actif
+                      {t("student.pathway.activeAccess")}
                       {item.purchase && (
                         <span className="text-gray ms-1">
-                          — jusqu'au {new Date(item.purchase.valid_until).toLocaleDateString("fr-FR")}
+                          — {t("student.pathway.untilDate", { date: new Date(item.purchase.valid_until).toLocaleDateString("fr-FR") })}
                         </span>
                       )}
                     </span>
@@ -140,16 +142,16 @@ export default function PathwayCatalogPage() {
                     className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-orange to-orange-l text-white rounded-xl font-medium hover:shadow-lg transition-all disabled:opacity-50"
                   >
                     {purchasing === item.niveau.id ? (
-                      <span className="animate-pulse">Achat en cours...</span>
+                      <span className="animate-pulse">{t("student.pathway.buying")}</span>
                     ) : (
                       <>
                         <ShoppingCart className="w-4 h-4" />
-                        Acheter — {item.pack.price} {item.pack.currency}
+                        {t("student.pathway.buyButton", { price: item.pack.price, currency: item.pack.currency })}
                       </>
                     )}
                   </button>
                 ) : (
-                  <p className="text-sm text-gray text-center">Pack non disponible pour ce niveau</p>
+                  <p className="text-sm text-gray text-center">{t("student.pathway.noPackAvailable")}</p>
                 )}
               </div>
             </div>
