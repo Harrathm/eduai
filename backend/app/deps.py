@@ -38,7 +38,15 @@ def set_tenant_context(current_user: User = Depends(get_current_user)) -> User:
 # ---------------------------------------------------------------------------
 
 def get_user_role(user: User) -> str:
-    """Extract the lowercase role string from a User, regardless of column type."""
+    """Extract the effective role string from a User.
+
+    Priority: active_context_role > role column.
+    This ensures the RBAC system uses the context-switched role when available,
+    while falling back to the primary role for backward compatibility.
+    """
+    # Prefer active_context_role (set by context switcher or JWT claim)
+    if user.active_context_role:
+        return str(user.active_context_role).lower()
     raw = user.role
     return str(raw.value).lower() if hasattr(raw, "value") else str(raw).lower().replace("userrole.", "")
 

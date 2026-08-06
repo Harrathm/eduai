@@ -758,5 +758,35 @@
   },
   "footer": {
     "copyright": "© 2025 EDUAI Learning — Dossier de présentation confidentiel"
+  },
+  "packs": {
+    "title": "Packs",
+    "subtitle": "Choisissez le pack adapté à votre niveau",
+    "noPacks": "Aucun pack disponible",
+    "noPacksForLevel": "Aucun pack disponible pour le niveau {level}",
+    "noPacksPublished": "Aucun pack n'a été publié pour le moment",
+    "niveauLabel": "Niveau",
+    "all": "Tous",
+    "loadingError": "Erreur lors du chargement des packs",
+    "buy": "Acheter",
+    "levelIncompatible": "Niveau incompatible",
+    "alreadyActive": "Actif",
+    "includedViaSchool": "Inclus via l'établissement",
+    "daysValidity": "jours de validité"
+  },
+  "student": {
+    "quota": {
+      "title": "Quota",
+      "subtitle": "{used}/{limit} lecons utilisees",
+      "exhaustedTitle": "Quota atteint",
+      "exhaustedMessage": "Vous avez consomme toutes vos lecons gratuites pour ce trimestre.",
+      "exhaustedDescription": "Passez a un pack superieur pour continuer a apprendre sans limites.",
+      "unlockBenefits": "Debloquez tous les avantages",
+      "benefit1": "Acces illimite aux lecons",
+      "benefit2": "Acces au Coach IA",
+      "benefit3": "Formations Soft Skills incluses",
+      "later": "Plus tard",
+      "discoverPacks": "Decouvrir les packs"
+    }
   }
 }

@@ -4,3 +4,4 @@ export { Modal, ConfirmModal } from "./Modal";
 export { EmptyState } from "./EmptyState";
 export { Input } from "./Input";
 export { Card, CardHeader, CardTitle } from "./Card";
+export { PageWrapper } from "./PageWrapper";

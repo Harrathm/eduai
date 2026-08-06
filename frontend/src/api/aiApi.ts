@@ -47,7 +47,7 @@ export const aiApi = {
   streamAsk: async (data: AIRequest): Promise<ReadableStream<Uint8Array>> => {
     const API_URL = import.meta.env.VITE_API_URL || "";
     const token = tokenStorage.getToken();
-    const response = await fetch(`${API_URL}/api/ai/stream-ask`, {
+    const response = await fetch(`${API_URL}/api/ai/ask`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

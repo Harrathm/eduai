@@ -1,0 +1,37 @@
+=== 9ème de base (4 packs) ===
+  Pack 9ème de base - Gratuit (gratuit) | 0.0 TND | matieres: Mathematiques, Physique
+  Pack 9ème de base - Basique (basique) | 9.9 TND | matieres: Mathematiques, Physique, Arabe
+  Pack 9ème de base - Silver (silver) | 19.9 TND | matieres: Mathematiques, Physique, Arabe, Francais
+  Pack 9ème de base - Golden (golden) | 39.9 TND | matieres: Mathematiques, Physique, Arabe, Francais, Anglais, SVT, Informatique
+
+=== 9eme de base (4 packs) ===
+  Pack 9eme de base - Gratuit (gratuit) | 0.0 TND | matieres: Mathematiques, Physique
+  Pack 9eme de base - Basique (basique) | 9.9 TND | matieres: Mathematiques, Physique, Arabe
+  Pack 9eme de base - Silver (silver) | 19.9 TND | matieres: Mathematiques, Physique, Arabe, Francais
+  Pack 9eme de base - Golden (golden) | 39.9 TND | matieres: Mathematiques, Physique, Arabe, Francais, Anglais, SVT, Informatique
+
+=== 7ème de base (4 packs) ===
+  Pack 7ème de base - Gratuit (gratuit) | 0.0 TND | matieres: Mathematiques, Arabe
+  Pack 7ème de base - Basique (basique) | 9.9 TND | matieres: Mathematiques, Arabe, Francais
+  Pack 7ème de base - Silver (silver) | 19.9 TND | matieres: Mathematiques, Arabe, Francais, Sciences
+  Pack 7ème de base - Golden (golden) | 39.9 TND | matieres: Mathematiques, Arabe, Francais, Sciences, Anglais, Histoire-Geographie
+
+=== 2eme annee sciences (4 packs) ===
+  Pack 2eme annee sciences - Gratuit (gratuit) | 0.0 TND | matieres: Mathematiques, Physique
+  Pack 2eme annee sciences - Basique (basique) | 9.9 TND | matieres: Mathematiques, Physique, Chimie
+  Pack 2eme annee sciences - Silver (silver) | 19.9 TND | matieres: Mathematiques, Physique, Chimie, Francais
+  Pack 2eme annee sciences - Golden (golden) | 39.9 TND | matieres: Mathematiques, Physique, Chimie, Francais, Anglais, SVT, Informatique, Arabe
+
+=== 1ère année secondaire (4 packs) ===
+  Pack 1ère année secondaire - Gratuit (gratuit) | 0.0 TND | matieres: Mathematiques, Physique-Chimie
+  Pack 1ère année secondaire - Basique (basique) | 9.9 TND | matieres: Mathematiques, Physique-Chimie, Arabe
+  Pack 1ère année secondaire - Silver (silver) | 19.9 TND | matieres: Mathematiques, Physique-Chimie, Arabe, Francais
+  Pack 1ère année secondaire - Golden (golden) | 39.9 TND | matieres: Mathematiques, Physique-Chimie, Arabe, Francais, Anglais, SVT, Informatique, Histoire-Geographie
+
+=== 1ere annee secondaire (4 packs) ===
+  Pack 1ere annee secondaire - Gratuit (gratuit) | 0.0 TND | matieres: Mathematiques, Physique-Chimie
+  Pack 1ere annee secondaire - Basique (basique) | 9.9 TND | matieres: Mathematiques, Physique-Chimie, Arabe
+  Pack 1ere annee secondaire - Silver (silver) | 19.9 TND | matieres: Mathematiques, Physique-Chimie, Arabe, Francais
+  Pack 1ere annee secondaire - Golden (golden) | 39.9 TND | matieres: Mathematiques, Physique-Chimie, Arabe, Francais, Anglais, SVT, Informatique, Histoire-Geographie
+
+Total active packs: 36

@@ -518,3 +518,268 @@ def refund_request(
         purchase.refund_reason = reason
         db.commit()
         return {"status": "pending_validation", "message": "Votre demande de remboursement est en attente de validation par un super admin"}
+
+
+# ---- CMS Versioning ----
+
+@router.post("/{course_id}/create-draft-version")
+def create_draft_version(
+    course_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_teacher_or_admin),
+):
+    """
+    Crée une nouvelle version brouillon d'un cours existant.
+    La version actuelle reste active (is_active_version=True).
+    La nouvelle version est créée avec is_active_version=False et pedagogical_status="draft".
+    """
+    course = db.query(Course).filter(
+        Course.id == course_id,
+        Course.school_id == current_user.school_id,
+    ).first()
+
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    check_school_access(current_user, course.school_id)
+
+    # Incrémente le numéro de version
+    new_version_number = course.version_number + 1
+
+    # Crée une copie du cours avec les mêmes données
+    new_course = Course(
+        school_id=course.school_id,
+        author_id=course.author_id,
+        modified_by=current_user.id,
+        title=f"{course.title} (V{new_version_number})",
+        short_description=course.short_description,
+        description=course.description,
+        thumbnail_url=course.thumbnail_url,
+        cover_url=course.cover_url,
+        slug=None,  # Auto-généré
+        language=course.language,
+        prerequisites=course.prerequisites,
+        learning_objectives=course.learning_objectives,
+        visibility="private",
+        enrollment_type=course.enrollment_type,
+        owner_type=course.owner_type,
+        owner_id=course.owner_id,
+        price=course.price,
+        currency=course.currency,
+        commission_rate=course.commission_rate,
+        price_tokens=course.price_tokens,
+        price_dt=course.price_dt,
+        category=course.category,
+        level=course.level,
+        niveau_scolaire=course.niveau_scolaire,
+        tags=course.tags,
+        status="draft",
+        is_published=False,
+        pedagogical_status="draft",
+        version_number=new_version_number,
+        is_active_version=False,
+        category_cible=course.category_cible,
+        tag_pack_requis=course.tag_pack_requis,
+    )
+
+    db.add(new_course)
+    db.commit()
+    db.refresh(new_course)
+
+    # Copie les modules et leçons de la version source
+    source_modules = db.query(Module).filter(Module.course_id == course.id).order_by(Module.order).all()
+    for source_module in source_modules:
+        new_module = Module(
+            course_id=new_course.id,
+            title=source_module.title,
+            description=source_module.description,
+            order=source_module.order,
+        )
+        db.add(new_module)
+        db.flush()
+
+        source_lessons = db.query(Lesson).filter(Lesson.module_id == source_module.id).order_by(Lesson.order).all()
+        for source_lesson in source_lessons:
+            new_lesson = Lesson(
+                module_id=new_module.id,
+                school_id=new_course.school_id,
+                teacher_id=source_lesson.teacher_id,
+                title=source_lesson.title,
+                content=source_lesson.content,
+                content_type=source_lesson.content_type,
+                duration_minutes=source_lesson.duration_minutes,
+                order=source_lesson.order,
+                is_free=source_lesson.is_free,
+                video_url=source_lesson.video_url,
+                document_url=source_lesson.document_url,
+            )
+            db.add(new_lesson)
+
+    db.commit()
+
+    return {
+        "message": f"Version V{new_version_number} créée en brouillon",
+        "new_course_id": new_course.id,
+        "version_number": new_version_number,
+        "source_course_id": course.id,
+    }
+
+
+@router.post("/{course_id}/publish-version")
+def publish_version(
+    course_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_teacher_or_admin),
+):
+    """
+    Publie une version de cours.
+    - Désactive toutes les autres versions du même cours source
+    - Active la version publiée (is_active_version=True)
+    - Met à jour le statut et la date de publication
+    """
+    course = db.query(Course).filter(
+        Course.id == course_id,
+        Course.school_id == current_user.school_id,
+    ).first()
+
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    check_school_access(current_user, course.school_id)
+
+    if course.is_active_version:
+        raise HTTPException(status_code=400, detail="Cette version est déjà active")
+
+    # Trouve toutes les versions du même titre (enlève le suffixe V/N)
+    base_title = course.title.split(" (V")[0] if " (V" in course.title else course.title
+    all_versions = db.query(Course).filter(
+        Course.school_id == course.school_id,
+        Course.author_id == course.author_id,
+        Course.title.ilike(f"{base_title}%"),
+    ).all()
+
+    # Désactive toutes les versions actives existantes
+    for version in all_versions:
+        if version.is_active_version and version.id != course.id:
+            version.is_active_version = False
+            version.status = "archived"
+            logger.info(f"Version V{version.version_number} désactivée (course_id={version.id})")
+
+    # Active la nouvelle version
+    course.is_active_version = True
+    course.status = "published"
+    course.is_published = True
+    course.pedagogical_status = "approved_local"
+    course.published_at = datetime.now(timezone.utc)
+    course.validated_by = current_user.id
+    course.validated_at = datetime.now(timezone.utc)
+
+    db.commit()
+
+    return {
+        "message": f"Version V{course.version_number} publiée avec succès",
+        "course_id": course.id,
+        "version_number": course.version_number,
+        "is_active_version": True,
+    }
+
+
+@router.post("/{course_id}/rollback/{target_version_id}")
+def rollback_to_version(
+    course_id: int,
+    target_version_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_teacher_or_admin),
+):
+    """
+    Rollback vers une version précédente.
+    - Désactive la version actuelle
+    - Réactive la version cible (target_version_id)
+    """
+    current_course = db.query(Course).filter(
+        Course.id == course_id,
+        Course.school_id == current_user.school_id,
+    ).first()
+
+    if not current_course:
+        raise HTTPException(status_code=404, detail="Current version not found")
+
+    check_school_access(current_user, current_course.school_id)
+
+    target_course = db.query(Course).filter(
+        Course.id == target_version_id,
+        Course.school_id == current_user.school_id,
+    ).first()
+
+    if not target_course:
+        raise HTTPException(status_code=404, detail="Target version not found")
+
+    if not current_course.is_active_version:
+        raise HTTPException(status_code=400, detail="La version actuelle n'est pas active")
+
+    # Désactive la version actuelle
+    current_course.is_active_version = False
+    current_course.status = "archived"
+    current_course.is_published = False
+
+    # Réactive la version cible
+    target_course.is_active_version = True
+    target_course.status = "published"
+    target_course.is_published = True
+    target_course.pedagogical_status = "approved_local"
+    target_course.published_at = datetime.now(timezone.utc)
+    target_course.validated_by = current_user.id
+    target_course.validated_at = datetime.now(timezone.utc)
+
+    db.commit()
+
+    return {
+        "message": f"Rollback vers V{target_course.version_number} effectué",
+        "previous_version_id": current_course.id,
+        "restored_version_id": target_course.id,
+        "version_number": target_course.version_number,
+    }
+
+
+@router.get("/{course_id}/versions")
+def list_course_versions(
+    course_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(set_tenant_context),
+):
+    """
+    Liste toutes les versions d'un cours.
+    """
+    # Trouve la version active ou la première version
+    base_course = db.query(Course).filter(
+        Course.id == course_id,
+        Course.school_id == current_user.school_id,
+    ).first()
+
+    if not base_course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    # Cherche toutes les versions (même titre sans suffixe V/N)
+    base_title = base_course.title.split(" (V")[0] if " (V" in base_course.title else base_course.title
+    versions = db.query(Course).filter(
+        Course.school_id == current_user.school_id,
+        Course.author_id == base_course.author_id,
+        Course.title.ilike(f"{base_title}%"),
+    ).order_by(Course.version_number.desc()).all()
+
+    return {
+        "total": len(versions),
+        "versions": [
+            {
+                "id": v.id,
+                "version_number": v.version_number,
+                "is_active_version": v.is_active_version,
+                "status": v.status,
+                "pedagogical_status": v.pedagogical_status,
+                "title": v.title,
+                "created_at": v.created_at.isoformat() if v.created_at else None,
+                "published_at": v.published_at.isoformat() if v.published_at else None,
+            }
+            for v in versions
+        ],
+    }

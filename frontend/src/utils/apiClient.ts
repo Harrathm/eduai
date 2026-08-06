@@ -1,4 +1,5 @@
 import { tokenStorage } from "./tokenStorage";
+import { triggerUpsell } from "../components/UpsellModal";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
@@ -146,6 +147,17 @@ class ApiClient {
 
       if (!processedResponse.ok) {
         const errorData = await processedResponse.json().catch(() => ({}));
+        
+        // Handle 402 Payment Required — ABAC upsell
+        if (processedResponse.status === 402) {
+          const detail = errorData.detail || "Contenu premium requis";
+          // Extract pack name from message if present
+          const packMatch = detail.match(/Pack\s+(\w+)/i);
+          const requiredPack = packMatch ? packMatch[1] : "Silver";
+          triggerUpsell(detail, requiredPack);
+          throw new Error(detail);
+        }
+        
         if (processedResponse.status === 429) {
           throw new Error("Trop de requêtes. Veuillez patienter avant de réessayer.");
         }

@@ -65,3 +65,18 @@ h1, h2, h3, h4 {
     @apply bg-gradient-to-r from-orange to-orange-l bg-clip-text text-transparent;
   }
 }
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-slide-in {
+  animation: slideIn 0.35s ease-out;
+}

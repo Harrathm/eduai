@@ -655,7 +655,33 @@
 
 ---
 
-> Dernière mise à jour : 2026-08-01
+### Phase 7: ABAC Engine & CMS Lifecycle
+**Objectif:** Préparer l'évolution RBAC → ABAC et implémenter le cycle de vie du contenu.
+
+1. **Context Switcher** — ajouter `active_context_role` sur `users`, endpoint `PUT /auth/switch-context`, frontend role-switcher
+2. **Impersonation** — créer table `audit_impersonations`, endpoints `/api/support/impersonate/*`, durée max 30min
+3. **ABAC Engine (foundation)** — créer table `abac_policies`, parser les politiques JSON, évaluer au moment de la requête
+4. **CMS Lifecycle (backend)** — ajouter `cms_status` sur `lessons`, transitions d'état, notifications automatiques
+5. **AI Factory Atomization** — endpoints `generate-lesson`, `generate-quiz`, `generate-chapter` séparés
+6. **Versioning / Fork** — colonnes `version_number`, `is_active_version` sur `courses`, endpoint `/courses/{id}/version`
+7. **Bulk Seats** — table `bulk_seat_vouchers`, endpoint `/api/schools/bulk-seats/purchase`
+8. **Revenue Share Ledger** — table `teacher_revenue_ledger`, calcul automatique après chaque achat
+
+**Dépendances:** Phase 2 (financial) + Phase 3 (service tests) doivent être stables.
+
+**Critères d'acceptation:**
+- [ ] `PUT /auth/switch-context` change le rôle actif sans reconnexion (test passant)
+- [ ] `POST /api/support/impersonate/{user_id}` crée une session avec durée max 30min (test passant)
+- [ ] `audit_impersonations` enregistre chaque session avec impersonator, target, reason, timestamps (test passant)
+- [ ] `POST /api/ai-factory/generate-lesson` produit 1 leçon draft (test passant)
+- [ ] `POST /api/cms/lessons/{id}/submit` passe `cms_status` de `brouillon` à `soumis` (test passant)
+- [ ] `POST /api/schools/bulk-seats/purchase` crée des vouchers (test passant)
+- [ ] `GET /api/teacher/revenue-report` affiche les revenus (test passant)
+- [ ] `POST /api/courses/{id}/version` crée un fork avec `version_number` incrémenté (test passant)
+
+---
+
+> Dernière mise à jour : 2026-08-06
 
 ---
 ---

@@ -138,6 +138,18 @@ EDUAI Learning هو منصة تعليمية إلكترونية متعددة ال
 | إشعارات الأهداف والbadges | ✅ مُنفَّذ |
 | دعم 3 لغات (FR/EN/AR) | ✅ مُنفَّذ في الواجهة |
 
+#### 9. Gouvernance et Évolution du Contenu
+| الميزة | الحالة | التفاصيل |
+|--------|--------|----------|
+| **Context Switcher** — multi-rôle | ❌ مُخطَّط | المستخدمون ذوو الأدوار المتعددة يمكنهم التبديل بين الأدوار بدون تسجيل خروج/دخول جديد. يخزّن `active_context_role` في `users` |
+| **Impersonation de support** | ❌ مُخطَّط | `super_admin` و `pedagogical_admin` يمكنهم الدخول كحساب مستخدم آخر لتقديم الدعم — يُسجَّل في `audit_impersonations` مع سبب + مدة + تسجيل خروج تلقائي |
+| **ABAC Engine** | ❌ مُخطَّط | ترقية من RBAC ثابت إلى ABAC ديناميكي — politiques تعتمد على السياق (`school`, `subscription_tier`, `pack_tier`, `time_of_day`) بدلاً من الأدوار فقط |
+| **AI Factory Atomization** | ❌ مُخطَّط | كسر AI Factory إلى ذرّات: `generate-lesson` (درس واحد)، `generate-quiz` (اختبار واحد)، `generate-chapter` (فصل كامل). كل ذرّة تنتج عنصرًا قابلاً للمعاينة والنشر |
+| **Versioning / Fork de Cursus** | ❌ مُخطَّط | إنشاء نسخة جديدة من دورة (`version_number`) مع `is_active_version`. Fork يحفظ الأصل كمرجع |
+| **Bulk Seats** | ❌ مُخطَّط | شراء مقاعد متعددة دفعة واحدة للمدارس — `bulk_seat_vouchers` مع صلاحية + استخدام |
+| **Revenue Share Enhanced** | ❌ مُخطَّط | حساب تلقائي للإيرادات: عائد الأستاذ × نسب الشراكة — `teacher_revenue_ledger` |
+| **CMS Lifecycle** | ❌ مُخطَّط | دورة حياة محتوى تعليمي: Brouillon → Soumission → Validation IA → Validation Humaine → Publication → Archivage. مع ختم زمني وتنبيهات تلقائية |
+
 ### مقاييس النجاح
 
 #### مقاييس قابلة للقياس حالياً (البيانات متوفرة في الكود)
@@ -311,6 +323,18 @@ EDUAI Learning est une plateforme éducative SaaS multi-tenants conçue pour le 
 | Notifications objectifs/badges | ✅ Implémenté |
 | Support 3 langues (FR/EN/AR) | ✅ Implémenté |
 
+#### 9. Gouvernance et Évolution du Contenu
+| Fonctionnalité | Statut | Détails |
+|----------------|--------|---------|
+| **Context Switcher** — multi-rôle | ❌ Planned | Utilisateurs multi-rôles basculent entre rôles sans reconnexion. `active_context_role` dans `users` |
+| **Impersonation de support** | ❌ Planned | `super_admin`/`pedagogical_admin` entrent dans un compte utilisateur — journal `audit_impersonations` |
+| **ABAC Engine** | ❌ Planned | RBAC fixe → ABAC dynamique basé sur le contexte (école, tier, pack, heure) |
+| **AI Factory Atomization** | ❌ Planned | AI Factory en atomes: `generate-lesson`, `generate-quiz`, `generate-chapter` indépendants |
+| **Versioning / Fork de Cours** | ❌ Planned | `version_number` + `is_active_version` — fork avec historique |
+| **Bulk Seats** | ❌ Planned | Achat groupé de places pour écoles — `bulk_seat_vouchers` |
+| **Revenue Share Enhanced** | ❌ Planned | Calcul automatique revenu enseignant — `teacher_revenue_ledger` |
+| **CMS Lifecycle** | ❌ Planned | Brouillon → Soumission → Validation IA → Validation Humaine → Publication → Archivage |
+
 ### Métriques de Succès
 
 #### Mesurables avec les données actuelles
@@ -483,6 +507,18 @@ EDUAI Learning is a multi-tenant SaaS educational platform designed for the Tuni
 | Internal messaging (direct + broadcast) | ✅ Implemented |
 | Goal/badge notifications | ✅ Implemented |
 | 3-language support (FR/EN/AR) | ✅ Implemented |
+
+#### 9. Governance & Content Evolution
+| Feature | Status | Details |
+|---------|--------|---------|
+| **Context Switcher** — multi-role | ❌ Planned | Multi-role users switch roles without re-login. `active_context_role` in `users` |
+| **Support Impersonation** | ❌ Planned | `super_admin`/`pedagogical_admin` enter user accounts — logged in `audit_impersonations` |
+| **ABAC Engine** | ❌ Planned | Static RBAC → dynamic ABAC based on context (school, tier, pack, time) |
+| **AI Factory Atomization** | ❌ Planned | AI Factory split into atoms: `generate-lesson`, `generate-quiz`, `generate-chapter` |
+| **Course Versioning / Fork** | ❌ Planned | `version_number` + `is_active_version` — fork with history |
+| **Bulk Seats** | ❌ Planned | Schools purchase seats in bulk — `bulk_seat_vouchers` |
+| **Revenue Share Enhanced** | ❌ Planned | Automatic teacher revenue calculation — `teacher_revenue_ledger` |
+| **CMS Lifecycle** | ❌ Planned | Draft → Submit → AI Validation → Human Validation → Publish → Archive |
 
 ### Success Metrics
 

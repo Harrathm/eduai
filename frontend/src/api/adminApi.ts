@@ -12,7 +12,13 @@ export interface AdminDashboardStats {
   total_students: number;
   total_teachers: number;
   total_courses: number;
+  pending_courses: number;
+  published_courses: number;
   total_revenue: number;
+  total_dt_revenue: number;
+  total_tokens_sold: number;
+  total_transactions: number;
+  pending_teacher_registrations: number;
   active_subscriptions: number;
   pending_registrations: number;
 }
@@ -46,6 +52,17 @@ export interface Transaction {
   created_at: string;
 }
 
+export interface EnrollmentTrend {
+  date: string;
+  registrations: number;
+}
+
+export interface ApiCostTrend {
+  date: string;
+  tokens_consumed: number;
+  estimated_cost_dt: number;
+}
+
 // ─── Dashboard ──────────────────────────────────────────────────────────────
 
 export const adminDashboard = {
@@ -58,7 +75,16 @@ export const adminAnalytics = {
   overview: () => api.get<any>("/api/admin/analytics/overview"),
   users: () => api.get<any>("/api/admin/analytics/users"),
   courses: () => api.get<any>("/api/admin/analytics/courses"),
-  revenue: () => api.get<any>("/api/admin/analytics/revenue"),
+  revenue: (period: string = "30d") =>
+    api.get<any>(`/api/admin/analytics/revenue?period=${period}`),
+  enrollments: (period: string = "30d") =>
+    api.get<{ period: string; data: EnrollmentTrend[] }>(
+      `/api/admin/analytics/enrollments?period=${period}`
+    ),
+  apiCosts: (period: string = "30d") =>
+    api.get<{ period: string; data: ApiCostTrend[] }>(
+      `/api/admin/analytics/api-costs?period=${period}`
+    ),
 };
 
 // ─── Settings ───────────────────────────────────────────────────────────────

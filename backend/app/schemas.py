@@ -862,6 +862,7 @@ class MatiereRead(BaseModel):
     id: int
     niveau_etude_id: int
     nom: str
+    type_matiere: str = "specialite"
     remediation_threshold: int = 40
     standard_threshold: int = 75
     avance_threshold: int = 75

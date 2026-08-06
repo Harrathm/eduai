@@ -2,19 +2,17 @@ import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Users, BookOpen, DollarSign, Coins, TrendingUp, GraduationCap, Building2, Activity } from "lucide-react";
 import { KPICard } from "../components/KPICard";
-import { adminAnalytics } from "../../../api";
-import type { DashboardStats, RevenueData, EnrollmentTrend, ApiCostTrend } from "../../../api";
+import { adminDashboard, adminAnalytics } from "../../../api";
+import type { AdminDashboardStats, EnrollmentTrend, ApiCostTrend } from "../../../api";
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 
-const API_URL = "";
-
 export default function AdminDashboardPage() {
   const { t } = useTranslation();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [revenue, setRevenue] = useState<RevenueData | null>(null);
+  const [stats, setStats] = useState<AdminDashboardStats | null>(null);
+  const [revenue, setRevenue] = useState<any | null>(null);
   const [enrollments, setEnrollments] = useState<EnrollmentTrend[]>([]);
   const [apiCosts, setApiCosts] = useState<ApiCostTrend[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,7 +24,7 @@ export default function AdminDashboardPage() {
     setError(null);
     try {
       const [statsData, revenueData, enrollData, costData] = await Promise.all([
-        adminAnalytics.dashboard(),
+        adminDashboard.stats(),
         adminAnalytics.revenue(period),
         adminAnalytics.enrollments(period),
         adminAnalytics.apiCosts(period),

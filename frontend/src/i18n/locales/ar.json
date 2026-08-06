@@ -758,5 +758,35 @@
   },
   "footer": {
     "copyright": "© 2025 EDUAI Learning — ملف عرض سري"
+  },
+  "packs": {
+    "title": "الحزم",
+    "subtitle": "اختر الحزمة المناسبة لمستواك",
+    "noPacks": "لا توجد حزم متاحة",
+    "noPacksForLevel": "لا توجد حزم متاحة للمستوى {level}",
+    "noPacksPublished": "لم يتم نشر أي حزم بعد",
+    "niveauLabel": "المستوى",
+    "all": "الكل",
+    "loadingError": "خطأ في تحميل الحزم",
+    "buy": "شراء",
+    "levelIncompatible": "مستوى غير متوافق",
+    "alreadyActive": "نشط",
+    "includedViaSchool": "مدرج عبر المدرسة",
+    "daysValidity": "أيام الصلاحية"
+  },
+  "student": {
+    "quota": {
+      "title": "الحصة",
+      "subtitle": "{used}/{limit} درس مستخدم",
+      "exhaustedTitle": "حصص استنفدت",
+      "exhaustedMessage": "لقد استهلكت جميع دروسك المجانية لهذا الثلاثي.",
+      "exhaustedDescription": "انتقل الى باقة اعلى لمواصلة التعلم بلا حدود.",
+      "unlockBenefits": "افتح جميع المزايا",
+      "benefit1": "وصول غير محدود للدروس",
+      "benefit2": "الوصول الى مدرب الذكاء الاصطناعي",
+      "benefit3": "تكوينات المهارات الناعية مشمولة",
+      "later": "لاحقا",
+      "discoverPacks": "اكتشف الباقة"
+    }
   }
 }

@@ -1227,4 +1227,88 @@ DEFAULT_AVANCE_THRESHOLD = 75        # > 75%
 
 ---
 
-> **Mise à jour** : 2026-08-01 — Conversion `Float → Numeric(10,2)` pour les colonnes monétaires. Migration SQL : `backend/migrations/2026_08_01_numeric_monetary.sql`
+---
+
+## 11. Modifications de schéma — Gouvernance et Nouvelles Fonctionnalités
+
+### 11.1 Nouvelles colonnes sur `users`
+
+| Colonne | Type | Défaut | Description |
+|---------|------|--------|-------------|
+| `is_partner` | BOOLEAN | `false` | Vrai si l'enseignant est partenaire externe (vs interne) |
+| `active_context_role` | VARCHAR(30) | `role` (current) | Rôle actuellement actif pour les utilisateurs multi-rôles (Context Switcher) |
+
+### 11.2 Nouvelles colonnes sur `courses`
+
+| Colonne | Type | Défaut | Description |
+|---------|------|--------|-------------|
+| `version_number` | INTEGER | `1` | Numéro de version du cours (pour versioning) |
+| `is_active_version` | BOOLEAN | `true` | Vrai si cette version est la version active |
+| `category_cible` | VARCHAR(50) | `null` | Catégorie cible du cours (ex: "palier_gratuit", "palier_silver") |
+| `tag_pack_requis` | VARCHAR(100) | `null` | Tag du pack requis pour accéder à ce cours |
+
+### 11.3 Nouvelles colonnes sur `lessons`
+
+| Colonne | Type | Défaut | Description |
+|---------|------|--------|-------------|
+| `cms_status` | VARCHAR(20) | `'brouillon'` | Statut du CMS Lifecycle: brouillon, soumis, validation_ia, validation_humaine, publie, archive |
+| `submitted_at` | TIMESTAMP | `null` | Date de soumission pour review |
+| `validated_at` | TIMESTAMP | `null` | Date de validation finale |
+| `validated_by` | INTEGER FK → users.id | `null` | ID du validateur |
+
+### 11.4 Nouvelles tables
+
+#### `bulk_seat_vouchers` — Bons d'achat en lots
+
+| Colonne | Type | Contraintes | Notes |
+|---------|------|-------------|-------|
+| `id` | INTEGER | PK | |
+| `school_id` | INTEGER | FK → schools.id ON DELETE CASCADE, NOT NULL | |
+| `purchased_by` | INTEGER | FK → users.id ON DELETE SET NULL | |
+| `total_seats` | INTEGER | NOT NULL | Nombre total de places achetées |
+| `used_seats` | INTEGER | DEFAULT 0 | Nombre de places utilisées |
+| `valid_from` | TIMESTAMP | NOT NULL | |
+| `valid_until` | TIMESTAMP | NOT NULL | |
+| `amount_paid` | NUMERIC(10,2) | NOT NULL | |
+| `status` | VARCHAR(20) | DEFAULT 'active' | active, expired, cancelled |
+| `created_at` | TIMESTAMP | DEFAULT utcnow | |
+
+#### `teacher_revenue_ledger` — Journal des revenus enseignants
+
+| Colonne | Type | Contraintes | Notes |
+|---------|------|-------------|-------|
+| `id` | INTEGER | PK | |
+| `teacher_id` | INTEGER | FK → users.id ON DELETE CASCADE, NOT NULL | |
+| `course_id` | INTEGER | FK → courses.id ON DELETE SET NULL | |
+| `amount_earned` | NUMERIC(10,2) | NOT NULL | Montant gagné par l'enseignant |
+| `commission_rate` | NUMERIC(5,2) | NOT NULL | Taux de commission appliqué |
+| `platform_fee` | NUMERIC(10,2) | NOT NULL | Part plateforme |
+| `transaction_id` | INTEGER | FK → transactions.id ON DELETE SET NULL | |
+| `period_start` | TIMESTAMP | | Début de la période de calcul |
+| `period_end` | TIMESTAMP | | Fin de la période de calcul |
+| `paid_at` | TIMESTAMP | | Date de paiement effectif |
+| `created_at` | TIMESTAMP | DEFAULT utcnow | |
+
+**Index** : `ix_teacher_rev_teacher_id`, `ix_teacher_rev_period(teacher_id, period_start, period_end)`
+
+#### `audit_impersonations` — Journal d'impersonation (support)
+
+| Colonne | Type | Contraintes | Notes |
+|---------|------|-------------|-------|
+| `id` | INTEGER | PK | |
+| `impersonator_id` | INTEGER | FK → users.id ON DELETE CASCADE, NOT NULL | Agent de support |
+| `target_user_id` | INTEGER | FK → users.id ON DELETE CASCADE, NOT NULL | Utilisateur impersonné |
+| `reason` | TEXT | NOT NULL | Raison de l'impersonation |
+| `started_at` | TIMESTAMP | NOT NULL, DEFAULT utcnow | |
+| `ended_at` | TIMESTAMP | | null = session active |
+| `session_duration_seconds` | INTEGER | | Calculé à la fin de session |
+| `ip_address` | VARCHAR(45) | | IPv4/IPv6 |
+
+**Index** : `ix_audit_imp_impersonator(impersonator_id)`, `ix_audit_imp_target(target_user_id)`
+
+**Règle** : `max_duration = 30 minutes`. Si `ended_at` est null après 30min → session automatiquement fermée par scheduler.
+
+---
+
+> **Mise à jour** : 2026-08-06 — Ajout des tables de gouvernance (bulk_seat_vouchers, teacher_revenue_ledger, audit_impersonations) et colonnes de versioning/CMS.
+> **Migration précédente** : 2026-08-01 — Conversion `Float → Numeric(10,2)` pour les colonnes monétaires. Migration SQL : `backend/migrations/2026_08_01_numeric_monetary.sql`

@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../../store/authStore";
-import { Card, CardHeader, CardTitle, Button, PageSpinner } from "../../../components/ui";
+import { Card, CardHeader, CardTitle, Button, PageSpinner, PageWrapper } from "../../../components/ui";
 import { useStudentDashboard } from "../hooks/useStudentDashboard";
 import { TrimesterBadge } from "../components/trimester/TrimesterBadge";
 import { TrimesterReconfigBanner } from "../components/trimester/TrimesterReconfigBanner";
@@ -43,7 +43,7 @@ export default function StudentDashboard() {
   const {
     dashboard, packTier, wallet, unreadCount, lastMessage,
     softSkillsCourses, availablePacks,
-    loading, error,
+    loading, error, sourceErrors,
     quota, trimester,
     isFreePack, isBasicOrSilver, isGolden,
     matieresCount, globalProgress,
@@ -66,7 +66,8 @@ export default function StudentDashboard() {
   const courses = dashboard?.courses ?? [];
 
   return (
-    <div className="space-y-6">
+    <PageWrapper noHeader>
+      <div className="space-y-6">
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-red-700 text-sm">{error}</div>
       )}
@@ -206,7 +207,9 @@ export default function StudentDashboard() {
             <CardHeader>
               <CardTitle>Reprendre l&apos;Apprentissage</CardTitle>
             </CardHeader>
-            {lastLesson ? (
+            {sourceErrors.dashboard ? (
+              <WidgetError message={sourceErrors.dashboard} />
+            ) : lastLesson ? (
               <div className="flex items-center gap-4">
                 <ProgressRing percent={lastLesson.progressPct} size={56} />
                 <div className="flex-1 min-w-0">
@@ -244,7 +247,9 @@ export default function StudentDashboard() {
                 <span className="text-xs text-gray-400">{matieresCount} matière{matieresCount !== 1 ? "s" : ""}</span>
               </div>
             </CardHeader>
-            {courses.length > 0 ? (
+            {sourceErrors.dashboard ? (
+              <WidgetError message={sourceErrors.dashboard} />
+            ) : courses.length > 0 ? (
               <div className="grid grid-cols-2 gap-3">
                 {courses.slice(0, 6).map((course) => (
                   <button
@@ -285,6 +290,9 @@ export default function StudentDashboard() {
             <CardHeader>
               <CardTitle>Statistiques</CardTitle>
             </CardHeader>
+            {sourceErrors.dashboard ? (
+              <WidgetError message={sourceErrors.dashboard} />
+            ) : (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -320,6 +328,7 @@ export default function StudentDashboard() {
                 <span className="text-sm font-semibold text-navy">{globalProgress}%</span>
               </div>
             </div>
+            )}
           </Card>
 
           {/* BLOC 2 — MES FORMATIONS SOFT SKILLS */}
@@ -327,7 +336,9 @@ export default function StudentDashboard() {
             <CardHeader>
               <CardTitle>{t("student.dashboard.formationsSoftSkills")}</CardTitle>
             </CardHeader>
-            {softSkillsCourses.length > 0 ? (
+            {sourceErrors.softSkills ? (
+              <WidgetError message={sourceErrors.softSkills} />
+            ) : softSkillsCourses.length > 0 ? (
               <div className="space-y-3 mb-3">
                 {softSkillsCourses.map((course) => (
                   <div key={course.id} className="flex items-center gap-3">
@@ -346,9 +357,14 @@ export default function StudentDashboard() {
             ) : (
               <p className="text-sm text-gray-400 mb-3">{t("student.dashboard.aucuneFormation")}</p>
             )}
-            <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/soft-skills")} className="w-full">
-              {t("student.dashboard.catalogue")}
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/my-skills")} className="flex-1">
+                {t("student.dashboard.mesFormations")}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/soft-skills")} className="flex-1">
+                {t("student.dashboard.catalogue")}
+              </Button>
+            </div>
           </Card>
 
           {/* BLOC 3 — ANNONCES & RAPPELS */}
@@ -356,6 +372,9 @@ export default function StudentDashboard() {
             <CardHeader>
               <CardTitle>Annonces & Rappels</CardTitle>
             </CardHeader>
+            {sourceErrors.inbox ? (
+              <WidgetError message={sourceErrors.inbox} />
+            ) : (
             <div className="space-y-3">
               {unreadCount > 0 && (
                 <button
@@ -387,6 +406,7 @@ export default function StudentDashboard() {
                 </div>
               </div>
             </div>
+            )}
           </Card>
 
           {/* PORTFEUILLE — compact */}
@@ -414,19 +434,9 @@ export default function StudentDashboard() {
         </div>
       </div>
 
-      {/* ═══ BOUTON FLOTTANT IA ═══ */}
-      <button
-        onClick={() => navigate("/dashboard/ai-tutor")}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-orange hover:bg-orange/90 text-white rounded-full shadow-lg shadow-orange/30 flex items-center justify-center transition-all hover:scale-105"
-        title={t("student.dashboard.assistantIA")}
-      >
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-        </svg>
-      </button>
-
       {/* ═══ QUOTA EXHAUSTED MODAL ═══ */}
       <QuotaExhaustedModal open={showQuotaModal} onClose={() => setShowQuotaModal(false)} />
-    </div>
+      </div>
+    </PageWrapper>
   );
 }

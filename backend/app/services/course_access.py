@@ -1,21 +1,30 @@
 """
 Service centralisé de vérification d'accès aux cours.
-Vérifie l'accès via : gratuité, inscription, pack individuel, pack école.
+Vérifie l'accès via : gratuité, inscription, pack individuel, pack école, ABAC (tag_pack_requis).
 Aucune inscription individuelle n'est créée pour un pack — l'accès est recalculé dynamiquement.
 """
 import logging
 from datetime import datetime, timezone
 from typing import Optional
 
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.models import (
     User, Course, CourseEnrollment, StudyPack, PackPurchase,
     PackPurchaseStatus, SchoolCourseAccess, CoursePurchase,
+    Abonnement, PackDefinition,
 )
 from app.db.session import _tenant_filter_suppressed
 
 logger = logging.getLogger(__name__)
+
+# ABAC tier hierarchy: higher tier grants access to lower tier requirements
+TIER_HIERARCHY = {
+    "Basic": 1,
+    "Silver": 2,
+    "Golden": 3,
+}
 
 
 def has_course_access(user: User, course: Course, db: Session) -> bool:
@@ -103,6 +112,10 @@ def has_course_access(user: User, course: Course, db: Session) -> bool:
         if school_pack and _pack_covers_course(school_pack.pack, course):
             return True
 
+    # 8. ABAC: vérifie le tag_pack_requis via le système d'abonnement
+    if check_abac_access(user, course, db):
+        return True
+
     return False
 
 
@@ -115,6 +128,125 @@ def _pack_covers_course(pack: StudyPack, course: Course) -> bool:
     """
     if course.niveau_scolaire != pack.niveau_scolaire:
         return False
+    if pack.matieres is None:
+        return True
+    if not isinstance(pack.matieres, list):
+        return True
+    return course.category in pack.matieres
+
+
+def check_abac_access(user: User, course: Course, db: Session) -> bool:
+    """
+    Vérifie l'accès ABAC basé sur tag_pack_requis du cours et l'abonnement de l'utilisateur.
+
+    Règles :
+      - tag_pack_requis="Basic" → abonnement Basic, Silver ou Golden requis
+      - tag_pack_requis="Silver" → abonnement Silver ou Golden requis
+      - tag_pack_requis="Golden" → abonnement Golden requis
+      - Règle des matières : Basic/Silver → vérifie que course.category est dans matieres_config
+
+    Retourne True si l'accès est accordé, False sinon.
+    Lève HTTPException 402 si accès refusé pour upsell.
+    """
+    tag_requis = getattr(course, "tag_pack_requis", "Basic") or "Basic"
+    required_level = TIER_HIERARCHY.get(tag_requis, 1)
+
+    # Recherche l'abonnement actif de l'utilisateur (statut actif ou grace)
+    now = datetime.now(timezone.utc)
+    token = _tenant_filter_suppressed.set(True)
+    try:
+        abonnement = db.query(Abonnement).join(PackDefinition).filter(
+            Abonnement.user_id == user.id,
+            Abonnement.statut.in_(["actif", "grace"]),
+            Abonnement.fin > now,
+        ).order_by(Abonnement.created_at.desc()).first()
+    finally:
+        _tenant_filter_suppressed.reset(token)
+
+    if not abonnement:
+        return False
+
+    # Vérifie le tier du pack
+    pack_tier = abonnement.pack.tier if abonnement.pack else "Basic"
+    user_tier_level = TIER_HIERARCHY.get(pack_tier, 0)
+
+    if user_tier_level < required_level:
+        return False
+
+    # Règle des matières : Basic et Silver vérifient la matière
+    if pack_tier in ("basic", "Basic", "silver", "Silver"):
+        matieres_config = abonnement.pack.matieres if abonnement.pack else None
+        if matieres_config:
+            # matieres_config peut être une liste ou un dict avec clé "matieres"
+            if isinstance(matieres_config, dict):
+                matieres_list = matieres_config.get("matieres", [])
+            elif isinstance(matieres_config, list):
+                matieres_list = matieres_config
+            else:
+                matieres_list = []
+
+            # Si des matières sont spécifiées, vérifie que la matière du cours y est
+            if matieres_list and course.category:
+                if course.category not in matieres_list:
+                    return False
+
+    return True
+
+
+def require_abac_access(user: User, course: Course, db: Session) -> None:
+    """
+    Variante de check_abac_access qui lève une HTTPException 402 si l'accès est refusé.
+    Utile pour les endpoints qui doivent bloquer avec un message d'upsell.
+    """
+    tag_requis = getattr(course, "tag_pack_requis", "Basic") or "Basic"
+    required_level = TIER_HIERARCHY.get(tag_requis, 1)
+
+    now = datetime.now(timezone.utc)
+    token = _tenant_filter_suppressed.set(True)
+    try:
+        abonnement = db.query(Abonnement).join(PackDefinition).filter(
+            Abonnement.user_id == user.id,
+            Abonnement.statut.in_(["actif", "grace"]),
+            Abonnement.fin > now,
+        ).order_by(Abonnement.created_at.desc()).first()
+    finally:
+        _tenant_filter_suppressed.reset(token)
+
+    if not abonnement:
+        raise HTTPException(
+            status_code=402,
+            detail=f"Accès requis : ce cours nécessite un abonnement {tag_requis}. "
+                   f"Veuillez souscrire à un pack pour accéder à ce contenu.",
+        )
+
+    pack_tier = abonnement.pack.tier if abonnement.pack else "Basic"
+    user_tier_level = TIER_HIERARCHY.get(pack_tier, 0)
+
+    if user_tier_level < required_level:
+        raise HTTPException(
+            status_code=402,
+            detail=f"Upgrade requis : ce cours nécessite un pack {tag_requis}. "
+                   f"Votre pack actuel ({pack_tier}) ne couvre pas ce niveau.",
+        )
+
+    # Règle des matières
+    if pack_tier in ("basic", "Basic", "silver", "Silver"):
+        matieres_config = abonnement.pack.matieres if abonnement.pack else None
+        if matieres_config:
+            if isinstance(matieres_config, dict):
+                matieres_list = matieres_config.get("matieres", [])
+            elif isinstance(matieres_config, list):
+                matieres_list = matieres_config
+            else:
+                matieres_list = []
+
+            if matieres_list and course.category:
+                if course.category not in matieres_list:
+                    raise HTTPException(
+                        status_code=402,
+                        detail=f"Matière non incluse : '{course.category}' n'est pas dans votre pack {pack_tier}. "
+                               f"Matières disponibles : {', '.join(matieres_list)}",
+                    )
     if pack.matieres is None:
         return True
     if not isinstance(pack.matieres, list):

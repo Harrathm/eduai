@@ -42,7 +42,7 @@
 > الهدف: إصلاح العوائق الحرجة وجعل المنصة آمنة وجاهزة للعملاء.
 
 **أمان البيانات بين المدارس**
-سيتمكن كل مدرسة من رؤية بياناتها فقط — لا تrossover بين المدارس. هذا شرط أساسي للثقة.
+سيتمكن كل مدرسة من رؤية بياناتها فقط — لا crossover بين المدارس. هذا شرط أساسي للثقة.
 → *التفاصيل التقنية في IMPLEMENTATION-PLAN.md — المرحلة 1*
 
 **بنية تحتية للنشر**
@@ -62,6 +62,18 @@
 **تغطية اختبارات شاملة**
 ستتم تغطية جميع الخدمات الحرجة باختبارات آلية — gamification، إشعارات، RAG، تخطيط الأهداف. المنصة ستكون أكثر استقراراً مع كل إصدار.
 → *التفاصيل التقنية في IMPLEMENTATION-PLAN.md — المراحل 3 و 5*
+
+**محرك ABAC ودورة حياة المحتوى**
+ترقية من RBAC الثابت إلى سياسات ديناميكية تعتمد على السياق (مدرسة، طبقة اشتراك، باقة، وقت). دورة حياة المحتوى: Brouillon → Soumission → Validation IA → Validation Humaine → Publication.
+→ *التفاصيل التقنية في IMPLEMENTATION-PLAN.md — المرحلة 7*
+
+**تبديل السياق (Context Switcher)**
+المستخدمون ذوو الأدوار المتعددة يمكنهم التبديل بين الأدوار بدون تسجيل خروج/دخول جديد — تجربة أكثر سلاسة.
+→ *التفاصيل التقنية في IMPLEMENTATION-PLAN.md — المرحلة 7*
+
+**دعم Impersonation**
+يمكن للمشرفين الدخول كحساب مستخدم آخر لتقديم الدعم — مع تسجيل كامل في سجل التدقيق ومدة أقصى 30 دقيقة.
+→ *التفاصيل التقنية في IMPLEMENTATION-PLAN.md — المرحلة 7*
 
 **تجربة المعلم المحسّنة**
 سيتمكن المعلمون من إضافة طلاب لصفوفهم مباشرة من الواجهة، وإنشاء دوراتهم بسرعة عبر صفحة مخصصة. تجربة سلسة بدلاً من الحلول البديلة الحالية.
@@ -210,6 +222,18 @@ La race condition dans la consommation de crédits sera corrigée — chaque ach
 Tous les services critiques seront couverts par des tests automatisés — gamification, notifications, RAG, suivi d'objectifs. La plateforme sera plus stable à chaque version.
 → *Détails techniques dans IMPLEMENTATION-PLAN.md — Phases 3 et 5*
 
+**Moteur ABAC & CMS Lifecycle**
+Migration du RBAC fixe vers des politiques dynamiques basées sur le contexte (école, tier, pack, heure). Cycle de vie du contenu : Brouillon → Soumission → Validation IA → Validation Humaine → Publication.
+→ *Détails techniques dans IMPLEMENTATION-PLAN.md — Phase 7*
+
+**Context Switcher**
+Les utilisateurs multi-rôles basculent entre rôles sans reconnexion — expérience plus fluide.
+→ *Détails techniques dans IMPLEMENTATION-PLAN.md — Phase 7*
+
+**Impersonation de support**
+Les administrateurs peuvent entrer dans un compte utilisateur pour le support — journal complet dans audit_impersonations, durée max 30min.
+→ *Détails techniques dans IMPLEMENTATION-PLAN.md — Phase 7*
+
 **Expérience enseignant améliorée**
 Les enseignants pourront ajouter des élèves à leurs classes directement depuis l'interface, et créer leurs cours via une page dédiée. Une expérience fluide au lieu des solutions de contournement actuelles.
 → *Détails techniques dans IMPLEMENTATION-PLAN.md — Phase 4*
@@ -356,6 +380,18 @@ The race condition in credit consumption will be fixed — every purchase or deb
 **Comprehensive test coverage**
 All critical services will be covered by automated tests — gamification, notifications, RAG, goal tracking. The platform will be more stable with each release.
 → *Technical details in IMPLEMENTATION-PLAN.md — Phases 3 and 5*
+
+**ABAC Engine & CMS Lifecycle**
+Migration from static RBAC to dynamic attribute-based policies (school, tier, pack, time). Content lifecycle: Draft → Submit → AI Validation → Human Validation → Publish.
+→ *Technical details in IMPLEMENTATION-PLAN.md — Phase 7*
+
+**Context Switcher**
+Multi-role users switch roles without re-login — smoother experience.
+→ *Technical details in IMPLEMENTATION-PLAN.md — Phase 7*
+
+**Support Impersonation**
+Administrators can enter user accounts for support — full audit trail in audit_impersonations, max 30min duration.
+→ *Technical details in IMPLEMENTATION-PLAN.md — Phase 7*
 
 **Improved teacher experience**
 Teachers will be able to add students to their classes directly from the interface, and create their courses through a dedicated page. A smooth experience instead of the current workarounds.

@@ -19,6 +19,13 @@ const ROLE_ICONS: Record<string, React.ReactNode> = {
   member: <Users className="w-4 h-4 text-gray" />,
 };
 
+const NIVEAUX = [
+  "1ere annee", "2eme annee", "3eme annee", "4eme annee", "5eme annee", "6eme annee",
+  "7eme de base", "8eme de base", "9eme de base",
+  "1ere annee secondaire", "2eme annee secondaire", "3eme annee secondaire", "4eme annee secondaire",
+  "1ere annee sciences", "2eme annee sciences", "3eme annee mathematiques", "4eme annee mathematiques",
+];
+
 export default function AdminUsersPage() {
   const { t } = useTranslation();
   const [result, setResult] = useState<PaginatedResponse<AdminUser> | null>(null);
@@ -38,7 +45,7 @@ export default function AdminUsersPage() {
   const [roleModal, setRoleModal] = useState<AdminUser | null>(null);
   const [newRole, setNewRole] = useState("student");
   const [editModal, setEditModal] = useState<AdminUser | null>(null);
-  const [editData, setEditData] = useState({ full_name: "", email: "", role: "", school_id: 0, is_active: true, is_approved: true });
+  const [editData, setEditData] = useState({ full_name: "", email: "", role: "", school_id: 0, is_active: true, is_approved: true, niveau_scolaire: "" });
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
   const [processing, setProcessing] = useState(false);
   const [toast, setToast] = useState<{ show: boolean; message: string; type: "success" | "error" }>({ show: false, message: "", type: "success" });
@@ -148,6 +155,7 @@ export default function AdminUsersPage() {
       school_id: user.school_id,
       is_active: user.is_active,
       is_approved: user.is_approved ?? true,
+      niveau_scolaire: (user as any).niveau_scolaire || "",
     });
     setEditModal(user);
   };
@@ -428,6 +436,16 @@ export default function AdminUsersPage() {
                 <option value="super_admin">{t("admin.users.roles.super_admin")}</option>
               </select>
             </div>
+            {editData.role === "student" && (
+              <div>
+                <label className="block text-xs font-medium text-gray mb-1.5">Niveau scolaire</label>
+                <select value={editData.niveau_scolaire} onChange={e => setEditData({ ...editData, niveau_scolaire: e.target.value })}
+                  className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5 text-sm focus:outline-none">
+                  <option value="">— Non défini —</option>
+                  {NIVEAUX.map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </div>
+            )}
             <div className="flex items-center gap-6">
               <label className="flex items-center gap-2 text-sm text-navy">
                 <input type="checkbox" checked={editData.is_active} onChange={e => setEditData({ ...editData, is_active: e.target.checked })}

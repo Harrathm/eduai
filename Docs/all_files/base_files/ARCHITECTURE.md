@@ -381,6 +381,85 @@ POST /api/ai/ask {question, conversation_id?}
 ### ADR-014: No Level-Up Check in Course Purchase
 - **القرار**: لا يوجد فحص level_up في تدفق الشراء
 
+### ADR-015: RBAC → ABAC Gradual Migration
+- **القرار**: البدء بـ RBAC ثابت (7 أدوار)، مع التخطيط للترقية إلى ABAC ديناميكي في الإصدارات القادمة
+- **المبرر**: RBAC يكفي لـ v1.0. ABAC يسمح بسياسات أكثر مرونة (وقت، طبقة اشتراك، شريك) دون تغيير الأدوار
+
+### ADR-016: AI Factory Atomization
+- **القرار**: تفكيك AI Factory من процесс 4 خطوات monolithique إلى ذرّات مستقلة (generate-lesson, generate-quiz, generate-chapter)
+- **المبرر**: يسمح بالمعاينة الفورية للعناصر المولّدة ونشرها بشكل مستقل
+
+### ADR-017: CMS Lifecycle = 6 States
+- **القرار**: دورة حياة المحتوى تمر بـ 6 حالات: brouillon → soumis → validation_ia → validation_humaine → publie → archive
+- **المبرر**:双重 validation (AI + humaine) تضمن جودة المحتوى
+
+---
+
+## 4.15 APIs الجديدة (المخططة)
+
+### 4.15.1 Context Switcher
+
+| الطريقة | المسار | الدور | الوصف |
+|---------|--------|-------|-------|
+| PUT | `/auth/switch-context` | Authenticated | تبديل الدور النشط (multi-role users) |
+
+### 4.15.2 Impersonation (Support)
+
+| الطريقة | المسار | الدور | الوصف |
+|---------|--------|-------|-------|
+| POST | `/api/support/impersonate/{user_id}` | super_admin, pedagogical_admin | بدء جلسة impersonation |
+| POST | `/api/support/impersonate/stop` | Authenticated (impersonating) | إيقاف جلسة impersonation |
+
+### 4.15.3 ABAC Engine
+
+| الطريقة | المسار | الدور | الوصف |
+|---------|--------|-------|-------|
+| GET | `/api/abac/policies` | platform_admin | عرض السياسات النشطة |
+| POST | `/api/abac/policies` | platform_admin | إنشاء سياسة جديدة |
+| PUT | `/api/abac/policies/{id}` | platform_admin | تعديل سياسة |
+| DELETE | `/api/abac/policies/{id}` | platform_admin | حذف سياسة |
+
+### 4.15.4 AI Factory Atomization
+
+| الطريقة | المسار | الدور | الوصف |
+|---------|--------|-------|-------|
+| POST | `/api/ai-factory/generate-lesson` | admin | توليد درس واحد |
+| POST | `/api/ai-factory/generate-quiz` | admin | توليد اختبار واحد |
+| POST | `/api/ai-factory/generate-chapter` | admin | توليد فصل كامل |
+
+### 4.15.5 Versioning / Fork
+
+| الطريقة | المسار | الدور | الوصف |
+|---------|--------|-------|-------|
+| POST | `/api/courses/{id}/version` | teacher, admin | إنشاء نسخة جديدة (fork) |
+| GET | `/api/courses/{id}/versions` | teacher, admin | عرض جميع الإصدارات |
+| POST | `/api/courses/{id}/rollback/{version}` | admin | التراجع لإصدار سابق |
+
+### 4.15.6 Bulk Seats
+
+| الطريقة | المسار | الدور | الوصف |
+|---------|--------|-------|-------|
+| POST | `/api/schools/bulk-seats/purchase` | admin_school | شراء مقاعد متعددة |
+| GET | `/api/schools/bulk-seats` | admin_school | عرض مقاعد المدرسة |
+| POST | `/api/schools/bulk-seats/{id}/redeem` | student | استخدام مقعد (تسجيل) |
+
+### 4.15.7 Revenue Share Ledger
+
+| الطريقة | المسار | الدور | الوصف |
+|---------|--------|-------|-------|
+| GET | `/api/teacher/revenue-report` | teacher | تقرير الإيرادات |
+| GET | `/api/admin/teacher-revenue` | admin | تقرير إيرادات جميع الأساتذة |
+
+### 4.15.8 CMS Lifecycle
+
+| الطريقة | المسار | الدور | الوصف |
+|---------|--------|-------|-------|
+| POST | `/api/cms/lessons/{id}/submit` | teacher | تسليم درس للمراجعة |
+| POST | `/api/cms/lessons/{id}/validate-ia` | system | تحقق AI تلقائي |
+| POST | `/api/cms/lessons/{id}/validate` | pedagogical_lead | موافقة يدوية |
+| POST | `/api/cms/lessons/{id}/publish` | admin | نشر |
+| POST | `/api/cms/lessons/{id}/archive` | admin | أرشفة |
+
 ---
 
 # PARTIE 2 — ARCHITECTURE SYSTÈME (Français)

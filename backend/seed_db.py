@@ -26,6 +26,7 @@ from app.models import (
     Base, School, User, Course, Module, Lesson, Quiz, QuizQuestion, QuizOption,
     WalletTransaction, CourseEnrollment, StudyPack, PackPurchase,
     NiveauEtude, Matiere, ChapterPathway, ParentEnfant,
+    BulkSeatVoucher, TeacherRevenueLedger,
     UserRole, SubscriptionTier, SchoolType, WalletPool,
     CourseStatus, PedagogicalStatus, CourseOwnerType, CourseVisibility,
     EnrollmentStatus, PackStatus, PackPurchaseStatus, PurchaserType,
@@ -386,6 +387,125 @@ def seed():
             print("  [EXISTS] Enrollment: eleve1.eljem -> %s" % course_b.title)
         session.flush()
 
+        # ── GOVERNANCE TEST DATA ─────────────────────────────────────
+        print("\n[10/10] Creating governance test data ...")
+
+        # --- 1. Multi-role user (Context Switcher) ---
+        multirole, is_new = get_or_create(
+            session, User, email="multirole@eduai.tn",
+            defaults=dict(
+                full_name="Admin Multi-Roles Carthage",
+                role=UserRole.ADMIN_SCHOOL.value,
+                school_id=school_a.id,
+                hashed_password=HASHED_PASSWORD,
+                is_active=True, onboarding_complete=True,
+                roles=["admin_school", "pedagogical_lead"],
+                active_context_role="admin_school",
+            ),
+        )
+        print("  %s multirole@eduai.tn (roles=['admin_school','pedagogical_lead'])" % _lbl(is_new))
+
+        # --- 2. Teacher Partner (Revenue Share) ---
+        partner, is_new = get_or_create(
+            session, User, email="partner@eduai.tn",
+            defaults=dict(
+                full_name="Prof Partenaire Maths",
+                role=UserRole.TEACHER.value,
+                school_id=school_a.id,
+                hashed_password=HASHED_PASSWORD,
+                is_active=True, onboarding_complete=True,
+                is_approved=True,
+                is_partner=True,
+            ),
+        )
+        print("  %s partner@eduai.tn (is_partner=True)" % _lbl(is_new))
+        session.flush()
+
+        # Ensure partner has at least one course with lessons
+        partner_course, is_new = get_or_create(
+            session, Course, slug="algo-partner-carthage",
+            defaults=dict(
+                title="Algorithmique Avancee - Partner",
+                school_id=school_a.id, author_id=partner.id,
+                owner_type=CourseOwnerType.INDEPENDENT_TEACHER.value,
+                niveau_scolaire="9eme de base",
+                price=10.0, visibility=CourseVisibility.PUBLIC_CATALOG.value,
+                status=CourseStatus.PUBLISHED.value,
+                pedagogical_status=PedagogicalStatus.APPROVED_LOCAL.value,
+                is_published=True, total_modules=1, total_lessons=1,
+                description="Cours d'algo par un enseignant partenaire."),
+        )
+        print("  %s Course partner: %s (id=%d)" % (_lbl(is_new), partner_course.title, partner_course.id))
+
+        existing_partner_mod = session.query(Module).filter_by(course_id=partner_course.id).first()
+        if not existing_partner_mod:
+            pm = Module(course_id=partner_course.id, title="Module Algo Partner",
+                        description="Module principal", order=1)
+            session.add(pm)
+            session.flush()
+            pl = Lesson(module_id=pm.id, school_id=school_a.id, teacher_id=partner.id,
+                        title="Lecon Algorithmique Base", lesson_type="text", content_type="text",
+                        content_text="Introduction aux algorithmes fondamentaux.",
+                        order=1, duration_minutes=20, is_free=True)
+            session.add(pl)
+            session.flush()
+            print("    [NEW] Module + Lesson for partner course %d" % partner_course.id)
+        session.flush()
+
+        # --- 3. Course ABAC tag_pack_requis=Golden (Upsell 402) ---
+        golden_course, is_new = get_or_create(
+            session, Course, slug="cours-exclusive-golden",
+            defaults=dict(
+                title="Cours Exclusif Golden - Physique Quantique",
+                school_id=school_a.id, author_id=t_a2.id,
+                owner_type=CourseOwnerType.SCHOOL.value,
+                niveau_scolaire="9eme de base",
+                price=None, visibility=CourseVisibility.PUBLIC_CATALOG.value,
+                status=CourseStatus.PUBLISHED.value,
+                pedagogical_status=PedagogicalStatus.APPROVED_LOCAL.value,
+                is_published=True, total_modules=1, total_lessons=1,
+                tag_pack_requis="Golden",
+                description="Cours avance reserve aux abonnes Golden."),
+        )
+        print("  %s Course Golden (tag_pack_requis=Golden): %s (id=%d)" % (
+            _lbl(is_new), golden_course.title, golden_course.id))
+        session.flush()
+
+        # --- 4. Teacher Training course (Bulk Seats) ---
+        teacher_training, is_new = get_or_create(
+            session, Course, slug="teacher-training-pedagogie",
+            defaults=dict(
+                title="Formation Enseignants - Pedagogie Numerique",
+                school_id=school_a.id, author_id=superadmin.id,
+                owner_type=CourseOwnerType.EDUAI_CATALOG.value,
+                niveau_scolaire="9eme de base",
+                price=None, visibility=CourseVisibility.PUBLIC_CATALOG.value,
+                status=CourseStatus.PUBLISHED.value,
+                pedagogical_status=PedagogicalStatus.APPROVED_LOCAL.value,
+                is_published=True, total_modules=1, total_lessons=1,
+                category_cible="Teacher_Training",
+                description="Formation pour enseignants sur les outils numeriques."),
+        )
+        print("  %s Teacher Training (category_cible=Teacher_Training): %s (id=%d)" % (
+            _lbl(is_new), teacher_training.title, teacher_training.id))
+        session.flush()
+
+        # --- 5. Bulk Seat Vouchers ---
+        voucher_codes = ["BULK-SEED-0001", "BULK-SEED-0002", "BULK-SEED-0003"]
+        for code in voucher_codes:
+            existing_v = session.query(BulkSeatVoucher).filter_by(code=code).first()
+            if not existing_v:
+                session.add(BulkSeatVoucher(
+                    school_id=school_a.id,
+                    formation_id=teacher_training.id,
+                    code=code,
+                    status="unused",
+                ))
+                print("  [NEW] Voucher: %s (school=Carthage, formation=Teacher Training)" % code)
+            else:
+                print("  [EXISTS] Voucher: %s" % code)
+        session.flush()
+
         # ── DONE ───────────────────────────────────────────────────────
         session.commit()
 
@@ -393,12 +513,19 @@ def seed():
         print("  Seed complete!")
         print("=" * 60)
         print("  Schools:         2 (Carthage, El Jem)")
-        print("  Users:           %d" % len(U))
-        print("  Courses:         %d" % len(created_courses))
+        print("  Users:           %d" % (len(U) + 2))  # +2 for multirole + partner
+        print("  Courses:         %d" % (len(created_courses) + 3))  # +3 governance courses
         print("  Wallet entries:  %d" % (len(wallet_emails) * 2))
         print("  Study Packs:     1")
         print("  Enrollments:     2")
+        print("  Vouchers:        3 (unused)")
         print("  Password:        passeword123")
+        print()
+        print("  Governance users:")
+        print("    multirole@eduai.tn / passeword123  (Context Switcher)")
+        print("    partner@eduai.tn / passeword123    (Revenue Share)")
+        print("  ABAC course:  tag_pack_requis=Golden -> 402 UpsellModal")
+        print("  Bulk Seats:   3 vouchers BULK-SEED-* (Teacher Training)")
         print("=" * 60)
 
     except Exception as e:

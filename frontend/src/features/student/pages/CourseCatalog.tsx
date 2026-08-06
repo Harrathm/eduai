@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../../../store/authStore";
 import { courseAcademy, courseLearner } from "../../../api";
 import { Search, BookOpen, Clock, User, ShoppingCart, AlertCircle, CheckCircle, X } from "lucide-react";
+import { PageWrapper } from "../../../components/ui";
 
 interface Course {
   id: number;
@@ -118,13 +119,11 @@ export default function StudentCourseCatalog() {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-3xl p-8 shadow-sm border border-black/5">
-        <h1 className="text-3xl font-[300] text-navy">
-          Course <span className="italic text-orange">Catalog</span>
-        </h1>
-        <p className="text-gray mt-2">{t('courseCatalog.subtitle')}</p>
-      </div>
+    <PageWrapper
+      title={<>{t('courseCatalog.title', 'Soft Skills')} <span className="italic text-orange">{t('courseCatalog.titleHighlight', 'Catalogue')}</span></>}
+      subtitle={t('courseCatalog.subtitle')}
+      icon={<BookOpen className="w-8 h-8" />}
+    >
 
       {/* Search */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
@@ -302,6 +301,6 @@ export default function StudentCourseCatalog() {
           {toast.message}
         </div>
       )}
-    </div>
+    </PageWrapper>
   );
 }

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../../../store/authStore";
 import { api } from "../../../utils/apiClient";
 import { Wallet, Coins, TrendingUp, Clock } from "lucide-react";
+import { PageWrapper } from "../../../components/ui";
 
 interface PoolEntry {
   pool: string;
@@ -59,13 +60,11 @@ export default function StudentWallet() {
     balance?.pools?.find((p) => p.pool === poolName);
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-3xl p-8 shadow-sm border border-black/5">
-        <h1 className="text-3xl font-[300] text-navy">
-          {t('wallet.title')}
-        </h1>
-        <p className="text-gray mt-2">{t('wallet.subtitle')}</p>
-      </div>
+    <PageWrapper
+      title={t('wallet.title')}
+      subtitle={t('wallet.subtitle')}
+      icon={<Wallet className="w-8 h-8" />}
+    >
 
       {/* Solde total */}
       <div className="grid grid-cols-2 gap-4">
@@ -149,6 +148,6 @@ export default function StudentWallet() {
           <p>• <b>{t('wallet.poolPurchased')}</b> : {t('wallet.poolPurchasedDesc')}</p>
         </div>
       </div>
-    </div>
+    </PageWrapper>
   );
 }

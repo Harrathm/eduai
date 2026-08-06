@@ -854,6 +854,139 @@ def list_users(current_user: User = Depends(require_platform_admin), db: Session
 - **No vault or advanced secrets management**
 - **`API_Keys.txt` file at project root** — ⚠️ potential security risk
 
+### 4.4 RBAC → ABAC Migration Architecture
+
+#### 4.4.1 Current RBAC Enforcement (Implemented)
+
+All RBAC is enforced via FastAPI Dependencies in `deps.py`:
+
+```python
+def require_admin(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.role not in ["super_admin", "admin_school", "pedagogical_admin", "pedagogical_lead"]:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
+```
+
+**Enforcement points**: Router-level `Depends()` — evaluated once per request at entry.
+
+#### 4.4.2 ABAC Engine Architecture (Implemented)
+
+**File**: `backend/app/services/course_access.py` (320 lines)
+
+```
+has_course_access() [8 steps] → check_abac_access() [step 8]
+                                        ↓
+                           ┌─────────────────────────┐
+                           │ TIER_HIERARCHY dict:     │
+                           │   Basic(1), Silver(2),   │
+                           │   Golden(3)              │
+                           └─────────────────────────┘
+                                        ↓
+                           ┌─────────────────────────┐
+                           │ Check:                   │
+                           │  - Abonnement active?    │
+                           │  - PackDefinition tier   │
+                           │  - Required tier met?    │
+                           │  - Matiere covers course?│
+                           └─────────────────────────┘
+```
+
+**Rules implemented**:
+- `tag_pack_requis="Basic"` → Abonnement Basic, Silver or Golden required
+- `tag_pack_requis="Silver"` → Abonnement Silver or Golden required
+- `tag_pack_requis="Golden"` → Abonnement Golden required
+- **Material rule**: Basic/Silver → `course.category` must be in `pack.matieres`
+
+**Functions**:
+- `check_abac_access(user, course, db) -> bool` — Checks ABAC access based on `tag_pack_requis` and `Abonnement`
+- `require_abac_access(course_id, user, db)` — FastAPI dependency, raises HTTP 402 for upsell
+
+**Integration**: Called as step 8 in `has_course_access()`. Existing 7 steps (gratuité, auteur, inscription, achat, school_access, pack_individuel, pack_école) preserved.
+
+#### 4.4.3 Context Switcher Implementation
+
+| Component | Implementation |
+|-----------|---------------|
+| DB Column | `users.active_context_role` — stores current active role |
+| Backend | `PUT /auth/switch-context` — validates role membership via `User.role` |
+| Frontend | `authStore.setActiveRole()` — triggers re-render of protected routes |
+| JWT | Context switch does NOT regenerate JWT — `active_context_role` is resolved at runtime from DB |
+
+#### 4.4.4 Impersonation Security Model
+
+| Constraint | Value | Enforcement |
+|-----------|-------|-------------|
+| Max session duration | 30 minutes | Scheduler checks `audit_impersonations.ended_at IS NULL AND started_at + 30min < now()` |
+| Allowed impersonators | super_admin, pedagogical_admin | Checked at endpoint entry |
+| Required fields | reason, target_user_id | Validated by Pydantic schema |
+| Audit trail | Full logging to `audit_impersonations` | Every action logged |
+| Auto-logout | On timeout or explicit `POST /stop` | Session invalidated |
+
+#### 4.4.5 CMS Lifecycle State Machine
+
+```
+brouillon ──→ soumis ──→ validation_ia ──→ validation_humaine ──→ publie
+    ↑              ↑            │                    │
+    │              │            ↓                    ↓
+    │              └──── brouillon (rejet IA)  brouillon (révision)
+    │                                                      │
+    └────────────────── archive ←────────────────────────────┘
+```
+
+**State transitions enforced in**: `backend/app/services/cms_lifecycle.py` (implemented)
+
+#### 4.4.6 CMS Versioning
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/courses/{id}/create-draft-version` | POST | Create draft version for editing |
+| `/api/courses/{id}/publish-version` | POST | Publish draft version as active |
+| `/api/courses/{id}/rollback/{target_version_id}` | POST | Rollback to a specific version |
+| `/api/courses/{id}/versions` | GET | List all versions |
+
+**Implementation**:
+- Base title is `course.title.split(" (V")` — all versions share the same base title
+- `version_number` increments on each draft creation
+- `is_active_version` toggled on publish — only one version active at a time
+- Rollback copies the target version's content and publishes it as a new version
+
+#### 4.4.7 AI Factory Atomization
+
+| Status | Value | Description |
+|--------|-------|-------------|
+| `brouillon_ia` | Auto-generated | AI-created ElementPedagogique entries |
+
+**Implementation**:
+- `_create_atomized_elements()` in `backend/app/services/ai_factory_service.py` (L521-649)
+- Creates 4 types per lesson: `texte`, `quiz`, `image`, `video`
+- Each element stored as separate `ElementPedagogique` with status `brouillon_ia`
+- Human validation required before library publication
+
+#### 4.4.8 Bulk Seats B2B
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/schools/bulk-seats/purchase` | POST | Purchase bulk seat vouchers |
+| `/api/schools/bulk-seats/list` | GET | List school's vouchers |
+| `/api/schools/bulk-seats/redeem` | POST | Redeem a voucher code |
+
+**Voucher format**: `BULK-{hex4}-{hex3}` — unique, one-time use
+
+#### 4.4.9 Teacher Revenue Share
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/teacher/revenue-report` | GET | Teacher's own revenue report |
+| `/api/teacher/revenue-history` | GET | Teacher's revenue history with pagination |
+| `/api/admin/teacher-revenue` | GET | Admin view of all teachers' revenue |
+
+**Implementation**:
+- `teacher_revenue_ledger` table stores all revenue transactions
+- Groups by `(teacher_id, lesson_id, period_month)` with unique constraint
+- Revenue is calculated on lesson purchase, not course purchase
+
+---
+
 ---
 
 ## 5. EXTERNAL INTEGRATIONS

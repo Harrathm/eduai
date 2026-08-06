@@ -1,7 +1,6 @@
-import { Fragment, useState, useCallback, useMemo } from "react";
+import { Fragment, useState, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal, Button } from "../../../../components/ui";
-import { MatiereSelector } from "./MatiereSelector";
 import { CheckCircle, ArrowLeft, Loader2 } from "lucide-react";
 import { api } from "../../../../utils/apiClient";
 
@@ -13,11 +12,9 @@ interface Pack {
   niveau_scolaire: string;
 }
 
-interface Matiere {
+interface MatiereOption {
   id: number;
-  name: string;
-  category: "langue" | "specialite";
-  niveau_scolaire: string;
+  nom: string;
 }
 
 interface PackConfiguratorModalProps {
@@ -37,48 +34,108 @@ const TIER_DESC: Record<string, string> = {
 export function PackConfiguratorModal({ isOpen, onClose, pack, userNiveau }: PackConfiguratorModalProps) {
   const { t } = useTranslation();
   const [step, setStep] = useState<"matieres" | "confirm" | "success">("matieres");
-  const [selectedMatieres, setSelectedMatieres] = useState<number[]>([]);
-  const [availableMatieres, setAvailableMatieres] = useState<Matiere[]>([]);
+  const [langues, setLangues] = useState<MatiereOption[]>([]);
+  const [specialites, setSpecialites] = useState<MatiereOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const isGolden = pack.tier === "golden";
-  const maxLangues = pack.tier === "silver" ? 2 : 1;
-  const maxSpecialites = pack.tier === "silver" ? 2 : 1;
+  const isSilver = pack.tier === "silver";
+  const maxLangues = isSilver ? 2 : 1;
+  const maxSpecialites = isSilver ? 2 : 1;
 
-  const langues = useMemo(() => availableMatieres.filter((m) => m.category === "langue"), [availableMatieres]);
-  const specialites = useMemo(() => availableMatieres.filter((m) => m.category === "specialite"), [availableMatieres]);
-  const selLangues = selectedMatieres.filter((id) => langues.some((l) => l.id === id)).length;
-  const selSpec = selectedMatieres.filter((id) => specialites.some((s) => s.id === id)).length;
+  const [selLangue1, setSelLangue1] = useState<number>(0);
+  const [selLangue2, setSelLangue2] = useState<number>(0);
+  const [selSpec1, setSelSpec1] = useState<number>(0);
+  const [selSpec2, setSelSpec2] = useState<number>(0);
 
-  const canConfirm = isGolden || (selLangues === maxLangues && selSpec === maxSpecialites);
+  const resetState = () => {
+    setStep("matieres");
+    setSelLangue1(0);
+    setSelLangue2(0);
+    setSelSpec1(0);
+    setSelSpec2(0);
+    setError(null);
+    setLangues([]);
+    setSpecialites([]);
+  };
+
+  const handleClose = () => { resetState(); onClose(); };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    resetState();
+    if (isGolden) {
+      setStep("confirm");
+      return;
+    }
+    loadMatieres();
+  }, [isOpen]);
 
   const loadMatieres = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await api.get<Matiere[]>(`/api/pathway/matieres?niveau_scolaire=${encodeURIComponent(pack.niveau_scolaire)}`);
-      setAvailableMatieres(Array.isArray(data) ? data : []);
-    } catch { /* ignore */ } finally { setLoading(false); }
+      const resp = await api.get<{ langues: MatiereOption[]; specialites: MatiereOption[] }>(
+        `/api/pathway/matieres-by-niveau?niveau_scolaire=${encodeURIComponent(pack.niveau_scolaire)}`
+      );
+      setLangues(resp.langues || []);
+      setSpecialites(resp.specialites || []);
+    } catch { setError("Erreur lors du chargement des matieres."); } finally { setLoading(false); }
   }, [pack.niveau_scolaire]);
 
-  const handleOpen = useCallback(async () => {
-    if (isGolden) { setStep("confirm"); return; }
-    await loadMatieres();
-    setStep("matieres");
-  }, [isGolden, loadMatieres]);
+  const getSelectedIds = (): number[] => {
+    const ids: number[] = [];
+    if (selLangue1) ids.push(selLangue1);
+    if (maxLangues >= 2 && selLangue2) ids.push(selLangue2);
+    if (selSpec1) ids.push(selSpec1);
+    if (maxSpecialites >= 2 && selSpec2) ids.push(selSpec2);
+    return ids;
+  };
+
+  const allSelected = (): boolean => {
+    if (isGolden) return true;
+    if (!selLangue1 || !selSpec1) return false;
+    if (maxLangues >= 2 && !selLangue2) return false;
+    if (maxSpecialites >= 2 && !selSpec2) return false;
+    const ids = getSelectedIds();
+    return ids.length === new Set(ids).size;
+  };
 
   const handleConfirm = async () => {
     setLoading(true);
     setError(null);
     try {
-      await api.post(`/api/abonnements/packs/${pack.id}/purchase`, { matieres: isGolden ? undefined : selectedMatieres });
+      const matieres = isGolden ? undefined : getSelectedIds();
+      await api.post(`/api/abonnements/packs/${pack.id}/purchase`, { matieres });
       setStep("success");
     } catch (err: any) {
       setError(err.message || t("packConfig.purchaseError"));
     } finally { setLoading(false); }
   };
 
-  const handleClose = () => { setStep("matieres"); setSelectedMatieres([]); setError(null); onClose(); };
+  const renderSelect = (
+    label: string,
+    value: number,
+    onChange: (v: number) => void,
+    options: MatiereOption[],
+    disabledIds: number[]
+  ) => (
+    <div>
+      <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+      <select
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm text-navy bg-white focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy transition-colors"
+      >
+        <option value={0}>-- Choisir --</option>
+        {options.map((m) => (
+          <option key={m.id} value={m.id} disabled={disabledIds.includes(m.id)}>
+            {m.nom}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
 
   if (!isOpen) return null;
 
@@ -94,7 +151,7 @@ export function PackConfiguratorModal({ isOpen, onClose, pack, userNiveau }: Pac
                 <Fragment key={label}>
                   <div className="flex items-center gap-2">
                     <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${i < idx ? "bg-green-500 text-white" : i === idx ? "bg-navy text-white" : "bg-gray-200 text-gray-500"}`}>
-                      {i < idx ? "✓" : i + 1}
+                      {i < idx ? "\u2713" : i + 1}
                     </div>
                     <span className={`text-xs font-medium ${i === idx ? "text-navy" : "text-gray-400"}`}>{label}</span>
                   </div>
@@ -114,17 +171,55 @@ export function PackConfiguratorModal({ isOpen, onClose, pack, userNiveau }: Pac
           <p className="text-2xl font-[300] text-navy mt-3">{pack.prix_tnd} <span className="text-sm text-gray-400">TND</span></p>
         </div>
 
-        {/* Step: matieres */}
+        {/* Step: matieres — dropdowns */}
         {step === "matieres" && !isGolden && (
-          <div className="space-y-4">
-            <div className="flex gap-3 text-xs">
-              <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full">Langues: {selLangues}/{maxLangues}</span>
-              <span className="px-2 py-1 bg-purple-50 text-purple-700 rounded-full">Specialites: {selSpec}/{maxSpecialites}</span>
-            </div>
+          <div className="space-y-5">
             {loading ? (
               <div className="text-center py-8 text-gray text-sm">Chargement des matieres...</div>
             ) : (
-              <MatiereSelector matieres={availableMatieres} selectedIds={selectedMatieres} onToggle={(id) => setSelectedMatieres((p) => p.includes(id) ? p.filter((x) => x !== id) : (p.length < maxLangues + maxSpecialites ? [...p, id] : p))} maxLangues={maxLangues} maxSpecialites={maxSpecialites} />
+              <>
+                {/* Langues */}
+                <div>
+                  <h4 className="text-sm font-semibold text-navy mb-3">Langues</h4>
+                  <div className="space-y-3">
+                    {renderSelect(
+                      "Choisissez 1 Langue",
+                      selLangue1,
+                      setSelLangue1,
+                      langues,
+                      selLangue2 ? [selLangue2] : []
+                    )}
+                    {isSilver && renderSelect(
+                      "Choisissez Langue 2",
+                      selLangue2,
+                      setSelLangue2,
+                      langues,
+                      selLangue1 ? [selLangue1] : []
+                    )}
+                  </div>
+                </div>
+
+                {/* Specialites */}
+                <div>
+                  <h4 className="text-sm font-semibold text-navy mb-3">Specialites</h4>
+                  <div className="space-y-3">
+                    {renderSelect(
+                      "Choisissez 1 Specialite",
+                      selSpec1,
+                      setSelSpec1,
+                      specialites,
+                      selSpec2 ? [selSpec2] : []
+                    )}
+                    {isSilver && renderSelect(
+                      "Choisissez Specialite 2",
+                      selSpec2,
+                      setSelSpec2,
+                      specialites,
+                      selSpec1 ? [selSpec1] : []
+                    )}
+                  </div>
+                </div>
+              </>
             )}
           </div>
         )}
@@ -139,7 +234,7 @@ export function PackConfiguratorModal({ isOpen, onClose, pack, userNiveau }: Pac
               </div>
               <div className="space-y-2 text-sm text-green-700">
                 <p><span className="font-medium">{t("packConfig.pack")}:</span> {TIER_LABELS[pack.tier]}</p>
-                {!isGolden && <p><span className="font-medium">{t("packConfig.matieres")}:</span> {selectedMatieres.length} selectionnees</p>}
+                {!isGolden && <p><span className="font-medium">{t("packConfig.matieres")}:</span> {getSelectedIds().length} selectionnees</p>}
                 <p><span className="font-medium">{t("packConfig.price")}:</span> {pack.prix_tnd} TND</p>
               </div>
             </div>
@@ -160,12 +255,12 @@ export function PackConfiguratorModal({ isOpen, onClose, pack, userNiveau }: Pac
         {/* Actions */}
         {step !== "success" && (
           <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-            {step !== "matieres" && isGolden ? <div /> : step === "confirm" ? (
+            {step === "confirm" && !isGolden ? (
               <Button onClick={() => setStep("matieres")} variant="secondary" className="flex items-center gap-2"><ArrowLeft className="w-4 h-4" />{t("common.back")}</Button>
             ) : <div />}
             <Button
-              onClick={step === "confirm" ? handleConfirm : () => { if (isGolden) setStep("confirm"); else setStep("confirm"); }}
-              disabled={step === "matieres" && !canConfirm || loading}
+              onClick={step === "confirm" ? handleConfirm : () => setStep("confirm")}
+              disabled={(step === "matieres" && !allSelected()) || loading}
               variant="primary"
               className="flex items-center gap-2"
             >

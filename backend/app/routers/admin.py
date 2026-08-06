@@ -531,6 +531,7 @@ class UserEditRequest(BaseModel):
     school_id: int | None = None
     is_active: bool | None = None
     is_approved: bool | None = None
+    niveau_scolaire: str | None = None
 
 
 @router.put("/users/{user_id}")
@@ -576,6 +577,9 @@ def update_user(user_id: int, body: UserEditRequest, db: Session = Depends(get_d
     if body.is_approved is not None:
         user.is_approved = body.is_approved
         changes["is_approved"] = body.is_approved
+    if body.niveau_scolaire is not None:
+        user.niveau_scolaire = body.niveau_scolaire
+        changes["niveau_scolaire"] = body.niveau_scolaire
 
     db.commit()
     db.refresh(user)
@@ -1700,12 +1704,13 @@ def revenue_analytics(
 
     # MRR/ARR approximation (monthly revenue)
     days_in_period = (now - start_date).days or 1
-    monthly_revenue = sum(revenue_by_currency.values()) * (30 / days_in_period)
+    total_rev = float(sum(revenue_by_currency.values()))
+    monthly_revenue = total_rev * (30 / days_in_period)
     arr = monthly_revenue * 12
 
     # AI cost estimate (token consumption)
-    ai_cost_estimate = sum(t.amount for t in transactions if hasattr(t.type, 'value') and t.type.value in ["token_consumption", "ai_usage"]) * 0.01
-    profit = sum(revenue_by_currency.values()) - ai_cost_estimate
+    ai_cost_estimate = float(sum(t.amount for t in transactions if hasattr(t.type, 'value') and t.type.value in ["token_consumption", "ai_usage"])) * 0.01
+    profit = total_rev - ai_cost_estimate
 
     # Top schools by revenue
     school_revenues = {}
@@ -1719,7 +1724,7 @@ def revenue_analytics(
         top_schools_data.append({
             "school_id": sid,
             "school_name": school.name if school else f"School {sid}",
-            "revenue": round(rev, 2),
+            "revenue": round(float(rev), 2),
         })
 
     # Course stats

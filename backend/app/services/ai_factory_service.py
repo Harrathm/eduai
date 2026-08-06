@@ -490,6 +490,21 @@ Description: {lesson_description}"""
 
                     db_lesson.quiz_id = db_quiz.id
 
+                # 5. Créer les éléments atomisés pour la bibliothèque globale
+                lesson_content_text = bundle.get("lessons", {}).get(key, "")
+                atomized = self._create_atomized_elements(
+                    lesson_content=lesson_content_text,
+                    quiz_data=quiz_data,
+                    media_prompts=prompts,
+                    lesson_title=les.get("title", ""),
+                    course_title=title,
+                    author_id=author.id,
+                    school_id=school_id or author.school_id,
+                    db=db,
+                )
+                if atomized:
+                    logger.info(f"Created {len(atomized)} atomized elements for lesson '{les.get('title', '')}'")
+
                 lesson_order += 1
             module_order += 1
 
@@ -502,3 +517,133 @@ Description: {lesson_description}"""
             "slug": course.slug,
             "status": "published",
         }
+
+    def _create_atomized_elements(
+        self, lesson_content: str, quiz_data: dict, media_prompts: dict,
+        lesson_title: str, course_title: str, author_id: int, school_id: int, db: Session
+    ) -> list:
+        """
+        Crée des éléments pédagogiques atomisés pour la bibliothèque globale.
+        Chaque composant (texte, quiz, image, vidéo) est créé comme un ElementPedagogique
+        séparé avec le statut 'brouillon_ia' pour validation humaine.
+        """
+        from app.models import (
+            ElementPedagogique, ElementTexte, ElementQuiz, ElementVideo, ElementImage,
+            Lecon, Matiere
+        )
+        from datetime import datetime, timezone
+
+        elements_created = []
+
+        # 1. Élément Texte principal
+        if lesson_content and lesson_content.strip():
+            texte_element = ElementPedagogique(
+                type="texte",
+                titre=f"{lesson_title} - Contenu",
+                description=f"Contenu généré par IA pour: {lesson_title}",
+                auteur_id=author_id,
+                statut="brouillon_ia",
+                difficulte="moyen",
+                metadonnees={
+                    "source": "ai_factory",
+                    "course_title": course_title,
+                    "generated_at": datetime.now(timezone.utc).isoformat(),
+                },
+                est_global=False,
+                est_libre=False,
+            )
+            db.add(texte_element)
+            db.flush()
+
+            # Crée le contenu texte associé
+            texte_content = ElementTexte(
+                element_id=texte_element.id,
+                contenu=lesson_content,
+            )
+            db.add(texte_content)
+            elements_created.append({
+                "type": "texte",
+                "id": texte_element.id,
+                "titre": texte_element.titre,
+            })
+
+        # 2. Élément Quiz
+        if quiz_data and isinstance(quiz_data.get("questions"), list) and quiz_data.get("questions"):
+            quiz_element = ElementPedagogique(
+                type="quiz",
+                titre=f"{lesson_title} - Quiz",
+                description=quiz_data.get("description", f"Quiz pour: {lesson_title}"),
+                auteur_id=author_id,
+                statut="brouillon_ia",
+                difficulte="moyen",
+                metadonnees={
+                    "source": "ai_factory",
+                    "passing_score": quiz_data.get("passing_score", 70),
+                    "questions_count": len(quiz_data.get("questions", [])),
+                    "generated_at": datetime.now(timezone.utc).isoformat(),
+                },
+                est_global=False,
+                est_libre=False,
+            )
+            db.add(quiz_element)
+            db.flush()
+            elements_created.append({
+                "type": "quiz",
+                "id": quiz_element.id,
+                "titre": quiz_element.titre,
+                "questions_count": len(quiz_data.get("questions", [])),
+            })
+
+        # 3. Élément Image (prompt)
+        image_prompt = media_prompts.get("image_prompt", "") if isinstance(media_prompts, dict) else ""
+        if image_prompt:
+            image_element = ElementPedagogique(
+                type="image",
+                titre=f"{lesson_title} - Illustration",
+                description=f"Image générée par IA pour: {lesson_title}",
+                auteur_id=author_id,
+                statut="brouillon_ia",
+                difficulte="moyen",
+                metadonnees={
+                    "source": "ai_factory",
+                    "image_prompt": image_prompt,
+                    "generated_at": datetime.now(timezone.utc).isoformat(),
+                },
+                est_global=False,
+                est_libre=False,
+            )
+            db.add(image_element)
+            db.flush()
+            elements_created.append({
+                "type": "image",
+                "id": image_element.id,
+                "titre": image_element.titre,
+            })
+
+        # 4. Élément Vidéo (prompt)
+        video_prompt = media_prompts.get("video_prompt", "") if isinstance(media_prompts, dict) else ""
+        if video_prompt:
+            video_element = ElementPedagogique(
+                type="video",
+                titre=f"{lesson_title} - Vidéo",
+                description=f"Vidéo générée par IA pour: {lesson_title}",
+                auteur_id=author_id,
+                statut="brouillon_ia",
+                difficulte="moyen",
+                metadonnees={
+                    "source": "ai_factory",
+                    "video_prompt": video_prompt,
+                    "generated_at": datetime.now(timezone.utc).isoformat(),
+                },
+                est_global=False,
+                est_libre=False,
+            )
+            db.add(video_element)
+            db.flush()
+            elements_created.append({
+                "type": "video",
+                "id": video_element.id,
+                "titre": video_element.titre,
+            })
+
+        return elements_created

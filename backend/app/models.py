@@ -290,6 +290,11 @@ class User(Base):
     # Role
     role: Mapped[str] = mapped_column(String(30), default=UserRole.STUDENT.value)
 
+    # Multi-role & Context Switcher (governance)
+    roles: Mapped[Optional[str]] = mapped_column(JSON, default=list)  # ["admin_school", "pedagogical_lead"]
+    active_context_role: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)  # currently active role for Context Switcher
+    is_partner: Mapped[bool] = mapped_column(Boolean, default=False)  # activated after 1st global course validation
+
     # Subscription plan (teacher states A/B/C)
     subscription_plan: Mapped[str] = mapped_column(String(30), default=SubscriptionPlan.TRIAL.value)
     subscription_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
@@ -500,6 +505,12 @@ class Course(Base):
     validated_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     validated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     validated_by_role: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)  # pedagogical_lead ou pedagogical_admin
+
+    # Versioning & ABAC targeting (governance)
+    version_number: Mapped[int] = mapped_column(Integer, default=1)
+    is_active_version: Mapped[bool] = mapped_column(Boolean, default=True)
+    category_cible: Mapped[str] = mapped_column(String(30), default="Scolaire")  # Scolaire, Soft_Skill, Teacher_Training
+    tag_pack_requis: Mapped[str] = mapped_column(String(20), default="Basic")    # Basic, Silver, Golden — ABAC engine
     
     # Statistics
     total_modules: Mapped[int] = mapped_column(Integer, default=0)
@@ -1864,6 +1875,7 @@ class Matiere(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     niveau_etude_id: Mapped[int] = mapped_column(ForeignKey("niveaux_etude.id", ondelete="CASCADE"), nullable=False)
     nom: Mapped[str] = mapped_column(String(100), nullable=False)
+    type_matiere: Mapped[str] = mapped_column(String(20), nullable=False, default="specialite")
     remediation_threshold: Mapped[int] = mapped_column(Integer, default=40)
     standard_threshold: Mapped[int] = mapped_column(Integer, default=75)
     avance_threshold: Mapped[int] = mapped_column(Integer, default=75)
@@ -2565,6 +2577,7 @@ class Abonnement(Base):
     debut: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     fin: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     grace_fin: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    matieres_config: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     # Tier change scheduling (downgrade = deferred, upgrade = immediate)
     scheduled_tier: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)  # target tier for deferred downgrade
     scheduled_effective_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)  # when the change takes effect
@@ -2661,4 +2674,75 @@ class LicenceAssignation(Base):
     __table_args__ = (
         Index("ix_licence_assignations_licence", "licence_id"),
         Index("ix_licence_assignations_user", "user_id"),
+    )
+
+
+# ============================================================
+# GOVERNANCE — Bulk Seats, Revenue Share, Impersonation Audit
+# ============================================================
+
+class BulkSeatVoucher(Base):
+    """Bulk seat vouchers for B2B sales."""
+    __tablename__ = "bulk_seat_vouchers"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    school_id: Mapped[int] = mapped_column(ForeignKey("schools.id", ondelete="CASCADE"), nullable=False)
+    formation_id: Mapped[int] = mapped_column(ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
+    code: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="unused")  # unused, consumed
+    consumed_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+    school: Mapped["School"] = relationship("School", backref="bulk_seat_vouchers")
+    formation: Mapped["Course"] = relationship("Course", foreign_keys=[formation_id])
+    consumer: Mapped[Optional["User"]] = relationship("User", foreign_keys=[consumed_by])
+
+    __table_args__ = (
+        Index("ix_bulk_seat_vouchers_school", "school_id"),
+        Index("ix_bulk_seat_vouchers_formation", "formation_id"),
+        Index("ix_bulk_seat_vouchers_code", "code", unique=True),
+    )
+
+
+class TeacherRevenueLedger(Base):
+    """Revenue share ledger for teachers — tracks consumption and earnings."""
+    __tablename__ = "teacher_revenue_ledger"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    teacher_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    lesson_id: Mapped[Optional[int]] = mapped_column(ForeignKey("lessons.id", ondelete="SET NULL"), nullable=True)
+    consumption_count: Mapped[int] = mapped_column(Integer, default=0)
+    revenue_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0.00"))
+    period_month: Mapped[date] = mapped_column(Date, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+    teacher: Mapped["User"] = relationship("User", foreign_keys=[teacher_id], backref="revenue_entries")
+    lesson: Mapped[Optional["Lesson"]] = relationship("Lesson", foreign_keys=[lesson_id])
+
+    __table_args__ = (
+        Index("ix_teacher_revenue_ledger_teacher", "teacher_id"),
+        Index("ix_teacher_revenue_ledger_lesson", "lesson_id"),
+        Index("ix_teacher_revenue_ledger_period", "period_month"),
+        UniqueConstraint("teacher_id", "lesson_id", "period_month", name="uq_teacher_lesson_period"),
+    )
+
+
+class AuditImpersonation(Base):
+    """Audit log for support impersonation sessions."""
+    __tablename__ = "audit_impersonations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    support_user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    target_user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    started_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    ended_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    ip_address: Mapped[Optional[str]] = mapped_column(String(45))
+
+    support_user: Mapped["User"] = relationship("User", foreign_keys=[support_user_id], backref="impersonation_sessions")
+    target_user: Mapped["User"] = relationship("User", foreign_keys=[target_user_id], backref="impersonated_by")
+
+    __table_args__ = (
+        Index("ix_audit_impersonations_support", "support_user_id"),
+        Index("ix_audit_impersonations_target", "target_user_id"),
+        Index("ix_audit_impersonations_started", "started_at"),
     )

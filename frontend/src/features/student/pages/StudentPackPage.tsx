@@ -3,6 +3,10 @@ import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../../../store/authStore";
 import { api } from "../../../utils/apiClient";
 import { Package, AlertTriangle, CheckCircle, Clock, RefreshCw, ArrowUpCircle, ArrowDownCircle, XCircle } from "lucide-react";
+import { useTrimesterReconfiguration } from "../hooks/useTrimesterReconfiguration";
+import { TrimesterReconfigBanner } from "../components/trimester/TrimesterReconfigBanner";
+import { TrimesterInfo } from "../components/trimester/TrimesterInfo";
+import { PageWrapper } from "../../../components/ui";
 
 interface MonPackData {
   current_tier: string;
@@ -68,6 +72,7 @@ export default function StudentPackPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const trimester = useTrimesterReconfiguration();
 
   const fetchMonPack = useCallback(async () => {
     setLoading(true);
@@ -128,12 +133,16 @@ export default function StudentPackPage() {
 
   const getTierRank = (tier: string) => ({ gratuit: 0, basique: 1, silver: 2, golden: 3 }[tier] ?? 0);
 
+  const handleReconfigure = () => {
+    window.location.href = "/dashboard/reconfigure-pack";
+  };
+
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="bg-navy rounded-3xl p-8 animate-pulse">
-          <div className="h-8 w-48 bg-white/10 rounded mb-2" />
-          <div className="h-4 w-64 bg-white/5 rounded" />
+      <PageWrapper title={t('pack.title')} icon={<Package className="w-8 h-8" />}>
+        <div className="bg-white rounded-3xl p-8 animate-pulse">
+          <div className="h-8 w-48 bg-gray-200 rounded mb-2" />
+          <div className="h-4 w-64 bg-gray-100 rounded" />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[1, 2, 3, 4].map((i) => (
@@ -144,21 +153,16 @@ export default function StudentPackPage() {
             </div>
           ))}
         </div>
-      </div>
+      </PageWrapper>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-navy rounded-3xl p-8">
-        <h1 className="text-3xl font-[300] text-white">
-          {t('pack.title')}
-        </h1>
-        <p className="text-white/50 mt-2">
-          {data?.niveau_scolaire ? t('pack.niveauLabel', { niveau: data.niveau_scolaire }) : t('pack.manageSubscription')}
-        </p>
-      </div>
+    <PageWrapper
+      title={t('pack.title')}
+      subtitle={data?.niveau_scolaire ? t('pack.niveauLabel', { niveau: data.niveau_scolaire }) : t('pack.manageSubscription')}
+      icon={<Package className="w-8 h-8" />}
+    >
 
       {/* Messages */}
       {error && (
@@ -178,6 +182,16 @@ export default function StudentPackPage() {
             <XCircle className="w-4 h-4" />
           </button>
         </div>
+      )}
+
+      {/* Trimester Reconfiguration Banner */}
+      {!loading && trimester.currentTrimester && (
+        <TrimesterReconfigBanner
+          canReconfigure={trimester.canReconfigure}
+          daysRemaining={trimester.daysRemainingInWindow}
+          trimesterLabel={trimester.currentTrimester.label}
+          onReconfigure={handleReconfigure}
+        />
       )}
 
       {/* Grace period warning */}
@@ -248,6 +262,19 @@ export default function StudentPackPage() {
               </p>
             </div>
           </div>
+          {/* Trimester Info */}
+          {trimester.currentTrimester && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <TrimesterInfo
+                trimesterLabel={trimester.currentTrimester.label}
+                startDate={trimester.currentTrimester.startDate}
+                endDate={trimester.currentTrimester.endDate}
+                isInWindow={trimester.isInReconfigWindow}
+                alreadyReconfigured={trimester.alreadyReconfigured}
+                packTier={currentTier}
+              />
+            </div>
+          )}
           {data.current_pack.features && (
             <div className="mt-4 pt-4 border-t border-gray-100">
               <p className="text-xs text-gray-500 mb-2">{t('pack.includedFeatures')}</p>
@@ -369,6 +396,6 @@ export default function StudentPackPage() {
           ))}
         </div>
       </div>
-    </div>
+    </PageWrapper>
   );
 }

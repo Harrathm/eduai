@@ -4,6 +4,7 @@ import { useAuthStore } from "./store/authStore";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { useOnlineStatus } from "./hooks";
 import DashboardLayout from "./components/layout/DashboardLayout";
+import FloatingAITutor from "./components/FloatingAITutor";
 import { TeacherWriteGuard, TeacherStateBadge } from "./components/TeacherStateGuard";
 
 // ─── Lazy-loaded pages ──────────────────────────────────────────────
@@ -72,6 +73,7 @@ const PathwayCatalogPage = lazy(() => import("./features/student/pages/PathwayCa
 const MonParcoursPage = lazy(() => import("./features/student/pages/MonParcoursPage"));
 const GamificationPage = lazy(() => import("./features/student/pages/GamificationPage"));
 const StudentAssimilationProfilePage = lazy(() => import("./features/student/pages/StudentAssimilationProfilePage"));
+const MySkillsPage = lazy(() => import("./features/student/pages/MySkillsPage"));
 
 // Learner
 const LearnerPlayerPage = lazy(() => import("./features/learner/pages/PlayerPage"));
@@ -249,14 +251,13 @@ export default function App() {
               <Route path="courses" element={<RequireRole roles={["student", "admin_school"]}><CatalogPage /></RequireRole>} />
               <Route path="courses/:courseId" element={<RequireRole roles={["student", "admin_school", "teacher"]}><CoursePlayerPage /></RequireRole>} />
               <Route path="courses/:courseId/lessons/:lessonId" element={<RequireRole roles={["student", "admin_school", "teacher"]}><CoursePlayerPage /></RequireRole>} />
-              <Route path="assignments" element={<RequireRole roles={["student", "admin_school"]}><StudentCourseCatalog /></RequireRole>} />
               <Route path="ai-tutor" element={<RequireRole roles={["student", "admin_school", "teacher"]}><LearnerAIChatPage /></RequireRole>} />
               <Route path="wallet" element={<RequireRole roles={["student", "admin_school"]}><StudentWallet /></RequireRole>} />
               <Route path="packs" element={<RequireRole roles={["student", "admin_school"]}><PacksPage /></RequireRole>} />
               <Route path="settings/subscription" element={<RequireRole roles={["student", "admin_school"]}><StudentPackPage /></RequireRole>} />
               <Route path="tier" element={<RequireRole roles={["student", "admin_school"]}><StudentTierPage /></RequireRole>} />
               <Route path="soft-skills" element={<RequireAuth><SoftSkillsCatalogPage /></RequireAuth>} />
-              <Route path="my-skills" element={<RequireAuth><SoftSkillsCatalogPage /></RequireAuth>} />
+              <Route path="my-skills" element={<RequireAuth><MySkillsPage /></RequireAuth>} />
               <Route path="placement/:testId" element={<RequireRole roles={["student", "admin_school"]}><PlacementTestPage /></RequireRole>} />
               <Route path="profile" element={<RequireRole roles={["student", "teacher", "admin_school"]}><ProfilePage /></RequireRole>} />
               <Route path="assimilation" element={<RequireRole roles={["student", "admin_school"]}><StudentAssimilationProfilePage /></RequireRole>} />
@@ -282,6 +283,9 @@ export default function App() {
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
+
+          {/* Global floating AI tutor — visible on all authenticated pages */}
+          {user && <FloatingAITutor />}
         </Suspense>
       </BrowserRouter>
     </ErrorBoundary>

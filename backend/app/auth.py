@@ -55,8 +55,22 @@ def _hash_token(token: str) -> str:
 
 
 def _issue_token_pair(user: User, db: Session) -> dict:
-    """Generate access + refresh token pair and persist the refresh token."""
-    payload = {"sub": str(user.id), "school_id": user.school_id}
+    """Generate access + refresh token pair and persist the refresh token.
+
+    JWT payload now includes:
+    - roles: full list of user roles (backward compat: falls back to [user.role])
+    - active_role: the currently selected context role
+    """
+    # Backward compat: if user.roles is empty, use [user.role]
+    user_roles = user.roles if user.roles else [user.role]
+    active_role = user.active_context_role or user_roles[0]
+
+    payload = {
+        "sub": str(user.id),
+        "school_id": user.school_id,
+        "roles": user_roles,
+        "active_role": active_role,
+    }
 
     access_token = create_access_token(payload)
     refresh_token = create_refresh_token(payload)
@@ -112,6 +126,16 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account disabled",
         )
+
+    # --- Apply active_role from JWT claim (context switcher support) ---
+    active_role_claim = payload.get("active_role")
+    if active_role_claim:
+        user.active_context_role = active_role_claim
+
+    # --- Impersonation detection (read-only flag for downstream use) ---
+    impersonated_by = payload.get("impersonated_by")
+    if impersonated_by:
+        user._impersonated_by = impersonated_by
 
     # --- Multi-tenant context setup (SECURITY: second line of defense) ---
     from app.db import current_tenant_id, _tenant_filter_suppressed
@@ -374,10 +398,161 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is deactivated. Contact your administrator.")
+
+    # Initialize active_context_role from roles list (backward compat)
+    user_roles = user.roles if user.roles else [user.role]
+    if not user.active_context_role:
+        user.active_context_role = user_roles[0]
+
     user.last_login = datetime.now(timezone.utc)
     db.commit()
 
     return _issue_token_pair(user, db)
+
+
+# ---------------------------------------------------------------------------
+# Context Switching
+# ---------------------------------------------------------------------------
+
+class SwitchContextRequest(BaseModel):
+    role: str
+
+
+@router.post("/switch-context", response_model=Token)
+def switch_context(body: SwitchContextRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Switch the active context role for the current user.
+
+    The requested role must be present in the user's roles list.
+    Returns a new token pair with the updated active_role claim.
+    """
+    # Get user's full roles list (backward compat)
+    user_roles = current_user.roles if current_user.roles else [current_user.role]
+
+    if body.role not in user_roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Role '{body.role}' not in your roles. Available: {user_roles}",
+        )
+
+    current_user.active_context_role = body.role
+    db.commit()
+
+    log_security_event("context_switched", {
+        "user_id": current_user.id,
+        "new_role": body.role,
+    })
+
+    return _issue_token_pair(current_user, db)
+
+
+# ---------------------------------------------------------------------------
+# Impersonation (Support / Super Admin)
+# ---------------------------------------------------------------------------
+
+@router.post("/impersonate/{target_user_id}")
+def impersonate_user(
+    target_user_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Impersonate a target user. Restricted to support and super_admin roles.
+
+    Creates an audit trail entry and returns a token for the target user
+    with an impersonated_by claim.
+    """
+    from fastapi import Request
+    from app.models import AuditImpersonation
+
+    # Check authorization: support or super_admin role required
+    user_roles = current_user.roles if current_user.roles else [current_user.role]
+    if "support" not in user_roles and "super_admin" not in user_roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Support or super_admin role required for impersonation",
+        )
+
+    # Cannot impersonate yourself
+    if target_user_id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot impersonate yourself",
+        )
+
+    target_user = _get_user_by_id(db, target_user_id)
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Target user not found")
+
+    if not target_user.is_active:
+        raise HTTPException(status_code=400, detail="Cannot impersonate an inactive user")
+
+    # Create audit entry
+    audit = AuditImpersonation(
+        support_user_id=current_user.id,
+        target_user_id=target_user_id,
+        started_at=datetime.now(timezone.utc),
+    )
+    db.add(audit)
+    db.commit()
+
+    log_security_event("impersonation_started", {
+        "support_user_id": current_user.id,
+        "target_user_id": target_user_id,
+    })
+
+    # Generate token for target user with impersonated_by claim
+    target_roles = target_user.roles if target_user.roles else [target_user.role]
+    target_active_role = target_user.active_context_role or target_roles[0]
+
+    payload = {
+        "sub": str(target_user.id),
+        "school_id": target_user.school_id,
+        "roles": target_roles,
+        "active_role": target_active_role,
+        "impersonated_by": current_user.id,
+    }
+
+    access_token = create_access_token(payload)
+    refresh_token = create_refresh_token(payload)
+
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "impersonated_by": current_user.id,
+        "target_user": {
+            "id": target_user.id,
+            "email": target_user.email,
+            "full_name": target_user.full_name,
+            "role": target_user.role,
+        },
+    }
+
+
+@router.post("/impersonate/stop")
+def stop_impersonation(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Stop the active impersonation session and return a fresh token for the support user."""
+    from app.models import AuditImpersonation
+
+    # Find the active impersonation session for this support user
+    session = db.query(AuditImpersonation).filter(
+        AuditImpersonation.support_user_id == current_user.id,
+        AuditImpersonation.ended_at.is_(None),
+    ).order_by(AuditImpersonation.started_at.desc()).first()
+
+    if session:
+        session.ended_at = datetime.now(timezone.utc)
+        db.commit()
+
+        log_security_event("impersonation_stopped", {
+            "support_user_id": current_user.id,
+            "target_user_id": session.target_user_id,
+        })
+
+    # Return a fresh token for the support user (resets to their own context)
+    return _issue_token_pair(current_user, db)
 
 
 # ---------------------------------------------------------------------------

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../../../store/authStore";
 import apiClient from "../../../utils/apiClient";
 import { User, Save, Check } from "lucide-react";
+import { PageWrapper } from "../../../components/ui";
 
 const NIVEAUX = [
   "1ère année", "2ème année", "3ème année", "4ème année", "5ème année", "6ème année",
@@ -57,11 +58,12 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-3xl font-display font-light text-navy">{t("profile.title", "Mon Profil")}</h1>
-        <p className="text-gray text-sm mt-1">{t("profile.subtitle", "Gérez vos préférences")}</p>
-      </div>
+    <PageWrapper
+      title={t("profile.title", "Mon Profil")}
+      subtitle={t("profile.subtitle", "Gérez vos préférences")}
+      icon={<User className="w-8 h-8" />}
+      maxWidth="2xl"
+    >
 
       {/* User Info */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
@@ -152,6 +154,6 @@ export default function ProfilePage() {
           <><Save className="w-5 h-5" /> {t("profile.save", "Sauvegarder")}</>
         )}
       </button>
-    </div>
+    </PageWrapper>
   );
 }

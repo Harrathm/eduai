@@ -902,6 +902,99 @@ Daily at 06:00, checks goals where `period_end` is today or yesterday. Computes 
 
 ---
 
+### 9. RBAC → ABAC Architecture
+
+#### 9.1 Current RBAC State (Implemented)
+
+| Dependency | Roles | Enforcement |
+|-----------|-------|-------------|
+| `require_admin` | super_admin, admin_school, pedagogical_admin, pedagogical_lead | FastAPI Dependency |
+| `require_platform_admin` | super_admin, pedagogical_admin | FastAPI Dependency |
+| `require_school_admin_strict` | admin_school only | FastAPI Dependency |
+| `require_teacher_or_admin` | super_admin, admin_school, teacher | FastAPI Dependency |
+| `require_pedagogical_admin` | pedagogical_admin only | FastAPI Dependency |
+| `require_pedagogical_lead` | pedagogical_lead only (must have school_id) | FastAPI Dependency |
+| `require_parent` | parent only | FastAPI Dependency |
+
+#### 9.2 ABAC Engine (Planned)
+
+**Source**: Design document — not yet implemented
+
+| Policy Attribute | Values | Impact |
+|-----------------|--------|--------|
+| `role` | student, teacher, admin_school, super_admin, pedagogical_admin, pedagogical_lead, parent | Base permission set |
+| `school` | school_id (nullable) | Tenant isolation scope |
+| `subscription_tier` | free, teacher_pro, school, institution | Feature limits |
+| `pack_tier` | gratuit, basique, silver, golden | Content access level |
+| `time_of_day` | 00:00–23:59 | Optional time-based restrictions |
+| `is_partner` | boolean | Partner teacher vs. internal teacher |
+| `active_context_role` | role enum | Current active role for multi-role users |
+
+**Decision Flow**:
+1. Extract all attributes from request context
+2. Evaluate each policy rule against attributes
+3. Allow if ANY policy matches; deny if NONE match
+4. Log decision to `audit_logs` with attribute snapshot
+
+#### 9.3 Context Switcher (Planned)
+
+| Feature | Detail |
+|---------|--------|
+| Trigger | User with multiple roles clicks "Switch role" in UI |
+| Backend | `PUT /auth/switch-context` — validates role membership, updates `active_context_role` |
+| Frontend | Updates `authStore.user.role` — triggers route/permission recalculation |
+| Audit | Logged to `audit_logs` with `action="context_switch"` |
+
+#### 9.4 Impersonation (Planned)
+
+| Feature | Detail |
+|---------|--------|
+| Trigger | Support agent needs to troubleshoot user's issue |
+| Backend | `POST /api/support/impersonate/{user_id}` — creates impersonation session |
+| Limits | max_duration=30min, require_reason=true, logged to `audit_impersonations` |
+| Exit | `POST /api/support/impersonate/stop` — reverts to original session |
+| Audit | Full trail: impersonator, target, reason, start_time, end_time |
+
+---
+
+### 10. CMS Lifecycle
+
+#### 10.1 Content Lifecycle States
+
+| State | Owner | Description |
+|-------|-------|-------------|
+| `brouillon` | Author | Work in progress, not visible to others |
+| `soumis` | Author | Submitted for review, locked for editing |
+| `validation_ia` | System | AI auto-validation (plagiarism, coherence, completeness) |
+| `validation_humaine` | Reviewer | Human reviewer checks quality |
+| `publie` | System | Live and accessible to students |
+| `archive` | Admin | Retired content, read-only |
+
+#### 10.2 Transitions
+
+| From | To | Actor | Rules |
+|------|----|-------|-------|
+| brouillon → soumis | Author | Must have title + description + ≥1 lesson |
+| soumis → validation_ia | System | Automatic on submit |
+| validation_ia → validation_humaine | System | If AI score ≥ threshold |
+| validation_ia → brouillon | System | If AI score < threshold (rejection) |
+| validation_humaine → publie | Reviewer | Manual approval |
+| validation_humaine → brouillon | Reviewer | Revision request |
+| publie → archive | Admin | Retirement |
+| archive → brouillon | Admin | Reactivation (creates new version) |
+
+#### 10.3 AI Factory Atomization (Planned)
+
+| Endpoint | Input | Output |
+|----------|-------|--------|
+| `POST /api/ai-factory/generate-lesson` | topic, niveau, matiere | 1 lesson draft (text + quiz) |
+| `POST /api/ai-factory/generate-quiz` | topic, difficulty, count | 1 quiz with questions |
+| `POST /api/ai-factory/generate-chapter` | topic, lesson_count | Full chapter with N lessons |
+
+Each atom is independently previewable, editable, and publishable.
+
+---
+
 ### Notes on Implementation Gaps
 
 #### ⚠️ Designed but Not Implemented
@@ -909,6 +1002,14 @@ Daily at 06:00, checks goals where `period_end` is today or yesterday. Computes 
 2. **Full gamification UI**: Backend exists but frontend is partial
 3. **Automatic DT refund**: `eduai_catalog` refund path updates record but doesn't credit DT back
 4. **Teacher confirm/annul reorientation**: `NotificationReorientation` is created but no endpoint for teacher action
+5. **ABAC Engine**: Planned but not implemented — current RBAC is sufficient for v1
+6. **Context Switcher**: Planned — multi-role users currently must logout/login to switch
+7. **Impersonation**: Planned — no support session mechanism exists
+8. **CMS Lifecycle**: Planned — content currently uses dual-status (operational + pedagogical)
+9. **AI Factory Atomization**: Planned — current AI Factory is monolithic 4-step
+10. **Versioning / Fork**: Planned — no course versioning exists
+11. **Bulk Seats**: Planned — no bulk purchase mechanism
+12. **Revenue Share Enhanced**: Basic commission exists; enhanced ledger planned
 
 #### ⚠️ Discrepancies Between Design Docs and Code
 1. **PedagogicalStatus**: Code uses `approved_local` instead of `approved_for_platform` from `LIVRABLE_COURSES.md`

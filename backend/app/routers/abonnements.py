@@ -89,14 +89,23 @@ def _apply_scheduled_tier_changes(db: Session) -> int:
 def _serialize_pack(pack: Optional[PackDefinition]) -> Optional[dict]:
     if not pack:
         return None
+    # matieres can be {"matieres": [...]} or [...] or None
+    raw = pack.matieres
+    if isinstance(raw, dict):
+        matieres = raw.get("matieres", [])
+    elif isinstance(raw, list):
+        matieres = raw
+    else:
+        matieres = []
     return {
         "id": pack.id,
         "nom": pack.nom,
+        "description": pack.description,
         "tier": pack.tier,
         "prix_tnd": float(pack.prix_tnd) if pack.prix_tnd else 0,
         "niveau_scolaire": pack.niveau_scolaire,
         "features": pack.features,
-        "matieres": pack.matieres,
+        "matieres": matieres,
     }
 
 
@@ -121,7 +130,26 @@ def list_packs(
         q = q.filter(PackDefinition.niveau_scolaire == niveau_scolaire)
     total = q.count()
     items = q.order_by(PackDefinition.prix_tnd).offset(skip).limit(limit).all()
-    return {"total": total, "skip": skip, "limit": limit, "items": items}
+
+    # Check active abonnement
+    active_abo_pack_id = None
+    active_abo = db.query(Abonnement).filter(
+        Abonnement.user_id == current_user.id,
+        Abonnement.statut.in_(["actif", "grace"]),
+    ).first()
+    if active_abo:
+        active_abo_pack_id = active_abo.pack_id
+
+    serialized = []
+    for p in items:
+        d = _serialize_pack(p)
+        d["validity_duration_days"] = 90 if p.tier != "gratuit" else 365
+        d["currency"] = "TND"
+        d["already_included_by_school"] = False
+        d["is_current"] = p.id == active_abo_pack_id
+        serialized.append(d)
+
+    return {"total": total, "skip": skip, "limit": limit, "items": serialized}
 
 
 @router.get("/abonnements/packs/{pack_id}", response_model=PackDefinitionRead)
@@ -134,6 +162,50 @@ def get_pack(
     if not pack:
         raise HTTPException(status_code=404, detail="Pack not found")
     return pack
+
+
+@router.post("/abonnements/packs/{pack_id}/purchase")
+def purchase_pack(
+    pack_id: int,
+    body: dict = Body(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(set_tenant_context),
+):
+    """Purchase a pack with selected matieres."""
+    pack = db.query(PackDefinition).filter(PackDefinition.id == pack_id).first()
+    if not pack:
+        raise HTTPException(status_code=404, detail="Pack not found")
+
+    existing = db.query(Abonnement).filter(
+        Abonnement.user_id == current_user.id,
+        Abonnement.statut.in_(["actif", "grace"]),
+    ).first()
+    if existing:
+        raise HTTPException(status_code=409, detail="You already have an active subscription")
+
+    matieres = body.get("matieres")
+
+    now = utcnow()
+    duration_days = 90 if pack.tier != "gratuit" else 365
+    abonnement = Abonnement(
+        user_id=current_user.id,
+        pack_id=pack.id,
+        statut="actif",
+        debut=now,
+        fin=now + timedelta(days=duration_days),
+        matieres_config={"matieres": matieres} if matieres else None,
+    )
+    db.add(abonnement)
+    db.commit()
+    db.refresh(abonnement)
+    return {
+        "id": abonnement.id,
+        "pack_id": abonnement.pack_id,
+        "statut": abonnement.statut,
+        "debut": abonnement.debut.isoformat(),
+        "fin": abonnement.fin.isoformat(),
+        "matieres_config": abonnement.matieres_config,
+    }
 
 
 @router.post("/abonnements/packs", response_model=PackDefinitionRead)

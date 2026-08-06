@@ -373,6 +373,65 @@ def list_matieres(
     return matieres
 
 
+# -------------------------------------------------------------------
+# Student-facing: Matieres by niveau_scolaire (langues + specialites)
+# -------------------------------------------------------------------
+def _strip_accents(s: str) -> str:
+    """Remove accents from a string for fuzzy niveau matching."""
+    import unicodedata
+    return unicodedata.normalize("NFD", s).encode("ascii", "ignore").decode("ascii").lower().strip()
+
+
+@router.get("/matieres-by-niveau")
+def get_matieres_by_niveau(
+    niveau_scolaire: str = Query(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return matieres grouped by type_matiere for a given niveau_scolaire.
+
+    Response: { "langues": [...], "specialites": [...] }
+    Each item: { "id", "nom", "niveau_etude_id" }
+    """
+    with tenant_unaware():
+        norm_input = _strip_accents(niveau_scolaire)
+        all_niveaux = db.query(NiveauEtude).all()
+        niv = None
+
+        # 1. Exact match (accent-normalized)
+        for n in all_niveaux:
+            if _strip_accents(n.nom) == norm_input:
+                niv = n
+                break
+
+        # 2. Prefix match on leading number (e.g. "9eme de base" -> "9" matches "9eme annee base")
+        if not niv:
+            import re
+            m = re.match(r"(\d+)", norm_input)
+            if m:
+                num = m.group(1)
+                for n in all_niveaux:
+                    if _strip_accents(n.nom).startswith(num):
+                        niv = n
+                        break
+
+        if not niv:
+            return {"langues": [], "specialites": []}
+
+        matieres = db.query(Matiere).filter(Matiere.niveau_etude_id == niv.id).all()
+
+        langues = [
+            {"id": m.id, "nom": m.nom, "niveau_etude_id": m.niveau_etude_id}
+            for m in matieres if m.type_matiere == "langue"
+        ]
+        specialites = [
+            {"id": m.id, "nom": m.nom, "niveau_etude_id": m.niveau_etude_id}
+            for m in matieres if m.type_matiere == "specialite"
+        ]
+
+        return {"langues": langues, "specialites": specialites}
+
+
 @router.post("/matieres", response_model=MatiereRead)
 def create_matiere(
     matiere_in: MatiereCreate,

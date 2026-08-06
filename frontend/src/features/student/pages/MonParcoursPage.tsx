@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { GraduationCap, ChevronDown, ChevronRight, Star, BookOpen, Clock, CheckCircle, AlertCircle, TrendingUp } from "lucide-react";
 import { getMonParcours } from "../../../api";
 import type { MonParcoursNiveau } from "../../../api";
+import { PageWrapper } from "../../../components/ui";
 
 const niveauColors: Record<string, string> = {
   decouverte: "bg-blue-500",
@@ -43,28 +44,27 @@ export default function MonParcoursPage() {
   useEffect(() => { load(); }, [load]);
 
   if (loading) {
-    return <div className="text-center py-12 text-gray">{t('monParcours.loading')}</div>;
+    return <PageWrapper title={<>Mon <span className="italic text-orange">Parcours</span></>} icon={<GraduationCap className="w-8 h-8" />}><div className="text-center py-12 text-gray">{t('monParcours.loading')}</div></PageWrapper>;
   }
 
   if (parcours.length === 0) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-display font-light text-navy">Mon <span className="italic text-orange">Parcours</span></h1>
+      <PageWrapper title={<>Mon <span className="italic text-orange">Parcours</span></>} icon={<GraduationCap className="w-8 h-8" />}>
         <div className="bg-white rounded-2xl shadow-sm border border-black/5 p-12 text-center">
           <GraduationCap className="w-12 h-12 text-gray-300 mx-auto mb-4" />
           <p className="text-gray mb-2">{t('monParcours.noActivePath')}</p>
           <p className="text-sm text-gray">{t('monParcours.buyPackPrompt')}</p>
         </div>
-      </div>
+      </PageWrapper>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-display font-light text-navy">Mon <span className="italic text-orange">Parcours</span></h1>
-        <p className="text-gray text-sm mt-1">{t('monParcours.subtitle')}</p>
-      </div>
+    <PageWrapper
+      title={<>Mon <span className="italic text-orange">Parcours</span></>}
+      subtitle={t('monParcours.subtitle')}
+      icon={<GraduationCap className="w-8 h-8" />}
+    >
 
       {parcours.map(niveau => {
         // Stats
@@ -199,6 +199,6 @@ export default function MonParcoursPage() {
           </div>
         );
       })}
-    </div>
+    </PageWrapper>
   );
 }

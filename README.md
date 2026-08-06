@@ -1,6 +1,6 @@
 # EDUAI Learning Platform
 
-A full-stack e-learning platform with multi-tenant architecture, AI-powered tutoring, dual-currency economy (TOKEN + DT), and course authoring.
+A full-stack e-learning platform with multi-tenant architecture, AI-powered tutoring, dual-currency economy (TOKEN + DT), course authoring, and governance features (ABAC, impersonation, CMS lifecycle, bulk seats, revenue share).
 
 ## Architecture
 
@@ -181,7 +181,20 @@ npm run build
 | `student` | Enrolled courses, quizzes, certificates |
 | `teacher` | Classroom management, enrolled students |
 | `admin_school` | School-scoped admin (courses, users, analytics) |
+| `pedagogical_lead` | School-scoped pedagogical approval, learning goals |
+| `pedagogical_admin` | Global pedagogical review, B2B approval, AI Factory |
 | `super_admin` | Global admin (all schools, settings, audit logs) |
+| `parent` | Read-only: children's progress tracking |
+
+### Governance Features (Planned)
+- **Context Switcher**: Multi-role users switch roles without re-login
+- **Impersonation**: Support agents enter user sessions (max 30min, full audit)
+- **ABAC Engine**: Attribute-based policies (role + school + tier + time)
+- **CMS Lifecycle**: Brouillon → Soumission → Validation IA → Validation Humaine → Publication → Archivage
+- **AI Factory Atomization**: Generate single lessons/quizzes/chapters independently
+- **Versioning / Fork**: Course versioning with rollback capability
+- **Bulk Seats**: Schools purchase multiple seats in bulk
+- **Revenue Share Ledger**: Automatic teacher revenue calculation per sale
 
 ## Multi-Tenancy
 

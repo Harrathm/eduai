@@ -48,6 +48,8 @@ from app.routers.pedagogical_lead import router as pedagogical_lead_router
 from app.routers.packs import router as packs_router
 from app.routers.inbox import router as inbox_router
 from app.routers.placement import router as placement_router
+from app.routers.bulk_seats import router as bulk_seats_router
+from app.routers.teacher_revenue import router as teacher_revenue_router
 from app.routers.goals import learner_router as goals_learner_router
 from app.routers.goals import pedagogical_lead_router as goals_pedagogical_router
 from app.routers.adaptive_pathway import router as adaptive_pathway_router
@@ -257,6 +259,10 @@ async def lifespan(app: FastAPI):
     from app.services.goal_scheduler import start_goal_scheduler
     start_goal_scheduler()
 
+    # Démarrer le scheduler du Revenue Share (Teacher Partners)
+    from app.tasks.revenue_share import start_revenue_share_scheduler
+    start_revenue_share_scheduler()
+
     yield
     logger.info("Shutting down...")
 
@@ -414,6 +420,8 @@ app.include_router(bibliotheque_router, prefix="/api")
 app.include_router(abonnements_router, prefix="/api")
 app.include_router(famille_router, prefix="/api")
 app.include_router(licences_router, prefix="/api")
+app.include_router(bulk_seats_router)
+app.include_router(teacher_revenue_router)
 
 
 # Add file logging for error log viewer

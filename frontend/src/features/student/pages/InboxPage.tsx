@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { inboxApi } from "../../../api";
+import { PageWrapper } from "../../../components/ui";
+import { Inbox } from "lucide-react";
 
 interface InboxMessage {
   id: number;
@@ -67,17 +69,16 @@ export default function InboxPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-[300] text-navy">{t('inbox.title')}</h1>
-          <p className="text-gray text-sm mt-1">{t('inbox.messageCount', { total, unread: unreadCount })}</p>
-        </div>
+    <PageWrapper
+      title={t('inbox.title')}
+      subtitle={t('inbox.messageCount', { total, unread: unreadCount })}
+      icon={<Inbox className="w-8 h-8" />}
+      actions={
         <div className="flex gap-2">
           <button
             onClick={() => setFilter("all")}
             className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-              filter === "all" ? "bg-navy text-white" : "bg-cream-m text-gray hover:text-navy"
+              filter === "all" ? "bg-white text-navy" : "bg-white/20 text-white hover:bg-white/30"
             }`}
           >
             {t('inbox.all')}
@@ -85,13 +86,14 @@ export default function InboxPage() {
           <button
             onClick={() => setFilter("unread")}
             className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-              filter === "unread" ? "bg-navy text-white" : "bg-cream-m text-gray hover:text-navy"
+              filter === "unread" ? "bg-white text-navy" : "bg-white/20 text-white hover:bg-white/30"
             }`}
           >
             {t('inbox.unread')} {unreadCount > 0 && `(${unreadCount})`}
           </button>
         </div>
-      </div>
+      }
+    >
 
       <div className="bg-white rounded-2xl border border-black/5 overflow-hidden">
         {loading ? (
@@ -168,6 +170,6 @@ export default function InboxPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageWrapper>
   );
 }

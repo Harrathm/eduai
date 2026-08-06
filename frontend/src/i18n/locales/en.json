@@ -758,5 +758,35 @@
   },
   "footer": {
     "copyright": "© 2025 EDUAI Learning — Confidential Presentation"
+  },
+  "packs": {
+    "title": "Packs",
+    "subtitle": "Choose the pack for your level",
+    "noPacks": "No packs available",
+    "noPacksForLevel": "No packs available for level {level}",
+    "noPacksPublished": "No packs have been published yet",
+    "niveauLabel": "Level",
+    "all": "All",
+    "loadingError": "Error loading packs",
+    "buy": "Buy",
+    "levelIncompatible": "Incompatible level",
+    "alreadyActive": "Active",
+    "includedViaSchool": "Included via school",
+    "daysValidity": "days validity"
+  },
+  "student": {
+    "quota": {
+      "title": "Quota",
+      "subtitle": "{used}/{limit} lessons used",
+      "exhaustedTitle": "Quota Exhausted",
+      "exhaustedMessage": "You have consumed all your free lessons for this quarter.",
+      "exhaustedDescription": "Upgrade to a higher pack to continue learning without limits.",
+      "unlockBenefits": "Unlock all benefits",
+      "benefit1": "Unlimited access to lessons",
+      "benefit2": "Access to AI Coach",
+      "benefit3": "Soft Skills trainings included",
+      "later": "Later",
+      "discoverPacks": "Discover packs"
+    }
   }
 }
