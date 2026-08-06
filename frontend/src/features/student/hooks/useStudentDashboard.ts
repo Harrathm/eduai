@@ -131,7 +131,8 @@ export function useStudentDashboard() {
     if (packsResult.status === "rejected") sourceErrors.packs = packsResult.reason?.message || "Erreur packs";
 
     // ── Process abonnements ──
-    const aboList = Array.isArray(aboData) ? aboData : [];
+    const aboRaw = aboResult.status === "fulfilled" ? aboResult.value : null;
+    const aboList = Array.isArray(aboRaw) ? aboRaw : (aboRaw as any)?.items || [];
     console.log("DEBUG ABO - aboList:", aboList);
     const activeAbo = aboList.find((a: any) => a.statut === "actif" || a.statut === "grace") || null;
     console.log("DEBUG ABO - activeAbo:", activeAbo);

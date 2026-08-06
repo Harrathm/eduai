@@ -44,7 +44,8 @@ export function useQuotaGuard(): UseQuotaGuardReturn {
       const freeUsed = (dashboard as any)?.free_lessons_used ?? dashboard?.lessons_completed ?? 0;
       setUsed(freeUsed);
 
-      const aboList = aboData.status === "fulfilled" && Array.isArray(aboData.value) ? aboData.value : [];
+      const aboRaw = aboData.status === "fulfilled" ? aboData.value : null;
+      const aboList = Array.isArray(aboRaw) ? aboRaw : (aboRaw as any)?.items || [];
       console.log("DEBUG ABO (QuotaGuard) - aboList:", aboList);
       const activeAbo = aboList.find((a: any) => a.statut === "actif" || a.statut === "grace");
       console.log("DEBUG ABO (QuotaGuard) - activeAbo:", activeAbo);
