@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../../store/authStore";
 import { BookOpen, Users, Wallet, ArrowRight } from "lucide-react";
@@ -23,6 +24,7 @@ interface RecentClass {
 export default function TeacherDashboard() {
   const { user, token } = useAuthStore();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [stats, setStats] = useState<DashboardStats>({
     coursesCount: 0,
     classesCount: 0,
@@ -83,25 +85,25 @@ export default function TeacherDashboard() {
   const quickActions = [
     {
       to: "/dashboard/teacher/classroom",
-      label: "Mes Classes",
+      label: t('teacher.dashboard.myClasses'),
       icon: "👥",
       gradient: "from-orange-p to-cream",
     },
     {
       to: "/dashboard/teacher/ai-studio",
-      label: "AI Studio",
+      label: t('teacher.dashboard.aiStudio'),
       icon: "🎨",
       gradient: "from-purple-50 to-cream",
     },
     {
       to: "/dashboard/teacher/sales",
-      label: "Revenus",
+      label: t('teacher.dashboard.revenue'),
       icon: "💰",
       gradient: "from-green-50 to-cream",
     },
     {
       to: "/dashboard/teacher/wallet",
-      label: "Wallet",
+      label: t('teacher.dashboard.wallet'),
       icon: "💳",
       gradient: "from-blue-50 to-cream",
     },
@@ -112,10 +114,10 @@ export default function TeacherDashboard() {
       {/* Header */}
       <div className="bg-navy rounded-3xl p-8">
         <h1 className="text-4xl font-[300] text-white">
-          Tableau de <span className="italic text-orange-l">Bord</span>
+          {t('teacher.dashboard.title')} <span className="italic text-orange-l">{t('teacher.dashboard.titleSuffix')}</span>
         </h1>
         <p className="text-white/50 mt-2 flex items-center gap-2">
-          Bienvenue, {user?.full_name}
+          {t('teacher.dashboard.welcome')}{user?.full_name}
           <TeacherStateBadge />
         </p>
       </div>
@@ -131,7 +133,7 @@ export default function TeacherDashboard() {
           <div className="text-3xl font-[300] text-navy">
             {loading ? "..." : stats.coursesCount}
           </div>
-          <div className="text-sm text-gray mt-1">Mes Cours</div>
+          <div className="text-sm text-gray mt-1">{t('teacher.dashboard.myCourses')}</div>
         </div>
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
@@ -143,7 +145,7 @@ export default function TeacherDashboard() {
           <div className="text-3xl font-[300] text-navy">
             {loading ? "..." : stats.classesCount}
           </div>
-          <div className="text-sm text-gray mt-1">Mes Classes</div>
+          <div className="text-sm text-gray mt-1">{t('teacher.dashboard.myClasses')}</div>
         </div>
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
@@ -155,7 +157,7 @@ export default function TeacherDashboard() {
           <div className="text-3xl font-[300] text-navy">
             {loading ? "..." : stats.totalStudents}
           </div>
-          <div className="text-sm text-gray mt-1">Étudiants</div>
+          <div className="text-sm text-gray mt-1">{t('teacher.dashboard.students')}</div>
         </div>
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
@@ -167,13 +169,13 @@ export default function TeacherDashboard() {
           <div className="text-3xl font-[300] text-navy">
             {loading ? "..." : stats.walletBalance}
           </div>
-          <div className="text-sm text-gray mt-1">Crédits IA</div>
+          <div className="text-sm text-gray mt-1">{t('teacher.dashboard.aiCredits')}</div>
         </div>
       </div>
 
       {/* Quick Actions */}
       <div className="bg-white rounded-3xl p-8 shadow-sm border border-black/5">
-        <h2 className="text-2xl font-[300] text-navy mb-6">Accès Rapide</h2>
+        <h2 className="text-2xl font-[300] text-navy mb-6">{t('teacher.dashboard.quickAccess')}</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {quickActions.map((action) => (
             <button
@@ -192,12 +194,12 @@ export default function TeacherDashboard() {
       {recentClasses.length > 0 && (
         <div className="bg-white rounded-3xl p-8 shadow-sm border border-black/5">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-[300] text-navy">Mes Classes</h2>
+            <h2 className="text-2xl font-[300] text-navy">{t('teacher.dashboard.myClasses')}</h2>
             <button
               onClick={() => navigate("/dashboard/teacher/classroom")}
               className="flex items-center gap-1 text-sm text-orange font-medium hover:underline"
             >
-              Voir tout <ArrowRight className="w-4 h-4" />
+              {t('teacher.dashboard.viewAll')} <ArrowRight className="w-4 h-4" />
             </button>
           </div>
           <div className="grid gap-4 md:grid-cols-3">
@@ -209,7 +211,7 @@ export default function TeacherDashboard() {
               >
                 <div className="font-medium text-navy">{cls.name}</div>
                 <div className="text-sm text-gray mt-1">
-                  {cls.students_count} élèves · {cls.courses_count} cours
+                  {cls.students_count} {t('teacher.dashboard.eleves')} · {cls.courses_count} {t('teacher.dashboard.cours')}
                 </div>
               </div>
             ))}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from "../../../store/authStore";
 import { aiApi } from "../../../api";
 import { Sparkles, BookOpen, FileText, Clock, Zap, Send, Coins, Loader2 } from "lucide-react";
@@ -31,16 +32,8 @@ const TRIMESTERS = [
   "Trimestre 3",
 ];
 
-const CONTENT_TYPES = [
-  { id: "homework", label: "Devoir", icon: "📝" },
-  { id: "lesson", label: "Leçon", icon: "📖" },
-  { id: "lesson_plan", label: "Plan de leçon", icon: "📋" },
-  { id: "outline", label: "Plan annuel", icon: "📅" },
-  { id: "quiz", label: "Quiz", icon: "❓" },
-  { id: "summary", label: "Résumé", icon: "📄" },
-];
-
 export default function TeacherAIStudio() {
+  const { t } = useTranslation();
   const { token, user } = useAuthStore();
   const [selectedType, setSelectedType] = useState("homework");
   const [prompt, setPrompt] = useState("");
@@ -53,6 +46,15 @@ export default function TeacherAIStudio() {
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
   const [balanceData, setBalanceData] = useState<{ total: number; pools: { pool: string; balance: number }[] } | null>(null);
+
+  const CONTENT_TYPES = [
+    { id: "homework", label: t('teacher.aiStudio.contentTypes.homework'), icon: "📝" },
+    { id: "lesson", label: t('teacher.aiStudio.contentTypes.lesson'), icon: "📖" },
+    { id: "lesson_plan", label: t('teacher.aiStudio.contentTypes.lessonPlan'), icon: "📋" },
+    { id: "outline", label: t('teacher.aiStudio.contentTypes.outline'), icon: "📅" },
+    { id: "quiz", label: t('teacher.aiStudio.contentTypes.quiz'), icon: "❓" },
+    { id: "summary", label: t('teacher.aiStudio.contentTypes.summary'), icon: "📄" },
+  ];
 
   useEffect(() => {
     fetchHistory();
@@ -95,7 +97,7 @@ export default function TeacherAIStudio() {
       setResult(data.content);
     } catch (err) {
       console.error(err);
-      setResult("Erreur de connexion.");
+      setResult(t('teacher.aiStudio.error'));
     }
     setGenerating(false);
   };
@@ -105,9 +107,9 @@ export default function TeacherAIStudio() {
     setExporting(format);
     try {
       if (format === "pdf") {
-        await exportMessagePdf(result, "assistant", `Studio IA — ${selectedType}`);
+        await exportMessagePdf(result, "assistant", `${t('teacher.aiStudio.title')} — ${selectedType}`);
       } else {
-        await exportMessageDocx(result, "assistant", `Studio IA — ${selectedType}`);
+        await exportMessageDocx(result, "assistant", `${t('teacher.aiStudio.title')} — ${selectedType}`);
       }
     } catch (err) {
       console.error("Export error:", err);
@@ -121,17 +123,17 @@ export default function TeacherAIStudio() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-[300] text-navy">
-              AI <span className="italic text-orange">Studio</span>
+              {t('teacher.aiStudio.title')} <span className="italic text-orange">{t('teacher.aiStudio.titleSuffix')}</span>
             </h1>
             <p className="text-gray mt-2">
-              Générez du contenu pédagogique avec l'IA
+              {t('teacher.aiStudio.subtitle')}
             </p>
           </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 bg-orange-p px-4 py-2 rounded-xl">
               <Coins className="w-5 h-5 text-orange" />
               <span className="font-semibold text-orange">
-                {totalTokens} tokens
+                {totalTokens} {t('teacher.aiStudio.tokens')}
               </span>
             </div>
             <div className="flex items-center gap-2 bg-yellow-50 px-4 py-2 rounded-xl">
@@ -149,7 +151,7 @@ export default function TeacherAIStudio() {
           {/* Content Type */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
             <h2 className="text-lg font-semibold text-navy mb-4">
-              Type de contenu
+              {t('teacher.aiStudio.contentType')}
             </h2>
             <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
               {CONTENT_TYPES.map((type) => (
@@ -174,7 +176,7 @@ export default function TeacherAIStudio() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray mb-2">
-                  Matière
+                   {t('teacher.aiStudio.subject')}
                 </label>
                 <select
                   value={subject}
@@ -190,7 +192,7 @@ export default function TeacherAIStudio() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray mb-2">
-                  Niveau
+                   {t('teacher.aiStudio.level')}
                 </label>
                 <select
                   value={level}
@@ -206,7 +208,7 @@ export default function TeacherAIStudio() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray mb-2">
-                  Trimestre
+                   {t('teacher.aiStudio.trimester')}
                 </label>
                 <select
                   value={trimester}
@@ -226,17 +228,17 @@ export default function TeacherAIStudio() {
           {/* Prompt */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
             <h2 className="text-lg font-semibold text-navy mb-4">
-              Description du contenu désiré
+              {t('teacher.aiStudio.description')}
             </h2>
             <textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               className="w-full px-5 py-4 bg-cream-m rounded-xl border border-black/5 min-h-[150px]"
-              placeholder="Décrivez ce que vous voulez générer... Ex: 'Un devoir sur les équations du premier degré pour les élèves de 3ème année collège, comprenant 5 exercices de difficulté progressive'"
+              placeholder={t('teacher.aiStudio.placeholder')}
             />
             <div className="flex justify-between items-center mt-4">
               <p className="text-sm text-gray">
-                Coût estimé: ~5 tokens
+                {t('teacher.aiStudio.estimatedCost')}
               </p>
               <button
                 onClick={generateContent}
@@ -244,7 +246,7 @@ export default function TeacherAIStudio() {
                 className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange to-orange-l text-white rounded-xl font-medium disabled:opacity-50"
               >
                 <Zap className="w-5 h-5" />
-                {generating ? "Génération..." : "Générer"}
+                {generating ? t('teacher.aiStudio.generating') : t('teacher.aiStudio.generate')}
               </button>
             </div>
           </div>
@@ -253,7 +255,7 @@ export default function TeacherAIStudio() {
           {result && (
             <div className="bg-white rounded-2xl shadow-sm border border-black/5 overflow-hidden">
               <div className="bg-navy p-4 flex justify-between items-center">
-                <h3 className="text-white font-semibold">Résultat</h3>
+                <h3 className="text-white font-semibold">{t('teacher.aiStudio.result')}</h3>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleExport("pdf")}
@@ -285,7 +287,7 @@ export default function TeacherAIStudio() {
                     }}
                     className="text-white/70 hover:text-white text-sm ms-2"
                   >
-                    Copier
+                    {t('teacher.aiStudio.copy')}
                   </button>
                 </div>
               </div>
@@ -302,14 +304,14 @@ export default function TeacherAIStudio() {
         <div className="space-y-4">
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
             <h2 className="text-lg font-semibold text-navy mb-4">
-              Historique
+              {t('teacher.aiStudio.history')}
             </h2>
             {loadingHistory ? (
-              <div className="text-center py-8 text-gray">Chargement...</div>
+              <div className="text-center py-8 text-gray">{t('teacher.aiStudio.loading')}</div>
             ) : history.length === 0 ? (
               <div className="text-center py-8 text-gray">
                 <Sparkles className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                <p>Aucun historique</p>
+                <p>{t('teacher.aiStudio.noHistory')}</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -328,9 +330,9 @@ export default function TeacherAIStudio() {
 
           {/* Quick Actions */}
           <div className="bg-gradient-to-br from-navy to-navy-m rounded-2xl p-6">
-            <h3 className="text-white font-semibold mb-4">Générations rapides</h3>
+            <h3 className="text-white font-semibold mb-4">{t('teacher.aiStudio.quickGenerations')}</h3>
             <div className="space-y-2">
-              {["Devoir type examen", "Leçon complète", "Plan annuel"].map((q) => (
+              {[t('teacher.aiStudio.quickActions.exam'), t('teacher.aiStudio.quickActions.lesson'), t('teacher.aiStudio.quickActions.outline')].map((q) => (
                 <button
                   key={q}
                   onClick={() => setPrompt(q)}

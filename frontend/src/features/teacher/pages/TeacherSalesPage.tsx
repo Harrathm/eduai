@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from "../../../store/authStore";
 import { DollarSign, TrendingUp, ShoppingCart, Calendar, RefreshCw } from "lucide-react";
 import { teacherSalesApi } from "../../../api";
@@ -19,6 +20,7 @@ interface SalesData {
 }
 
 export default function TeacherSalesPage() {
+  const { t } = useTranslation();
   const { token, user } = useAuthStore();
   const [salesData, setSalesData] = useState<SalesData>({ total_sales: 0, total_revenue: 0, sales: [] });
   const [loading, setLoading] = useState(true);
@@ -40,7 +42,7 @@ export default function TeacherSalesPage() {
       const data = await teacherSalesApi.mySales();
       setSalesData(data);
     } catch (err) {
-      setError("Erreur de connexion");
+      setError(t('teacher.sales.error'));
     }
     setLoading(false);
   };
@@ -50,15 +52,15 @@ export default function TeacherSalesPage() {
       <div className="space-y-6">
         <div className="bg-white rounded-3xl p-8 shadow-sm border border-black/5">
           <h1 className="text-3xl font-[300] text-navy">
-            Mes <span className="italic text-orange">Revenus</span>
+            {t('teacher.sales.title')} <span className="italic text-orange">{t('teacher.sales.titleSuffix')}</span>
           </h1>
-          <p className="text-gray mt-2">Consultez vos ventes et revenus</p>
+          <p className="text-gray mt-2">{t('teacher.sales.subtitle')}</p>
         </div>
         <div className="bg-white rounded-2xl p-12 shadow-sm border border-black/5 text-center">
           <DollarSign className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-700 mb-2">Fonctionnalité réservée</h3>
+          <h3 className="text-lg font-medium text-gray-700 mb-2">{t('teacher.sales.accessDenied')}</h3>
           <p className="text-gray-500">
-            Vous devez être enseignant pour accéder à cette page.
+            {t('teacher.sales.accessDeniedMessage')}
           </p>
         </div>
       </div>
@@ -71,9 +73,9 @@ export default function TeacherSalesPage() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-[300] text-navy">
-              Mes <span className="italic text-orange">Revenus</span>
+              {t('teacher.sales.title')} <span className="italic text-orange">{t('teacher.sales.titleSuffix')}</span>
             </h1>
-            <p className="text-gray mt-2">Consultez vos ventes et revenus</p>
+            <p className="text-gray mt-2">{t('teacher.sales.subtitle')}</p>
           </div>
           <button
             onClick={fetchSales}
@@ -93,7 +95,7 @@ export default function TeacherSalesPage() {
               <ShoppingCart className="w-6 h-6 text-blue-600" />
             </div>
             <div>
-              <p className="text-sm text-gray">Total ventes</p>
+              <p className="text-sm text-gray">{t('teacher.sales.kpi.totalSales')}</p>
               <p className="text-2xl font-bold text-navy">{salesData.total_sales}</p>
             </div>
           </div>
@@ -105,7 +107,7 @@ export default function TeacherSalesPage() {
               <DollarSign className="w-6 h-6 text-green-600" />
             </div>
             <div>
-              <p className="text-sm text-gray">Revenu total</p>
+              <p className="text-sm text-gray">{t('teacher.sales.kpi.totalRevenue')}</p>
               <p className="text-2xl font-bold text-navy">{salesData.total_revenue.toFixed(2)} TND</p>
             </div>
           </div>
@@ -117,7 +119,7 @@ export default function TeacherSalesPage() {
               <TrendingUp className="w-6 h-6 text-purple-600" />
             </div>
             <div>
-              <p className="text-sm text-gray">Moyenne par vente</p>
+              <p className="text-sm text-gray">{t('teacher.sales.kpi.averagePerSale')}</p>
               <p className="text-2xl font-bold text-navy">
                 {salesData.total_sales > 0 
                   ? (salesData.total_revenue / salesData.total_sales).toFixed(2) 
@@ -131,29 +133,29 @@ export default function TeacherSalesPage() {
       {/* Sales List */}
       <div className="bg-white rounded-2xl shadow-sm border border-black/5">
         <div className="p-6 border-b">
-          <h2 className="text-lg font-semibold text-navy">Historique des ventes</h2>
+          <h2 className="text-lg font-semibold text-navy">{t('teacher.sales.historyTitle')}</h2>
         </div>
         
         {loading ? (
-          <div className="p-12 text-center text-gray">Chargement...</div>
+          <div className="p-12 text-center text-gray">{t('teacher.sales.loading')}</div>
         ) : error ? (
           <div className="p-12 text-center text-red-500">{error}</div>
         ) : salesData.sales.length === 0 ? (
           <div className="p-12 text-center text-gray">
             <ShoppingCart className="w-12 h-12 mx-auto mb-4 opacity-30" />
-            <p>Aucune vente enregistrée</p>
+            <p>{t('teacher.sales.noResults')}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b bg-gray-50">
-                  <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">ID</th>
-                  <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Cours</th>
-                  <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Montant payé</th>
-                  <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Commission</th>
-                  <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Votre revenu</th>
-                  <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Date</th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t('teacher.sales.table.id')}</th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t('teacher.sales.table.course')}</th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t('teacher.sales.table.amountPaid')}</th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t('teacher.sales.table.commission')}</th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t('teacher.sales.table.yourRevenue')}</th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t('teacher.sales.table.date')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y">

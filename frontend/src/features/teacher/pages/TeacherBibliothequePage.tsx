@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from 'react-i18next';
 import { Search, Library, BookOpen, Award } from "lucide-react";
 import { useAuthStore } from "../../../store/authStore";
 import { searchElements, listCompetences, type ElementPedagogique, type Competence } from "../../../api";
@@ -19,6 +20,7 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 export default function TeacherBibliothequePage() {
+  const { t } = useTranslation();
   const { token } = useAuthStore();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ElementPedagogique[]>([]);
@@ -59,9 +61,9 @@ export default function TeacherBibliothequePage() {
     <div className="space-y-6">
       <div className="bg-white rounded-3xl p-8 shadow-sm border border-black/5">
         <h1 className="text-3xl font-[300] text-navy">
-          Bibliothèque <span className="italic text-orange">Pédagogique</span>
+          {t('teacher.bibliotheque.title')} <span className="italic text-orange">{t('teacher.bibliotheque.titleSuffix')}</span>
         </h1>
-        <p className="text-gray mt-2">Recherchez des contenus et compétences</p>
+        <p className="text-gray mt-2">{t('teacher.bibliotheque.subtitle')}</p>
       </div>
 
       {toast.show && (
@@ -73,10 +75,10 @@ export default function TeacherBibliothequePage() {
       {/* Tabs */}
       <div className="flex gap-2">
         <button onClick={() => setTab("search")} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm ${tab === "search" ? "bg-navy text-white" : "bg-gray/10 text-gray"}`}>
-          <Search size={16} /> Recherche
+          <Search size={16} /> {t('teacher.bibliotheque.tabs.search')}
         </button>
         <button onClick={() => setTab("competences")} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm ${tab === "competences" ? "bg-navy text-white" : "bg-gray/10 text-gray"}`}>
-          <Award size={16} /> Compétences
+          <Award size={16} /> {t('teacher.bibliotheque.tabs.skills')}
         </button>
       </div>
 
@@ -87,17 +89,17 @@ export default function TeacherBibliothequePage() {
             <div className="flex-1 relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray" />
               <input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && doSearch()}
-                placeholder="Rechercher un contenu..." className="w-full ps-9 pe-4 py-2.5 border rounded-xl text-sm" />
+                placeholder={t('teacher.bibliotheque.searchPlaceholder')} className="w-full ps-9 pe-4 py-2.5 border rounded-xl text-sm" />
             </div>
-            <button onClick={doSearch} className="px-4 py-2 bg-orange text-white rounded-xl text-sm hover:bg-orange/90">Rechercher</button>
+            <button onClick={doSearch} className="px-4 py-2 bg-orange text-white rounded-xl text-sm hover:bg-orange/90">{t('teacher.bibliotheque.searchButton')}</button>
           </div>
 
           {loading ? (
-            <div className="text-center py-10 text-gray">Recherche en cours...</div>
+            <div className="text-center py-10 text-gray">{t('teacher.bibliotheque.searching')}</div>
           ) : results.length === 0 ? (
             <div className="text-center py-10 text-gray">
               <Library size={40} className="mx-auto mb-3 opacity-30" />
-              <p>{query ? "Aucun résultat" : "Entrez un terme de recherche"}</p>
+              <p>{query ? t('teacher.bibliotheque.noResults') : t('teacher.bibliotheque.noResultsHint')}</p>
             </div>
           ) : (
             <div className="grid gap-2">
@@ -111,7 +113,7 @@ export default function TeacherBibliothequePage() {
                     {el.description && <span className="text-xs text-gray truncate block">{el.description}</span>}
                   </div>
                   <span className={`text-xs px-2 py-0.5 rounded-full ${STATUT_COLORS[el.statut] || ""}`}>{el.statut}</span>
-                  {el.est_global && <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-600">Global</span>}
+                  {el.est_global && <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-600">{t('teacher.bibliotheque.globalBadge')}</span>}
                 </div>
               ))}
             </div>
@@ -125,7 +127,7 @@ export default function TeacherBibliothequePage() {
           {competences.length === 0 ? (
             <div className="text-center py-10 text-gray">
               <Award size={40} className="mx-auto mb-3 opacity-30" />
-              <p>Aucune compétence disponible</p>
+              <p>{t('teacher.bibliotheque.noSkills')}</p>
             </div>
           ) : (
             <div className="grid gap-2">

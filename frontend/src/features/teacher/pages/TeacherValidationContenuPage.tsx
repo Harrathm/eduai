@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from 'react-i18next';
 import { CheckCircle, XCircle, Clock, AlertTriangle, Eye } from "lucide-react";
 import { useAuthStore } from "../../../store/authStore";
 import { pathwayResponsables, pathwayContenus } from "../../../api";
@@ -14,6 +15,7 @@ interface ContenuItem {
 }
 
 export default function TeacherValidationContenuPage() {
+  const { t } = useTranslation();
   const { token, user } = useAuthStore();
   const [contenus, setContenus] = useState<ContenuItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,14 +35,14 @@ export default function TeacherValidationContenuPage() {
     setError(null);
     try {
       if (!user?.id) {
-        setError("Chargement en cours...");
+        setError(t('teacher.validation.loading'));
         setLoading(false);
         return;
       }
       const data = await pathwayResponsables.listContenus(user.id);
       setContenus(data);
     } catch {
-      setError("Erreur de connexion. Veuillez réessayer.");
+      setError(t('teacher.validation.error'));
     }
     setLoading(false);
   }, [user?.id]);
@@ -50,7 +52,7 @@ export default function TeacherValidationContenuPage() {
   const handleValider = async (contenuId: number) => {
     try {
       await pathwayContenus.valider(contenuId);
-      showToast("Contenu validé");
+      showToast(t('teacher.validation.toasts.validated'));
       setContenus(prev => prev.map(c =>
         c.id === contenuId ? { ...c, statut_validation_pedagogique: "valide" } : c
       ));
@@ -63,7 +65,7 @@ export default function TeacherValidationContenuPage() {
     if (!rejectModal || !commentaire.trim()) return;
     try {
       await pathwayContenus.rejeter(rejectModal.contenuId, commentaire);
-      showToast("Contenu rejeté");
+      showToast(t('teacher.validation.toasts.rejected'));
       setContenus(prev => prev.map(c =>
         c.id === rejectModal.contenuId ? { ...c, statut_validation_pedagogique: "rejete" } : c
       ));
@@ -85,11 +87,11 @@ export default function TeacherValidationContenuPage() {
   const statusBadge = (statut: string) => {
     switch (statut) {
       case "valide":
-        return <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">Validé</span>;
+        return <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">{t('teacher.validation.badges.validated')}</span>;
       case "rejete":
-        return <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-medium">Rejeté</span>;
+        return <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-medium">{t('teacher.validation.badges.rejected')}</span>;
       default:
-        return <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">En attente</span>;
+        return <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">{t('teacher.validation.badges.pending')}</span>;
     }
   };
 
@@ -103,18 +105,18 @@ export default function TeacherValidationContenuPage() {
 
       <div>
         <h1 className="text-3xl font-display font-light text-navy">
-          Validation <span className="italic text-orange">Pédagogique</span>
+          {t('teacher.validation.title')} <span className="italic text-orange">{t('teacher.validation.titleSuffix')}</span>
         </h1>
-        <p className="text-gray text-sm mt-1">Valider ou rejeter les contenus de votre périmètre pédagogique</p>
+        <p className="text-gray text-sm mt-1">{t('teacher.validation.subtitle')}</p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          { label: "Total", value: stats.total, className: "text-navy" },
-          { label: "En attente", value: stats.en_attente, className: "text-yellow-600" },
-          { label: "Validés", value: stats.valide, className: "text-green-600" },
-          { label: "Rejetés", value: stats.rejete, className: "text-red-600" },
+          { label: t('teacher.validation.stats.total'), value: stats.total, className: "text-navy" },
+          { label: t('teacher.validation.stats.pending'), value: stats.en_attente, className: "text-yellow-600" },
+          { label: t('teacher.validation.stats.validated'), value: stats.valide, className: "text-green-600" },
+          { label: t('teacher.validation.stats.rejected'), value: stats.rejete, className: "text-red-600" },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-xl shadow-sm border border-black/5 p-4">
             <div className={`text-2xl font-bold font-display ${s.className}`}>{s.value}</div>
@@ -135,7 +137,7 @@ export default function TeacherValidationContenuPage() {
                 : "bg-white text-gray border border-black/5 hover:bg-gray-50"
             }`}
           >
-            {f === "all" ? "Tous" : f === "en_attente" ? "En attente" : f === "valide" ? "Validés" : "Rejetés"}
+            {f === "all" ? t('teacher.validation.filters.all') : f === "en_attente" ? t('teacher.validation.filters.pending') : f === "valide" ? t('teacher.validation.filters.validated') : t('teacher.validation.filters.rejected')}
           </button>
         ))}
       </div>

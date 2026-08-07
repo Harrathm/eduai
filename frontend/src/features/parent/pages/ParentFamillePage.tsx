@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from "../../../store/authStore";
 import { Link } from "react-router-dom";
 import { Users, Percent, ArrowRight, UserPlus, Trash2 } from "lucide-react";
@@ -28,6 +29,7 @@ interface DashboardEnfant {
 }
 
 export default function ParentFamillePage() {
+  const { t } = useTranslation();
   const { token } = useAuthStore();
   const [compte, setCompte] = useState<CompteFamille | null>(null);
   const [enfants, setEnfants] = useState<EnfantFamille[]>([]);
@@ -65,30 +67,30 @@ export default function ParentFamillePage() {
     setMessage(null);
     try {
       await parentEnfants.lie(linkEmail.trim());
-      setMessage({ type: "success", text: "Enfant lie avec succes." });
+      setMessage({ type: "success", text: t('parent.famille.toasts.linkedSuccess') });
       setLinkEmail("");
       fetchData();
     } catch {
-      setMessage({ type: "error", text: "Erreur reseau." });
+      setMessage({ type: "error", text: t('parent.famille.toasts.networkError') });
     }
     setLinkLoading(false);
   };
 
   const handleUnlink = async (eleveId: number) => {
-    if (!token || !confirm("Retirer cet enfant de la famille ?")) return;
+    if (!token || !confirm(t('parent.famille.removeConfirm'))) return;
     try {
       await parentEnfants.delier(eleveId);
-      setMessage({ type: "success", text: "Enfant retire." });
+      setMessage({ type: "success", text: t('parent.famille.toasts.removed') });
       fetchData();
     } catch {
-      setMessage({ type: "error", text: "Erreur reseau." });
+      setMessage({ type: "error", text: t('parent.famille.toasts.networkError') });
     }
   };
 
   const DISCOUNT_INFO = [
-    { rang: "1er enfant", remise: "0%", description: "Tarif plein" },
-    { rang: "2eme enfant", remise: "-20%", description: "Remise familiale" },
-    { rang: "3eme enfant+", remise: "-25%", description: "Remise familiale maximale" },
+    { rang: t('parent.famille.discounts.first'), remise: t('parent.famille.discounts.firstRate'), description: t('parent.famille.discounts.firstLabel') },
+    { rang: t('parent.famille.discounts.second'), remise: t('parent.famille.discounts.secondRate'), description: t('parent.famille.discounts.secondLabel') },
+    { rang: t('parent.famille.discounts.third'), remise: t('parent.famille.discounts.thirdRate'), description: t('parent.famille.discounts.thirdLabel') },
   ];
 
   if (loading) {
@@ -104,9 +106,9 @@ export default function ParentFamillePage() {
     <div className="space-y-6">
       <div className="bg-navy rounded-3xl p-8">
         <h1 className="text-3xl font-[300] text-white">
-          Ma <span className="italic text-orange-l">Famille</span>
+          {t('parent.famille.title')} <span className="italic text-orange-l">{t('parent.famille.titleSuffix')}</span>
         </h1>
-        <p className="text-white/50 mt-2">Gerez vos enfants et beneficiez des remises famille</p>
+        <p className="text-white/50 mt-2">{t('parent.famille.subtitle')}</p>
       </div>
 
       {message && (
@@ -118,7 +120,7 @@ export default function ParentFamillePage() {
       {/* Family Discount Table */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
         <h2 className="text-lg font-semibold text-navy mb-4 flex items-center gap-2">
-          <Percent className="w-5 h-5" /> Remises Famille
+          <Percent className="w-5 h-5" /> {t('parent.famille.familyDiscounts')}
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {DISCOUNT_INFO.map((d) => (
@@ -131,7 +133,7 @@ export default function ParentFamillePage() {
         </div>
         {compte && (
           <p className="text-xs text-gray-400 mt-3">
-            Compte famille #{compte.id} — {enfants.length}/{compte.max_enfants} enfants rattaches
+            {t('parent.famille.familyAccount', { id: compte.id, linked: enfants.length, max: compte.max_enfants })}
           </p>
         )}
       </div>
@@ -139,14 +141,14 @@ export default function ParentFamillePage() {
       {/* Link child */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
         <h2 className="text-lg font-semibold text-navy mb-4 flex items-center gap-2">
-          <UserPlus className="w-5 h-5" /> Rattacher un enfant
+          <UserPlus className="w-5 h-5" /> {t('parent.famille.linkChild')}
         </h2>
         <div className="flex items-center gap-3">
           <input
             type="email"
             value={linkEmail}
             onChange={(e) => setLinkEmail(e.target.value)}
-            placeholder="Email de l'eleve"
+            placeholder={t('parent.famille.childEmailPlaceholder')}
             className="flex-1 px-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange/30"
           />
           <button
@@ -154,7 +156,7 @@ export default function ParentFamillePage() {
             disabled={linkLoading || !linkEmail.trim()}
             className="px-6 py-2 bg-navy text-white text-sm font-medium rounded-xl hover:bg-navy/90 disabled:opacity-50"
           >
-            {linkLoading ? "Liaison..." : "Rattacher"}
+            {linkLoading ? t('parent.famille.linking') : t('parent.famille.linkButton')}
           </button>
         </div>
       </div>
@@ -162,10 +164,10 @@ export default function ParentFamillePage() {
       {/* Children list */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
         <h2 className="text-lg font-semibold text-navy mb-4 flex items-center gap-2">
-          <Users className="w-5 h-5" /> Enfants rattaches
+          <Users className="w-5 h-5" />             {t('parent.famille.linkedChildrenTitle')}
         </h2>
         {enfants.length === 0 ? (
-          <p className="text-gray text-sm">Aucun enfant rattache.</p>
+          <p className="text-gray text-sm">{t('parent.famille.noLinkedChildren')}</p>
         ) : (
           <div className="space-y-3">
             {enfants.map((enfant) => {
@@ -182,7 +184,7 @@ export default function ParentFamillePage() {
                       <p className="text-sm font-medium text-navy">{enfant.full_name}</p>
                       <p className="text-xs text-gray-500">{enfant.email}</p>
                       <p className="text-xs text-gray-400">
-                        Rang {enfant.rang} — Remise {enfant.remise_pct}%
+                      {t('parent.famille.tableHeaders.rank')} {enfant.rang} — {t('parent.famille.tableHeaders.discount')} {enfant.remise_pct}%
                         {dashInfo && ` — ${dashInfo.niveau_scolaire}`}
                       </p>
                     </div>
@@ -192,7 +194,7 @@ export default function ParentFamillePage() {
                       to={`/dashboard/parent/enfant/${enfant.eleve_id}`}
                       className="px-3 py-1.5 text-xs font-medium text-navy bg-gray-100 rounded-xl hover:bg-gray-200 flex items-center gap-1"
                     >
-                      Voir <ArrowRight className="w-3 h-3" />
+                      {t('parent.famille.viewButton')} <ArrowRight className="w-3 h-3" />
                     </Link>
                     <button
                       onClick={() => handleUnlink(enfant.eleve_id)}

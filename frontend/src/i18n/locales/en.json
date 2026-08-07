@@ -889,6 +889,588 @@
       "newTrimester": "New trimester {{trimester}}",
       "daysRemaining": "{{count}} day(s) remaining",
       "currentTrimester": "Trimester {{label}}"
+    },
+    "sidebar": {
+      "dashboard": "Dashboard",
+      "pathway": "My Pathway",
+      "aiAssistant": "AI Assistant",
+      "courseCatalog": "Course Catalog",
+      "softSkills": "Soft Skills — Catalog",
+      "myTrainings": "My Trainings",
+      "packs": "Shop / Packs",
+      "subscription": "My Subscription",
+      "wallet": "Wallet",
+      "messages": "Messages",
+      "profile": "Profile",
+      "logout": "Logout"
+    }
+  },
+  "teacher": {
+    "dashboard": {
+      "title": "Dashboard",
+      "titleSuffix": "",
+      "welcome": "Welcome, ",
+      "myCourses": "My Courses",
+      "myClasses": "My Classes",
+      "students": "Students",
+      "aiCredits": "AI Credits",
+      "quickAccess": "Quick Access",
+      "aiStudio": "AI Studio",
+      "revenue": "Revenue",
+      "wallet": "Wallet",
+      "viewAll": "View All",
+      "eleves": "students",
+      "cours": "courses"
+    },
+    "aiStudio": {
+      "title": "AI",
+      "titleSuffix": "Studio",
+      "subtitle": "Generate educational content with AI",
+      "tokens": "tokens",
+      "contentType": "Content Type",
+      "subject": "Subject",
+      "level": "Level",
+      "trimester": "Trimester",
+      "description": "Description of desired content",
+      "placeholder": "Describe what you want to generate... Ex: 'A homework on first-degree equations for 3rd year college students, including 5 exercises of progressive difficulty'",
+      "estimatedCost": "Estimated cost: ~5 tokens",
+      "generating": "Generating...",
+      "generate": "Generate",
+      "result": "Result",
+      "copy": "Copy",
+      "history": "History",
+      "loading": "Loading...",
+      "noHistory": "No history",
+      "quickGenerations": "Quick generations",
+      "error": "Connection error.",
+      "quickActions": {
+        "exam": "Exam-style homework",
+        "lesson": "Full lesson",
+        "outline": "Annual plan"
+      },
+      "subjects": {
+        "mathematiques": "Mathematics",
+        "physique": "Physics",
+        "chimie": "Chemistry",
+        "biologie": "Biology",
+        "histoire": "History",
+        "geographie": "Geography",
+        "francais": "French",
+        "anglais": "English",
+        "informatique": "Computer Science",
+        "pedagogie": "Pedagogy"
+      },
+      "levels": {
+        "primaire": "Primary",
+        "college": "Middle School",
+        "lycee": "High School",
+        "universite": "University"
+      },
+      "trimesters": {
+        "t1": "Trimester 1",
+        "t2": "Trimester 2",
+        "t3": "Trimester 3"
+      },
+      "contentTypes": {
+        "homework": "Homework",
+        "lesson": "Lesson",
+        "lesson_plan": "Lesson Plan",
+        "outline": "Annual Outline",
+        "quiz": "Quiz",
+        "summary": "Summary"
+      }
+    },
+    "learning": {
+      "title": "My",
+      "titleSuffix": "Learning",
+      "description": "Your created courses and the available catalog",
+      "myCourses": "My Created Courses",
+      "noCoursesYet": "You haven't created any courses yet",
+      "searchPlaceholder": "Search for a training...",
+      "allCategories": "All categories",
+      "pedagogy": "Pedagogy",
+      "technology": "Technology",
+      "management": "Management",
+      "loading": "Loading...",
+      "noTrainingsFound": "No training found",
+      "modules": "modules",
+      "min": "min",
+      "free": "Free",
+      "tokens": "tokens",
+      "dt": "DT",
+      "viewCourse": "View course"
+    },
+    "elements": {
+      "title": "Pedagogical",
+      "titleSuffix": "Elements",
+      "subtitle": "Create and manage your educational content",
+      "newElement": "New Element",
+      "loading": "Loading...",
+      "noResults": "No elements found",
+      "filters": {
+        "all": "All",
+        "brouillon": "Draft",
+        "en_review": "In Review",
+        "publie": "Published",
+        "rejete": "Rejected"
+      },
+      "toasts": {
+        "created": "Element created",
+        "submitted": "Submitted for validation",
+        "contentAdded": "Content added",
+        "modified": "Element modified"
+      },
+      "btn": {
+        "submit": "Submit",
+        "addContent": "Add content",
+        "edit": "Edit",
+        "cancel": "Cancel",
+        "create": "Create",
+        "save": "Save"
+      },
+      "modal": {
+        "createTitle": "New Element",
+        "editTitle": "Edit",
+        "addContentTitle": "Add content",
+        "workflowTitle": "Workflow"
+      },
+      "fields": {
+        "title": "Title",
+        "description": "Description (optional)",
+        "lessonId": "Lesson ID (optional)",
+        "difficulty": "Difficulty",
+        "htmlContent": "HTML Content",
+        "videoUrl": "Video URL",
+        "duration": "Duration (seconds)",
+        "quizSoon": "Quiz form coming soon"
+      },
+      "difficulty": {
+        "facile": "Easy",
+        "moyen": "Medium",
+        "difficile": "Hard"
+      },
+      "types": {
+        "texte": "Text",
+        "video": "Video",
+        "image": "Image",
+        "quiz": "Quiz"
+      },
+      "workflow": {
+        "noTransitions": "No transitions recorded"
+      }
+    },
+    "validation": {
+      "title": "Pedagogical",
+      "titleSuffix": "Validation",
+      "subtitle": "Validate or reject content in your pedagogical scope",
+      "stats": {
+        "total": "Total",
+        "pending": "Pending",
+        "validated": "Validated",
+        "rejected": "Rejected"
+      },
+      "filters": {
+        "all": "All",
+        "pending": "Pending",
+        "validated": "Validated",
+        "rejected": "Rejected"
+      },
+      "loading": "Loading...",
+      "error": "Connection error. Please try again.",
+      "noResults": "No content to display",
+      "noResultsDesc": "You have no content in your scope",
+      "table": {
+        "id": "ID",
+        "notion": "Notion",
+        "level": "Level",
+        "type": "Type",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "badges": {
+        "validated": "Validated",
+        "rejected": "Rejected",
+        "pending": "Pending"
+      },
+      "toasts": {
+        "validated": "Content validated",
+        "validateError": "Network error",
+        "rejected": "Content rejected",
+        "rejectError": "Network error"
+      },
+      "btn": {
+        "validate": "Validate",
+        "reject": "Reject"
+      },
+      "rejectModal": {
+        "title": "Reject content",
+        "message": "Reject this content?",
+        "description": "Content will return to \"To Validate\" status.",
+        "commentLabel": "Rejection comment (required)",
+        "commentPlaceholder": "Explain the reason for rejection...",
+        "cancel": "Cancel",
+        "confirm": "Reject"
+      }
+    },
+    "abonnements": {
+      "title": "My",
+      "titleSuffix": "Subscriptions",
+      "subtitle": "Manage your subscriptions and discover available packs",
+      "mySubscriptions": "My subscriptions",
+      "noActive": "No active subscription",
+      "availablePacks": "Available packs",
+      "loading": "Loading...",
+      "noPacks": "No packs available",
+      "tiers": {
+        "gratuit": "Free",
+        "basique": "Basic"
+      },
+      "features": {
+        "level": "Level",
+        "aiQuestions": "AI Questions",
+        "included": "Included",
+        "aiQuiz": "AI Quiz"
+      },
+      "badges": {
+        "subscribed": "Subscribed"
+      },
+      "btn": {
+        "upgrade": "Upgrade",
+        "cancel": "Cancel",
+        "subscribe": "Subscribe",
+        "confirm": "Confirm"
+      },
+      "gracePeriod": "Grace Period",
+      "toasts": {
+        "created": "Subscription created!",
+        "networkError": "Network error",
+        "upgraded": "Upgrade completed!",
+        "cancelled": "Subscription cancelled (7-day grace)"
+      },
+      "confirmModal": {
+        "subscribeTitle": "Subscribe to this pack?",
+        "upgradeTitle": "Upgrade this subscription?",
+        "cancelTitle": "Cancel this subscription?",
+        "cancelMessage": "Cancellation will take effect at the end of the grace period (7 days).",
+        "upgradeMessage": "The pack will be activated immediately.",
+        "subscribeMessage": "The tier change will be applied.",
+        "cancel": "Cancel",
+        "confirm": "Confirm"
+      }
+    },
+    "parcours": {
+      "title": "Pathways",
+      "subtitle": "Create and manage your educational pathways",
+      "newParcours": "New Pathway",
+      "loading": "Loading...",
+      "noResults": "No pathways. Create one to get started.",
+      "chapters": "chapters",
+      "btn": {
+        "addParagraph": "Add a paragraph",
+        "addLesson": "Add a lesson",
+        "addChapter": "Add a chapter",
+        "cancel": "Cancel",
+        "save": "Save"
+      },
+      "modal": {
+        "editTitle": "Edit",
+        "createTitle": "Create"
+      },
+      "fields": {
+        "title": "Title",
+        "subject": "Subject",
+        "level": "Grade Level",
+        "description": "Description",
+        "content": "Content"
+      },
+      "toasts": {
+        "created": "Pathway created",
+        "modified": "Modified"
+      }
+    },
+    "bibliotheque": {
+      "title": "Pedagogical",
+      "titleSuffix": "Library",
+      "subtitle": "Search for content and skills",
+      "tabs": {
+        "search": "Search",
+        "skills": "Skills"
+      },
+      "searchPlaceholder": "Search content...",
+      "searchButton": "Search",
+      "searching": "Searching...",
+      "noResults": "No results",
+      "noResultsHint": "Enter a search term",
+      "globalBadge": "Global",
+      "noSkills": "No skills available"
+    },
+    "reorientation": {
+      "title": "Reorientations",
+      "titleSuffix": "pending",
+      "subtitle": "Validate or cancel automatic level changes for your students",
+      "loading": "Loading...",
+      "accessDenied": "You must be designated as Pedagogical Lead to view reorientations.",
+      "noResults": "No reorientation notifications available.",
+      "noPending": "No pending reorientations",
+      "profile": "Profile #",
+      "student": "Student #",
+      "notifiedOn": "Notified on",
+      "expiredSilence": "Expired (silence = accepted)",
+      "deadline": "Deadline:",
+      "btn": {
+        "confirm": "Confirm",
+        "cancel": "Cancel"
+      },
+      "badges": {
+        "confirmed": "Confirmed",
+        "cancelled": "Cancelled"
+      },
+      "toasts": {
+        "confirmed": "Reorientation confirmed",
+        "cancelled": "Reorientation cancelled",
+        "error": "Error"
+      }
+    },
+    "sales": {
+      "title": "My",
+      "titleSuffix": "Revenue",
+      "subtitle": "View your sales and revenue",
+      "accessDenied": "Feature restricted",
+      "accessDeniedMessage": "You must be a teacher to access this page.",
+      "kpi": {
+        "totalSales": "Total sales",
+        "totalRevenue": "Total revenue",
+        "avgPerSale": "Average per sale"
+      },
+      "historyTitle": "Sales History",
+      "loading": "Loading...",
+      "noResults": "No sales recorded",
+      "table": {
+        "id": "ID",
+        "course": "Course",
+        "amountPaid": "Amount paid",
+        "commission": "Commission",
+        "revenue": "Your revenue",
+        "date": "Date"
+      },
+      "error": "Connection error"
+    },
+    "wallet": {
+      "title": "My",
+      "titleSuffix": "Wallet",
+      "subtitle": "AI credits and usage history",
+      "noCredits": "No AI credits",
+      "noCreditsDesc": "You don't have AI credits yet. Contact your school or purchase credits.",
+      "aiCredits": "AI Credits",
+      "tokens": "Tokens",
+      "detailBySource": "Detail by source",
+      "expiresOn": "expires on",
+      "credits": "credits",
+      "recentHistory": "Recent history",
+      "loading": "Loading...",
+      "noTransactions": "No transactions",
+      "pools": {
+        "trial": "Trial",
+        "subscription": "Subscription",
+        "school": "School",
+        "purchased": "Purchased",
+        "dt_purchased": "DT Purchased"
+      }
+    },
+    "classroom": {
+      "title": "Classroom",
+      "titleSuffix": "Manager",
+      "subtitle": "Manage your classes",
+      "newClass": "New Class",
+      "myClasses": "My Classes",
+      "loading": "Loading...",
+      "noClasses": "No classes",
+      "createFirst": "Create a class",
+      "students": "students",
+      "coursesCount": "courses",
+      "selectClass": "Select a class to view details",
+      "studentsTitle": "Students",
+      "addStudent": "Add student",
+      "noStudents": "No students in this class",
+      "confirmDelete": "Delete this class?",
+      "modal": {
+        "createTitle": "New Class",
+        "namePlaceholder": "Class name...",
+        "descPlaceholder": "Description (optional)...",
+        "cancel": "Cancel",
+        "create": "Create"
+      }
+    },
+    "addStudent": {
+      "title": "Add a student",
+      "searchPlaceholder": "Search by name or email...",
+      "searching": "Searching...",
+      "noResults": "No students found",
+      "hint": "Type at least 2 characters to search",
+      "addButton": "Add",
+      "closeButton": "Close"
+    },
+    "learning": {
+      "title": "My",
+      "titleSuffix": "Learning",
+      "subtitle": "Your created courses and available catalog",
+      "myCourses": "My Created Courses",
+      "noCourses": "You haven't created any courses yet",
+      "searchPlaceholder": "Search training...",
+      "categories": {
+        "all": "All categories",
+        "pedagogie": "Pedagogy",
+        "technologie": "Technology",
+        "gestion": "Management"
+      },
+      "loading": "Loading...",
+      "noResults": "No training found",
+      "modules": "modules",
+      "minutes": "min",
+      "free": "Free",
+      "viewCourse": "View course"
+    }
+  },
+  "parent": {
+    "childDetail": {
+      "detachConfirm": "Are you sure you want to detach this child?",
+      "rechargeError": "Error during recharge",
+      "levelUndefined": "Level not defined",
+      "tabs": {
+        "wallet": "Wallet",
+        "pack": "Pack"
+      },
+      "detachButton": "Detach",
+      "walletBalance": "Wallet balance",
+      "rechargeButton": "Recharge",
+      "packLabel": "Pack",
+      "activePacks": "active",
+      "activePacksPlural": "active",
+      "badges": "Badge",
+      "badgesPlural": "s",
+      "avgScore": "Average score",
+      "rechargeTitle": "Recharge wallet of",
+      "rechargeDesc": "DT balance is used to access premium content (courses, AI quizzes, exercises).",
+      "amountPlaceholder": "Custom amount (TND)",
+      "payButton": "Pay via Konnect",
+      "cancelButton": "Cancel",
+      "activePacksTitle": "Active Packs",
+      "packNumber": "Pack #",
+      "validUntil": "Valid until",
+      "objectives": "Objectives",
+      "objectivePrefix": "objective:",
+      "badgesObtained": "Badges Earned",
+      "recentScores": "Recent Scores",
+      "chapterPrefix": "Chapter #"
+    },
+    "wallet": {
+      "title": "Wallet of",
+      "childFallback": "the child",
+      "subtitle": "AI credits balance and recharge",
+      "aiCredits": "AI Credits",
+      "purchasedDT": "DT Purchased",
+      "activePacks": "Active packs",
+      "rechargeTitle": "Recharge wallet",
+      "redirecting": "Redirecting to Konnect for payment...",
+      "rechargeSuccess": "Recharge successful.",
+      "networkError": "Network error.",
+      "backToDashboard": "Back to dashboard",
+      "poolDetail": "Detail by source",
+      "expires": "expires on",
+      "credits": "credits",
+      "noCredits": "No credits available.",
+      "rechargeViaKonnect": "Recharge via Konnect",
+      "pools": {
+        "trial": "Trial",
+        "subscription": "Subscription",
+        "school": "School",
+        "purchased": "Purchased",
+        "dt_purchased": "DT Purchased"
+      }
+    },
+    "messaging": {
+      "title": "Messaging",
+      "newMessage": "New message",
+      "cancel": "Cancel",
+      "recipient": "Recipient:",
+      "recipientTeacher": "Teacher",
+      "recipientAdmin": "Administration",
+      "subjectPlaceholder": "Subject",
+      "messagePlaceholder": "Your message...",
+      "sending": "Sending...",
+      "sendButton": "Send",
+      "from": "From:",
+      "noMessages": "No messages.",
+      "toasts": {
+        "sent": "Message sent!",
+        "sendError": "Error sending message"
+      }
+    },
+    "famille": {
+      "title": "My",
+      "titleSuffix": "Family",
+      "subtitle": "Manage your children and benefit from family discounts",
+      "familyDiscounts": "Family Discounts",
+      "familyAccount": "Family account",
+      "linkedChildren": "linked children",
+      "linkChild": "Link a child",
+      "childEmailPlaceholder": "Student email",
+      "linking": "Linking...",
+      "linkButton": "Link",
+      "linkedChildrenTitle": "Linked children",
+      "noLinkedChildren": "No children linked.",
+      "tableHeaders": {
+        "rank": "Rank",
+        "discount": "Discount"
+      },
+      "viewButton": "View",
+      "discounts": {
+        "first": "1st child",
+        "firstRate": "0%",
+        "firstLabel": "Full price",
+        "second": "2nd child",
+        "secondRate": "-20%",
+        "secondLabel": "Family discount",
+        "third": "3rd child+",
+        "thirdRate": "-25%",
+        "thirdLabel": "Maximum family discount"
+      },
+      "toasts": {
+        "linkedSuccess": "Child linked successfully.",
+        "networkError": "Network error.",
+        "removed": "Child removed.",
+        "removeError": "Network error."
+      },
+      "removeConfirm": "Remove this child from the family?"
+    },
+    "pack": {
+      "title": "Pack of",
+      "subtitle": "Subscription and configuration",
+      "gracePeriod": "Grace Period",
+      "graceMessage": "Pack in grace period — expires in",
+      "graceDays": "day(s)",
+      "graceHint": "Subscribe to a new pack to maintain access.",
+      "activePack": "Active Pack",
+      "packLabel": "Pack",
+      "accessLabel": "Access",
+      "expirationLabel": "Expiration",
+      "availablePacksFor": "Available packs for",
+      "levelLabel": "this level",
+      "backButton": "Back",
+      "activeStatus": "Active",
+      "subscribeButton": "Subscribe",
+      "tiers": {
+        "gratuit": "Free",
+        "basique": "Basic",
+        "silver": "Silver",
+        "golden": "Golden"
+      },
+      "features": {
+        "freeQuota": "3 lessons / trimester",
+        "basicQuota": "2 subjects of your choice",
+        "silverQuota": "4 subjects of your choice",
+        "goldenQuota": "Unlimited access"
+      }
     }
   }
 }

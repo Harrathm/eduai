@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from 'react-i18next';
 import { api, abonnementApi } from "../../../api";
 import { ShoppingCart, Check, X, ArrowUpCircle, AlertCircle, Package, CreditCard } from "lucide-react";
 
@@ -48,6 +49,7 @@ const STATUT_COLORS: Record<string, string> = {
 };
 
 export default function TeacherAbonnementsPage() {
+  const { t } = useTranslation();
   const [packs, setPacks] = useState<Pack[]>([]);
   const [abonnements, setAbonnements] = useState<Abonnement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,28 +81,28 @@ export default function TeacherAbonnementsPage() {
   const handleSubscribe = async (packId: number) => {
     try {
       await api.post("/api/abonnements", { pack_id: packId });
-      showToast("Abonnement créé !");
+      showToast(t('teacher.abonnements.toasts.created'));
       setConfirmModal(null);
       load();
-    } catch { showToast("Erreur réseau", "error"); }
+    } catch { showToast(t('teacher.abonnements.toasts.networkError'), "error"); }
   };
 
   const handleUpgrade = async (abId: number) => {
     try {
       await api.put(`/api/abonnements/${abId}/upgrade`);
-      showToast("Upgrade effectué !");
+      showToast(t('teacher.abonnements.toasts.upgraded'));
       setConfirmModal(null);
       load();
-    } catch { showToast("Erreur réseau", "error"); }
+    } catch { showToast(t('teacher.abonnements.toasts.networkError'), "error"); }
   };
 
   const handleCancel = async (abId: number) => {
     try {
       await api.put(`/api/abonnements/${abId}/cancel`);
-      showToast("Abonnement annulé (grâce 7 jours)");
+      showToast(t('teacher.abonnements.toasts.cancelled'));
       setConfirmModal(null);
       load();
-    } catch { showToast("Erreur réseau", "error"); }
+    } catch { showToast(t('teacher.abonnements.toasts.networkError'), "error"); }
   };
 
   const activePackIds = new Set(abonnements.filter((a) => a.statut === "actif").map((a) => a.pack_id));
@@ -109,9 +111,9 @@ export default function TeacherAbonnementsPage() {
     <div className="space-y-6">
       <div className="bg-white rounded-3xl p-8 shadow-sm border border-black/5">
         <h1 className="text-3xl font-[300] text-navy">
-          Mes <span className="italic text-orange">Abonnements</span>
+          {t('teacher.abonnements.title')} <span className="italic text-orange">{t('teacher.abonnements.titleSuffix')}</span>
         </h1>
-        <p className="text-gray mt-2">Gérez vos abonnements et découvrez les packs disponibles</p>
+        <p className="text-gray mt-2">{t('teacher.abonnements.subtitle')}</p>
       </div>
 
       {toast.show && (
@@ -123,11 +125,11 @@ export default function TeacherAbonnementsPage() {
       {/* Mes abonnements actifs */}
       <div>
         <h2 className="text-lg font-semibold text-navy mb-3 flex items-center gap-2">
-          <CreditCard size={18} /> Mes abonnements
+          <CreditCard size={18} /> {t('teacher.abonnements.mySubscriptions')}
         </h2>
         {abonnements.length === 0 ? (
           <div className="bg-white rounded-2xl border border-black/5 p-6 text-center text-gray text-sm">
-            Aucun abonnement actif
+            {t('teacher.abonnements.noActive')}
           </div>
         ) : (
           <div className="grid gap-3">
@@ -151,17 +153,17 @@ export default function TeacherAbonnementsPage() {
                     <>
                       <button onClick={() => setConfirmModal({ action: "upgrade", abonnementId: ab.id })}
                         className="text-xs px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 flex items-center gap-1">
-                        <ArrowUpCircle size={12} /> Upgrade
+                        <ArrowUpCircle size={12} /> {t('teacher.abonnements.btn.upgrade')}
                       </button>
                       <button onClick={() => setConfirmModal({ action: "cancel", abonnementId: ab.id })}
                         className="text-xs px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 flex items-center gap-1">
-                        <X size={12} /> Annuler
+                        <X size={12} /> {t('teacher.abonnements.btn.cancel')}
                       </button>
                     </>
                   )}
                   {ab.statut === "grace" && (
                     <span className="text-xs text-amber-600 flex items-center gap-1">
-                      <AlertCircle size={12} /> Période de grâce
+                      <AlertCircle size={12} /> {t('teacher.abonnements.gracePeriod')}
                     </span>
                   )}
                 </div>
@@ -174,14 +176,14 @@ export default function TeacherAbonnementsPage() {
       {/* Catalogue packs */}
       <div>
         <h2 className="text-lg font-semibold text-navy mb-3 flex items-center gap-2">
-          <Package size={18} /> Packs disponibles
+          <Package size={18} /> {t('teacher.abonnements.availablePacks')}
         </h2>
         {loading ? (
-          <div className="text-center py-10 text-gray">Chargement...</div>
+          <div className="text-center py-10 text-gray">{t('teacher.abonnements.loading')}</div>
         ) : packs.length === 0 ? (
           <div className="text-center py-10 text-gray">
             <Package size={40} className="mx-auto mb-3 opacity-30" />
-            <p>Aucun pack disponible</p>
+            <p>{t('teacher.abonnements.noPacks')}</p>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -198,18 +200,18 @@ export default function TeacherAbonnementsPage() {
                   <h3 className="font-semibold text-navy mb-1">{pack.nom}</h3>
                   {pack.description && <p className="text-xs text-gray mb-3 line-clamp-2">{pack.description}</p>}
                   <div className="space-y-1 text-xs text-gray mb-4">
-                    <div className="flex justify-between"><span>Niveau</span><span className="text-navy">{pack.niveau_scolaire}</span></div>
-                    {pack.features?.ai_ask && <div className="flex justify-between"><span>AI Questions</span><span className="text-navy">Inclus</span></div>}
-                    {pack.features?.ai_quiz && <div className="flex justify-between"><span>AI Quiz</span><span className="text-navy">Inclus</span></div>}
+                    <div className="flex justify-between"><span>{t('teacher.abonnements.features.level')}</span><span className="text-navy">{pack.niveau_scolaire}</span></div>
+                    {pack.features?.ai_ask && <div className="flex justify-between"><span>AI Questions</span><span className="text-navy">{t('teacher.abonnements.features.included')}</span></div>}
+                    {pack.features?.ai_quiz && <div className="flex justify-between"><span>AI Quiz</span><span className="text-navy">{t('teacher.abonnements.features.included')}</span></div>}
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-lg font-bold text-navy">{pack.prix_tnd} <span className="text-xs font-normal text-gray">TND</span></span>
                     {isSubscribed ? (
-                      <span className="text-xs text-green-600 font-medium">Abonné</span>
+                      <span className="text-xs text-green-600 font-medium">{t('teacher.abonnements.badges.subscribed')}</span>
                     ) : (
                       <button onClick={() => setConfirmModal({ action: "subscribe", packId: pack.id })}
                         className="text-xs px-3 py-1.5 bg-orange text-white rounded-lg hover:bg-orange/90 flex items-center gap-1">
-                        <ShoppingCart size={12} /> Souscrire
+                        <ShoppingCart size={12} /> {t('teacher.abonnements.btn.subscribe')}
                       </button>
                     )}
                   </div>
@@ -226,22 +228,22 @@ export default function TeacherAbonnementsPage() {
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl text-center">
             <AlertCircle size={40} className="mx-auto text-amber-400 mb-3" />
             <h3 className="text-lg font-semibold text-navy mb-2">
-              {confirmModal.action === "subscribe" && "Souscrire à ce pack ?"}
-              {confirmModal.action === "upgrade" && "Upgrade cet abonnement ?"}
-              {confirmModal.action === "cancel" && "Annuler cet abonnement ?"}
+              {confirmModal.action === "subscribe" && t('teacher.abonnements.confirmModal.subscribeTitle')}
+              {confirmModal.action === "upgrade" && t('teacher.abonnements.confirmModal.upgradeTitle')}
+              {confirmModal.action === "cancel" && t('teacher.abonnements.confirmModal.cancelTitle')}
             </h3>
             <p className="text-sm text-gray mb-4">
-              {confirmModal.action === "cancel" && "L'annulation prendra effet à la fin de la période de grâce (7 jours)."}
-              {confirmModal.action === "subscribe" && "Le pack sera activé immédiatement."}
-              {confirmModal.action === "upgrade" && "Le changement de tier sera appliqué."}
+              {confirmModal.action === "cancel" && t('teacher.abonnements.confirmModal.cancelMessage')}
+              {confirmModal.action === "subscribe" && t('teacher.abonnements.confirmModal.subscribeMessage')}
+              {confirmModal.action === "upgrade" && t('teacher.abonnements.confirmModal.upgradeMessage')}
             </p>
             <div className="flex gap-2 justify-center">
-              <button onClick={() => setConfirmModal(null)} className="px-4 py-2 text-sm text-gray hover:bg-gray/10 rounded-xl">Annuler</button>
+              <button onClick={() => setConfirmModal(null)} className="px-4 py-2 text-sm text-gray hover:bg-gray/10 rounded-xl">{t('teacher.abonnements.confirmModal.cancel')}</button>
               <button onClick={() => {
                 if (confirmModal.action === "subscribe" && confirmModal.packId) handleSubscribe(confirmModal.packId);
                 if (confirmModal.action === "upgrade" && confirmModal.abonnementId) handleUpgrade(confirmModal.abonnementId);
                 if (confirmModal.action === "cancel" && confirmModal.abonnementId) handleCancel(confirmModal.abonnementId);
-              }} className="px-4 py-2 text-sm bg-orange text-white rounded-xl hover:bg-orange/90">Confirmer</button>
+              }} className="px-4 py-2 text-sm bg-orange text-white rounded-xl hover:bg-orange/90">{t('teacher.abonnements.confirmModal.confirm')}</button>
             </div>
           </div>
         </div>

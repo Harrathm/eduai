@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from 'react-i18next';
 import { Search, X, UserPlus, Users } from "lucide-react";
 import { studentSearchApi } from "../../../api";
 
@@ -18,6 +19,7 @@ interface AddStudentModalProps {
 }
 
 export default function AddStudentModal({ token, classId, open, onClose, onEnrolled }: AddStudentModalProps) {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -70,7 +72,7 @@ export default function AddStudentModal({ token, classId, open, onClose, onEnrol
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-3xl max-w-md w-full p-8 max-h-[80vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold text-navy">Ajouter un eleve</h2>
+          <h2 className="text-2xl font-semibold text-navy">{t('teacher.addStudent.title')}</h2>
           <button onClick={onClose} className="p-2 hover:bg-cream-m rounded-lg">
             <X className="w-5 h-5 text-gray" />
           </button>
@@ -83,25 +85,25 @@ export default function AddStudentModal({ token, classId, open, onClose, onEnrol
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full ps-11 pe-4 py-3 bg-cream-m rounded-xl border border-black/5 focus:outline-none focus:ring-2 focus:ring-orange/30"
-            placeholder="Rechercher par nom ou email..."
+            placeholder={t('teacher.addStudent.searchPlaceholder')}
             autoFocus
           />
         </div>
 
         <div className="space-y-2">
           {searching && (
-            <div className="text-center py-4 text-gray text-sm">Recherche en cours...</div>
+            <div className="text-center py-4 text-gray text-sm">{t('teacher.addStudent.searching')}</div>
           )}
           {!searching && searchQuery.trim().length >= 2 && searchResults.length === 0 && (
             <div className="text-center py-8 text-gray">
               <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
-              <p className="text-sm">Aucun eleve trouve</p>
+              <p className="text-sm">{t('teacher.addStudent.noResults')}</p>
             </div>
           )}
           {!searching && searchQuery.trim().length < 2 && (
             <div className="text-center py-8 text-gray">
               <Search className="w-8 h-8 mx-auto mb-2 opacity-30" />
-              <p className="text-sm">Tapez au moins 2 caracteres pour rechercher</p>
+              <p className="text-sm">{t('teacher.addStudent.hint')}</p>
             </div>
           )}
           {searchResults.map((student) => (
@@ -126,7 +128,7 @@ export default function AddStudentModal({ token, classId, open, onClose, onEnrol
                 ) : (
                   <UserPlus className="w-4 h-4" />
                 )}
-                Ajouter
+                {t('teacher.addStudent.addButton')}
               </button>
             </div>
           ))}
@@ -134,7 +136,7 @@ export default function AddStudentModal({ token, classId, open, onClose, onEnrol
 
         <div className="mt-6">
           <button onClick={onClose} className="w-full py-3 bg-cream-m rounded-xl font-medium">
-            Fermer
+            {t('teacher.addStudent.closeButton')}
           </button>
         </div>
       </div>

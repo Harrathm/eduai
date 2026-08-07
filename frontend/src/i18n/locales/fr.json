@@ -889,6 +889,588 @@
       "newTrimester": "Nouveau trimestre {{trimester}}",
       "daysRemaining": "{{count}} jour(s) restant(s)",
       "currentTrimester": "Trimestre {{label}}"
+    },
+    "sidebar": {
+      "dashboard": "Tableau de bord",
+      "pathway": "Mon Parcours",
+      "aiAssistant": "Assistant IA",
+      "courseCatalog": "Catalogue de Cours",
+      "softSkills": "Soft Skills — Catalogue",
+      "myTrainings": "Mes Formations",
+      "packs": "Boutique / Packs",
+      "subscription": "Mon Abonnement",
+      "wallet": "Portefeuille",
+      "messages": "Messages",
+      "profile": "Profil",
+      "logout": "Déconnexion"
+    }
+  },
+  "teacher": {
+    "dashboard": {
+      "title": "Tableau de",
+      "titleSuffix": "Bord",
+      "welcome": "Bienvenue, ",
+      "myCourses": "Mes Cours",
+      "myClasses": "Mes Classes",
+      "students": "Étudiants",
+      "aiCredits": "Crédits IA",
+      "quickAccess": "Accès Rapide",
+      "aiStudio": "AI Studio",
+      "revenue": "Revenus",
+      "wallet": "Wallet",
+      "viewAll": "Voir tout",
+      "eleves": "élèves",
+      "cours": "cours"
+    },
+    "aiStudio": {
+      "title": "AI",
+      "titleSuffix": "Studio",
+      "subtitle": "Générez du contenu pédagogique avec l'IA",
+      "tokens": "tokens",
+      "contentType": "Type de contenu",
+      "subject": "Matière",
+      "level": "Niveau",
+      "trimester": "Trimestre",
+      "description": "Description du contenu désiré",
+      "placeholder": "Décrivez ce que vous voulez générer... Ex: 'Un devoir sur les équations du premier degré pour les élèves de 3ème année collège, comprenant 5 exercices de difficulté progressive'",
+      "estimatedCost": "Coût estimé: ~5 tokens",
+      "generating": "Génération...",
+      "generate": "Générer",
+      "result": "Résultat",
+      "copy": "Copier",
+      "history": "Historique",
+      "loading": "Chargement...",
+      "noHistory": "Aucun historique",
+      "quickGenerations": "Générations rapides",
+      "error": "Erreur de connexion.",
+      "quickActions": {
+        "exam": "Devoir type examen",
+        "lesson": "Leçon complète",
+        "outline": "Plan annuel"
+      },
+      "subjects": {
+        "mathematiques": "Mathématiques",
+        "physique": "Physique",
+        "chimie": "Chimie",
+        "biologie": "Biologie",
+        "histoire": "Histoire",
+        "geographie": "Géographie",
+        "francais": "Français",
+        "anglais": "Anglais",
+        "informatique": "Informatique",
+        "pedagogie": "Pédagogie"
+      },
+      "levels": {
+        "primaire": "Primaire",
+        "college": "Collège",
+        "lycee": "Lycée",
+        "universite": "Université"
+      },
+      "trimesters": {
+        "t1": "Trimestre 1",
+        "t2": "Trimestre 2",
+        "t3": "Trimestre 3"
+      },
+      "contentTypes": {
+        "homework": "Devoir",
+        "lesson": "Leçon",
+        "lesson_plan": "Plan de leçon",
+        "outline": "Plan annuel",
+        "quiz": "Quiz",
+        "summary": "Résumé"
+      }
+    },
+    "learning": {
+      "title": "Mon",
+      "titleSuffix": "Apprentissage",
+      "description": "Vos cours créés et le catalogue disponible",
+      "myCourses": "Mes Cours Créés",
+      "noCoursesYet": "Vous n'avez pas encore créé de cours",
+      "searchPlaceholder": "Rechercher une formation...",
+      "allCategories": "Toutes catégories",
+      "pedagogy": "Pédagogie",
+      "technology": "Technologie",
+      "management": "Gestion",
+      "loading": "Chargement...",
+      "noTrainingsFound": "Aucune formation trouvée",
+      "modules": "modules",
+      "min": "min",
+      "free": "Gratuit",
+      "tokens": "tokens",
+      "dt": "DT",
+      "viewCourse": "Voir le cours"
+    },
+    "elements": {
+      "title": "Éléments",
+      "titleSuffix": "Pédagogiques",
+      "subtitle": "Créez et gérez vos contenus pédagogiques",
+      "newElement": "Nouvel Élément",
+      "loading": "Chargement...",
+      "noResults": "Aucun élément trouvé",
+      "filters": {
+        "all": "Tous",
+        "brouillon": "Brouillon",
+        "en_review": "En Review",
+        "publie": "Publié",
+        "rejete": "Rejeté"
+      },
+      "toasts": {
+        "created": "Élément créé",
+        "submitted": "Soumis pour validation",
+        "contentAdded": "Contenu ajouté",
+        "modified": "Élément modifié"
+      },
+      "btn": {
+        "submit": "Soumettre",
+        "addContent": "Ajouter contenu",
+        "edit": "Modifier",
+        "cancel": "Annuler",
+        "create": "Créer",
+        "save": "Enregistrer"
+      },
+      "modal": {
+        "createTitle": "Nouvel Élément",
+        "editTitle": "Modifier",
+        "addContentTitle": "Ajouter contenu",
+        "workflowTitle": "Workflow"
+      },
+      "fields": {
+        "title": "Titre",
+        "description": "Description (optionnel)",
+        "lessonId": "Lecon ID (optionnel)",
+        "difficulty": "Difficulté",
+        "htmlContent": "Contenu HTML",
+        "videoUrl": "URL vidéo",
+        "duration": "Durée (secondes)",
+        "quizSoon": "Formulaire quiz à venir"
+      },
+      "difficulty": {
+        "facile": "Facile",
+        "moyen": "Moyen",
+        "difficile": "Difficile"
+      },
+      "types": {
+        "texte": "Texte",
+        "video": "Vidéo",
+        "image": "Image",
+        "quiz": "Quiz"
+      },
+      "workflow": {
+        "noTransitions": "Aucune transition enregistrée"
+      }
+    },
+    "validation": {
+      "title": "Validation",
+      "titleSuffix": "Pédagogique",
+      "subtitle": "Valider ou rejeter les contenus de votre périmètre pédagogique",
+      "stats": {
+        "total": "Total",
+        "pending": "En attente",
+        "validated": "Validés",
+        "rejected": "Rejetés"
+      },
+      "filters": {
+        "all": "Tous",
+        "pending": "En attente",
+        "validated": "Validés",
+        "rejected": "Rejetés"
+      },
+      "loading": "Chargement...",
+      "error": "Erreur de connexion. Veuillez réessayer.",
+      "noResults": "Aucun contenu à afficher",
+      "noResultsDesc": "Vous n'avez aucun contenu dans votre périmètre",
+      "table": {
+        "id": "ID",
+        "notion": "Notion",
+        "level": "Niveau",
+        "type": "Type",
+        "status": "Statut",
+        "actions": "Actions"
+      },
+      "badges": {
+        "validated": "Validé",
+        "rejected": "Rejeté",
+        "pending": "En attente"
+      },
+      "toasts": {
+        "validated": "Contenu validé",
+        "validateError": "Erreur réseau",
+        "rejected": "Contenu rejeté",
+        "rejectError": "Erreur réseau"
+      },
+      "btn": {
+        "validate": "Valider",
+        "reject": "Rejeter"
+      },
+      "rejectModal": {
+        "title": "Rejeter le contenu",
+        "message": "Rejeter le contenu ?",
+        "description": "Le contenu repassera en statut \"À valider\".",
+        "commentLabel": "Commentaire de rejet (obligatoire)",
+        "commentPlaceholder": "Expliquez la raison du rejet...",
+        "cancel": "Annuler",
+        "confirm": "Rejeter"
+      }
+    },
+    "abonnements": {
+      "title": "Mes",
+      "titleSuffix": "Abonnements",
+      "subtitle": "Gérez vos abonnements et découvrez les packs disponibles",
+      "mySubscriptions": "Mes abonnements",
+      "noActive": "Aucun abonnement actif",
+      "availablePacks": "Packs disponibles",
+      "loading": "Chargement...",
+      "noPacks": "Aucun pack disponible",
+      "tiers": {
+        "gratuit": "Gratuit",
+        "basique": "Basique"
+      },
+      "features": {
+        "level": "Niveau",
+        "aiQuestions": "AI Questions",
+        "included": "Inclus",
+        "aiQuiz": "AI Quiz"
+      },
+      "badges": {
+        "subscribed": "Abonné"
+      },
+      "btn": {
+        "upgrade": "Upgrade",
+        "cancel": "Annuler",
+        "subscribe": "Souscrire",
+        "confirm": "Confirmer"
+      },
+      "gracePeriod": "Période de grâce",
+      "toasts": {
+        "created": "Abonnement créé !",
+        "networkError": "Erreur réseau",
+        "upgraded": "Upgrade effectué !",
+        "cancelled": "Abonnement annulé (grâce 7 jours)"
+      },
+      "confirmModal": {
+        "subscribeTitle": "Souscrire à ce pack ?",
+        "upgradeTitle": "Upgrade cet abonnement ?",
+        "cancelTitle": "Annuler cet abonnement ?",
+        "cancelMessage": "L'annulation prendra effet à la fin de la période de grâce (7 jours).",
+        "upgradeMessage": "Le pack sera activé immédiatement.",
+        "subscribeMessage": "Le changement de tier sera appliqué.",
+        "cancel": "Annuler",
+        "confirm": "Confirmer"
+      }
+    },
+    "parcours": {
+      "title": "Parcours",
+      "subtitle": "Créez et gérez vos parcours pédagogiques",
+      "newParcours": "Nouveau Parcours",
+      "loading": "Chargement...",
+      "noResults": "Aucun parcours. Créez-en un pour commencer.",
+      "chapters": "chapitres",
+      "btn": {
+        "addParagraph": "Ajouter un paragraphe",
+        "addLesson": "Ajouter une leçon",
+        "addChapter": "Ajouter un chapitre",
+        "cancel": "Annuler",
+        "save": "Enregistrer"
+      },
+      "modal": {
+        "editTitle": "Modifier",
+        "createTitle": "Créer"
+      },
+      "fields": {
+        "title": "Titre",
+        "subject": "Matière",
+        "level": "Niveau scolaire",
+        "description": "Description",
+        "content": "Contenu"
+      },
+      "toasts": {
+        "created": "Parcours créé",
+        "modified": "Modifié"
+      }
+    },
+    "bibliotheque": {
+      "title": "Bibliothèque",
+      "titleSuffix": "Pédagogique",
+      "subtitle": "Recherchez des contenus et compétences",
+      "tabs": {
+        "search": "Recherche",
+        "skills": "Compétences"
+      },
+      "searchPlaceholder": "Rechercher un contenu...",
+      "searchButton": "Rechercher",
+      "searching": "Recherche en cours...",
+      "noResults": "Aucun résultat",
+      "noResultsHint": "Entrez un terme de recherche",
+      "globalBadge": "Global",
+      "noSkills": "Aucune compétence disponible"
+    },
+    "reorientation": {
+      "title": "Réorientations",
+      "titleSuffix": "en attente",
+      "subtitle": "Validez ou annulez les changements de niveau automatiques de vos élèves",
+      "loading": "Chargement...",
+      "accessDenied": "Vous devez être désigné Responsable Pédagogique pour voir les réorientations.",
+      "noResults": "Aucune notification de réorientation disponible.",
+      "noPending": "Aucune réorientation en attente",
+      "profile": "Profil #",
+      "student": "Élève #",
+      "notifiedOn": "Notifié le",
+      "expiredSilence": "Expiré (silence = accepté)",
+      "deadline": "Deadline:",
+      "btn": {
+        "confirm": "Confirmer",
+        "cancel": "Annuler"
+      },
+      "badges": {
+        "confirmed": "Confirmé",
+        "cancelled": "Annulé"
+      },
+      "toasts": {
+        "confirmed": "Réorientation confirmée",
+        "cancelled": "Réorientation annulée",
+        "error": "Erreur"
+      }
+    },
+    "sales": {
+      "title": "Mes",
+      "titleSuffix": "Revenus",
+      "subtitle": "Consultez vos ventes et revenus",
+      "accessDenied": "Fonctionnalité réservée",
+      "accessDeniedMessage": "Vous devez être enseignant pour accéder à cette page.",
+      "kpi": {
+        "totalSales": "Total ventes",
+        "totalRevenue": "Revenu total",
+        "avgPerSale": "Moyenne par vente"
+      },
+      "historyTitle": "Historique des ventes",
+      "loading": "Chargement...",
+      "noResults": "Aucune vente enregistrée",
+      "table": {
+        "id": "ID",
+        "course": "Cours",
+        "amountPaid": "Montant payé",
+        "commission": "Commission",
+        "revenue": "Votre revenu",
+        "date": "Date"
+      },
+      "error": "Erreur de connexion"
+    },
+    "wallet": {
+      "title": "Mon",
+      "titleSuffix": "Portefeuille",
+      "subtitle": "Crédits IA et historique d'utilisation",
+      "noCredits": "Aucun crédit IA",
+      "noCreditsDesc": "Vous n'avez pas encore de crédits IA. Contactez votre école ou achetez des crédits.",
+      "aiCredits": "Crédits IA",
+      "tokens": "Tokens",
+      "detailBySource": "Détail par source",
+      "expiresOn": "expire le",
+      "credits": "crédits",
+      "recentHistory": "Historique récent",
+      "loading": "Chargement...",
+      "noTransactions": "Aucune transaction",
+      "pools": {
+        "trial": "Essai",
+        "subscription": "Abonnement",
+        "school": "École",
+        "purchased": "Acheté",
+        "dt_purchased": "DT Achetés"
+      }
+    },
+    "classroom": {
+      "title": "Classroom",
+      "titleSuffix": "Manager",
+      "subtitle": "Gérez vos classes",
+      "newClass": "Nouvelle Classe",
+      "myClasses": "Mes Classes",
+      "loading": "Chargement...",
+      "noClasses": "Aucune classe",
+      "createFirst": "Créer une classe",
+      "students": "élèves",
+      "coursesCount": "cours",
+      "selectClass": "Sélectionnez une classe pour voir les détails",
+      "studentsTitle": "Élèves",
+      "addStudent": "Ajouter élève",
+      "noStudents": "Aucun élève dans cette classe",
+      "confirmDelete": "Supprimer cette classe?",
+      "modal": {
+        "createTitle": "Nouvelle Classe",
+        "namePlaceholder": "Nom de la classe...",
+        "descPlaceholder": "Description (optionnel)...",
+        "cancel": "Annuler",
+        "create": "Créer"
+      }
+    },
+    "addStudent": {
+      "title": "Ajouter un élève",
+      "searchPlaceholder": "Rechercher par nom ou email...",
+      "searching": "Recherche en cours...",
+      "noResults": "Aucun élève trouvé",
+      "hint": "Tapez au moins 2 caractères pour rechercher",
+      "addButton": "Ajouter",
+      "closeButton": "Fermer"
+    },
+    "learning": {
+      "title": "Mon",
+      "titleSuffix": "Apprentissage",
+      "subtitle": "Vos cours créés et le catalogue disponible",
+      "myCourses": "Mes Cours Créés",
+      "noCourses": "Vous n'avez pas encore créé de cours",
+      "searchPlaceholder": "Rechercher une formation...",
+      "categories": {
+        "all": "Toutes catégories",
+        "pedagogie": "Pédagogie",
+        "technologie": "Technologie",
+        "gestion": "Gestion"
+      },
+      "loading": "Chargement...",
+      "noResults": "Aucune formation trouvée",
+      "modules": "modules",
+      "minutes": "min",
+      "free": "Gratuit",
+      "viewCourse": "Voir le cours"
+    }
+  },
+  "parent": {
+    "childDetail": {
+      "detachConfirm": "Voulez-vous vraiment détacher cet enfant ?",
+      "rechargeError": "Erreur lors de la recharge",
+      "levelUndefined": "Niveau non défini",
+      "tabs": {
+        "wallet": "Portefeuille",
+        "pack": "Pack"
+      },
+      "detachButton": "Détacher",
+      "walletBalance": "Solde portefeuille",
+      "rechargeButton": "Recharger",
+      "packLabel": "Pack",
+      "activePacks": "actif",
+      "activePacksPlural": "actifs",
+      "badges": "Badge",
+      "badgesPlural": "s",
+      "avgScore": "Score moyen",
+      "rechargeTitle": "Recharger le portefeuille de",
+      "rechargeDesc": "Le solde DT est utilisé pour accéder au contenu premium (cours, quiz IA, exercices).",
+      "amountPlaceholder": "Montant personnalisé (TND)",
+      "payButton": "Payer via Konnect",
+      "cancelButton": "Annuler",
+      "activePacksTitle": "Packs Actifs",
+      "packNumber": "Pack #",
+      "validUntil": "Valide jusqu'au",
+      "objectives": "Objectifs",
+      "objectivePrefix": "objectif:",
+      "badgesObtained": "Badges Obtenus",
+      "recentScores": "Scores Récents",
+      "chapterPrefix": "Chapitre #"
+    },
+    "wallet": {
+      "title": "Portefeuille de",
+      "childFallback": "l'enfant",
+      "subtitle": "Solde de crédits IA et rechargement",
+      "aiCredits": "Crédits IA",
+      "purchasedDT": "DT Achetés",
+      "activePacks": "Packs actifs",
+      "rechargeTitle": "Recharger le portefeuille",
+      "redirecting": "Redirection vers Konnect pour le paiement...",
+      "rechargeSuccess": "Recharge effectuée avec succès.",
+      "networkError": "Erreur réseau.",
+      "backToDashboard": "Retour au tableau de bord",
+      "poolDetail": "Détail par source",
+      "expires": "expire le",
+      "credits": "crédits",
+      "noCredits": "Aucun crédit disponible.",
+      "rechargeViaKonnect": "Recharger via Konnect",
+      "pools": {
+        "trial": "Essai",
+        "subscription": "Abonnement",
+        "school": "École",
+        "purchased": "Acheté",
+        "dt_purchased": "DT Achetés"
+      }
+    },
+    "messaging": {
+      "title": "Messagerie",
+      "newMessage": "Nouveau message",
+      "cancel": "Annuler",
+      "recipient": "Destinataire :",
+      "recipientTeacher": "Professeur",
+      "recipientAdmin": "Administration",
+      "subjectPlaceholder": "Sujet",
+      "messagePlaceholder": "Votre message...",
+      "sending": "Envoi...",
+      "sendButton": "Envoyer",
+      "from": "De:",
+      "noMessages": "Aucun message.",
+      "toasts": {
+        "sent": "Message envoyé !",
+        "sendError": "Erreur lors de l'envoi"
+      }
+    },
+    "famille": {
+      "title": "Ma",
+      "titleSuffix": "Famille",
+      "subtitle": "Gérez vos enfants et bénéficiez des remises famille",
+      "familyDiscounts": "Remises Famille",
+      "familyAccount": "Compte famille",
+      "linkedChildren": "enfants rattachés",
+      "linkChild": "Rattacher un enfant",
+      "childEmailPlaceholder": "Email de l'élève",
+      "linking": "Liaison...",
+      "linkButton": "Rattacher",
+      "linkedChildrenTitle": "Enfants rattachés",
+      "noLinkedChildren": "Aucun enfant rattaché.",
+      "tableHeaders": {
+        "rank": "Rang",
+        "discount": "Remise"
+      },
+      "viewButton": "Voir",
+      "discounts": {
+        "first": "1er enfant",
+        "firstRate": "0%",
+        "firstLabel": "Tarif plein",
+        "second": "2ème enfant",
+        "secondRate": "-20%",
+        "secondLabel": "Remise familiale",
+        "third": "3ème enfant+",
+        "thirdRate": "-25%",
+        "thirdLabel": "Remise familiale maximale"
+      },
+      "toasts": {
+        "linkedSuccess": "Enfant lié avec succès.",
+        "networkError": "Erreur réseau.",
+        "removed": "Enfant retiré.",
+        "removeError": "Erreur réseau."
+      },
+      "removeConfirm": "Retirer cet enfant de la famille ?"
+    },
+    "pack": {
+      "title": "Pack de",
+      "subtitle": "Abonnement et configuration",
+      "gracePeriod": "Période de grâce",
+      "graceMessage": "Pack en période de grâce — expire dans",
+      "graceDays": "jour(s)",
+      "graceHint": "Souscrivez à un nouveau pack pour maintenir l'accès.",
+      "activePack": "Pack Actif",
+      "packLabel": "Pack",
+      "accessLabel": "Accès",
+      "expirationLabel": "Expiration",
+      "availablePacksFor": "Packs disponibles pour",
+      "levelLabel": "ce niveau",
+      "backButton": "Retour",
+      "activeStatus": "Actif",
+      "subscribeButton": "Souscrire",
+      "tiers": {
+        "gratuit": "Gratuit",
+        "basique": "Basique",
+        "silver": "Silver",
+        "golden": "Golden"
+      },
+      "features": {
+        "freeQuota": "3 leçons / trimestre",
+        "basicQuota": "2 matières au choix",
+        "silverQuota": "4 matières au choix",
+        "goldenQuota": "Accès illimité"
+      }
     }
   }
 }

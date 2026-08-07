@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from 'react-i18next';
 import { parentAPI } from "../../../api";
 
 interface Message {
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export default function ParentMessaging({ token }: Props) {
+  const { t } = useTranslation();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -53,13 +55,13 @@ export default function ParentMessaging({ token }: Props) {
         subject: subject.trim(),
         body: body.trim(),
       });
-      setSendMsg("Message envoye !");
+      setSendMsg(t('parent.messaging.toasts.sent'));
       setSubject("");
       setBody("");
       setComposing(false);
       fetchMessages();
     } catch (e: any) {
-      setSendMsg(e.message || "Erreur lors de l'envoi");
+      setSendMsg(e.message || t('parent.messaging.toasts.sendError'));
     } finally {
       setSending(false);
     }
@@ -79,12 +81,12 @@ export default function ParentMessaging({ token }: Props) {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-black/5 p-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-medium text-navy">Messagerie</h2>
+        <h2 className="text-lg font-medium text-navy">{t('parent.messaging.title')}</h2>
         <button
           onClick={() => setComposing(!composing)}
           className="px-4 py-2 bg-orange text-white rounded-xl text-sm font-medium hover:bg-orange-l transition-colors"
         >
-          {composing ? "Annuler" : "Nouveau message"}
+          {composing ? t('parent.messaging.cancel') : t('parent.messaging.newMessage')}
         </button>
       </div>
 
@@ -93,28 +95,28 @@ export default function ParentMessaging({ token }: Props) {
       {composing && (
         <form onSubmit={handleSend} className="mb-6 p-4 bg-cream-m rounded-xl space-y-3">
           <div className="flex gap-3">
-            <label className="text-sm text-gray-600">Destinataire :</label>
+            <label className="text-sm text-gray-600">{t('parent.messaging.recipient')}</label>
             <select
               value={recipientType}
               onChange={(e) => setRecipientType(e.target.value as "teacher" | "admin")}
               className="px-3 py-1 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-orange"
             >
-              <option value="teacher">Professeur</option>
-              <option value="admin">Administration</option>
+              <option value="teacher">{t('parent.messaging.recipientTeacher')}</option>
+              <option value="admin">{t('parent.messaging.recipientAdmin')}</option>
             </select>
           </div>
           <input
             type="text"
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
-            placeholder="Sujet"
+            placeholder={t('parent.messaging.subjectPlaceholder')}
             className="w-full px-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-orange"
             required
           />
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            placeholder="Votre message..."
+            placeholder={t('parent.messaging.messagePlaceholder')}
             rows={4}
             className="w-full px-4 py-2 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:border-orange"
             required
@@ -124,14 +126,14 @@ export default function ParentMessaging({ token }: Props) {
             disabled={sending || !subject.trim() || !body.trim()}
             className="px-6 py-2 bg-orange text-white rounded-xl text-sm font-medium hover:bg-orange-l transition-colors disabled:opacity-50"
           >
-            {sending ? "Envoi..." : "Envoyer"}
+            {sending ? t('parent.messaging.sending') : t('parent.messaging.sendButton')}
           </button>
           {sendMsg && <p className="text-sm text-gray-600">{sendMsg}</p>}
         </form>
       )}
 
       {messages.length === 0 ? (
-        <p className="text-gray-400 text-center py-8">Aucun message.</p>
+        <p className="text-gray-400 text-center py-8">{t('parent.messaging.noMessages')}</p>
       ) : (
         <div className="space-y-2">
           {messages.map((msg) => (
@@ -152,7 +154,7 @@ export default function ParentMessaging({ token }: Props) {
                   </div>
                   <p className="text-sm text-gray-500 mt-1 line-clamp-2">{msg.body}</p>
                   <p className="text-xs text-gray-400 mt-1">
-                    De: {msg.sender_name} — {new Date(msg.created_at).toLocaleDateString("fr-TN")}
+                    {t('parent.messaging.from')} {msg.sender_name} — {new Date(msg.created_at).toLocaleDateString("fr-TN")}
                   </p>
                 </div>
               </div>

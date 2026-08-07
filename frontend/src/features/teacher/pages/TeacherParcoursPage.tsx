@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from "../../../store/authStore";
 import { BookOpen, Plus, ChevronDown, ChevronRight, Edit2, FileText, Layers, GraduationCap, X } from "lucide-react";
 import {
@@ -15,6 +16,7 @@ type TreeItem = {
 };
 
 export default function TeacherParcoursPage() {
+  const { t } = useTranslation();
   const { token } = useAuthStore();
   const [tree, setTree] = useState<TreeItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,7 +108,7 @@ export default function TeacherParcoursPage() {
           await createParagraphe(item.parent_id, form);
         }
       }
-      showToast(type === "parcours" && !item.id ? "Parcours créé" : "Modifié");
+      showToast(type === "parcours" && !item.id ? t('teacher.parcours.toasts.created') : t('teacher.parcours.toasts.modified'));
       setEditItem(null);
       load();
     } catch (e: any) {
@@ -119,12 +121,12 @@ export default function TeacherParcoursPage() {
       <div className="bg-white rounded-3xl p-8 shadow-sm border border-black/5 flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-[300] text-navy">
-            Mes <span className="italic text-orange">Parcours</span>
+            {t('teacher.parcours.title')} <span className="italic text-orange">{t('teacher.parcours.titleSuffix')}</span>
           </h1>
-          <p className="text-gray mt-2">Créez et gérez vos parcours pédagogiques</p>
+          <p className="text-gray mt-2">{t('teacher.parcours.subtitle')}</p>
         </div>
         <button onClick={() => openCreate("parcours")} className="flex items-center gap-2 bg-orange text-white px-4 py-2 rounded-xl hover:bg-orange/90">
-          <Plus size={16} /> Nouveau Parcours
+          <Plus size={16} /> {t('teacher.parcours.newParcours')}
         </button>
       </div>
 
@@ -135,11 +137,11 @@ export default function TeacherParcoursPage() {
       )}
 
       {loading ? (
-        <div className="text-center py-20 text-gray">Chargement...</div>
+        <div className="text-center py-20 text-gray">{t('teacher.parcours.loading')}</div>
       ) : tree.length === 0 ? (
         <div className="text-center py-20 text-gray">
           <BookOpen size={48} className="mx-auto mb-4 opacity-30" />
-          <p>Aucun parcours. Créez-en un pour commencer.</p>
+          <p>{t('teacher.parcours.noResults')}</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -154,7 +156,7 @@ export default function TeacherParcoursPage() {
                   <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-navy/10 text-navy">{item.parcours.matiere}</span>
                   <span className="ml-2 text-xs text-gray">{item.parcours.niveau_scolaire}</span>
                 </div>
-                <span className="text-xs text-gray">{item.chapitres.length} chapitres</span>
+                <span className="text-xs text-gray">{item.chapitres.length} {t('teacher.parcours.chapters')}</span>
                 <button onClick={(e) => { e.stopPropagation(); openEdit("parcours", item.parcours); }} className="p-1 hover:bg-gray/10 rounded">
                   <Edit2 size={14} />
                 </button>
@@ -201,21 +203,21 @@ export default function TeacherParcoursPage() {
                                     </div>
                                   ))}
                                   <button onClick={() => openCreate("paragraphe", lec.id)} className="ml-2 mt-1 text-xs text-blue-500 hover:underline flex items-center gap-1">
-                                    <Plus size={10} /> Ajouter un paragraphe
+                                    <Plus size={10} /> {t('teacher.parcours.btn.addParagraph')}
                                   </button>
                                 </div>
                               )}
                             </div>
                           ))}
                           <button onClick={() => openCreate("lecon", chap.id)} className="ml-2 mt-1 text-xs text-blue-500 hover:underline flex items-center gap-1">
-                            <Plus size={10} /> Ajouter une leçon
+                            <Plus size={10} /> {t('teacher.parcours.btn.addLesson')}
                           </button>
                         </div>
                       )}
                     </div>
                   ))}
                   <button onClick={() => openCreate("chapitre", item.parcours.id)} className="ml-2 mt-1 text-xs text-blue-500 hover:underline flex items-center gap-1">
-                    <Plus size={10} /> Ajouter un chapitre
+                    <Plus size={10} /> {t('teacher.parcours.btn.addChapter')}
                   </button>
                 </div>
               )}
@@ -230,31 +232,31 @@ export default function TeacherParcoursPage() {
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-navy">
-                {editItem.item.id ? "Modifier" : "Créer"} {editItem.type}
+                {editItem.item.id ? t('teacher.parcours.modal.editTitle') : t('teacher.parcours.modal.createTitle')} {editItem.type}
               </h3>
               <button onClick={() => setEditItem(null)} className="p-1 hover:bg-gray/10 rounded"><X size={18} /></button>
             </div>
             <div className="space-y-3">
               <input value={form.titre || ""} onChange={(e) => setForm({ ...form, titre: e.target.value })}
-                placeholder="Titre" className="w-full border rounded-xl px-3 py-2 text-sm" />
+                placeholder={t('teacher.parcours.fields.title')} className="w-full border rounded-xl px-3 py-2 text-sm" />
               {editItem.type === "parcours" && (
                 <>
                   <input value={form.matiere || ""} onChange={(e) => setForm({ ...form, matiere: e.target.value })}
-                    placeholder="Matière" className="w-full border rounded-xl px-3 py-2 text-sm" />
+                    placeholder={t('teacher.parcours.fields.subject')} className="w-full border rounded-xl px-3 py-2 text-sm" />
                   <input value={form.niveau_scolaire || ""} onChange={(e) => setForm({ ...form, niveau_scolaire: e.target.value })}
-                    placeholder="Niveau scolaire" className="w-full border rounded-xl px-3 py-2 text-sm" />
+                    placeholder={t('teacher.parcours.fields.level')} className="w-full border rounded-xl px-3 py-2 text-sm" />
                   <textarea value={form.description || ""} onChange={(e) => setForm({ ...form, description: e.target.value })}
-                    placeholder="Description" className="w-full border rounded-xl px-3 py-2 text-sm h-20" />
+                    placeholder={t('teacher.parcours.fields.description')} className="w-full border rounded-xl px-3 py-2 text-sm h-20" />
                 </>
               )}
               {editItem.type === "paragraphe" && (
                 <textarea value={form.contenu || ""} onChange={(e) => setForm({ ...form, contenu: e.target.value })}
-                  placeholder="Contenu" className="w-full border rounded-xl px-3 py-2 text-sm h-32" />
+                  placeholder={t('teacher.parcours.fields.content')} className="w-full border rounded-xl px-3 py-2 text-sm h-32" />
               )}
             </div>
             <div className="flex gap-2 mt-4 justify-end">
-              <button onClick={() => setEditItem(null)} className="px-4 py-2 text-sm text-gray hover:bg-gray/10 rounded-xl">Annuler</button>
-              <button onClick={handleSave} className="px-4 py-2 text-sm bg-orange text-white rounded-xl hover:bg-orange/90">Enregistrer</button>
+              <button onClick={() => setEditItem(null)} className="px-4 py-2 text-sm text-gray hover:bg-gray/10 rounded-xl">{t('teacher.parcours.btn.cancel')}</button>
+              <button onClick={handleSave} className="px-4 py-2 text-sm bg-orange text-white rounded-xl hover:bg-orange/90">{t('teacher.parcours.btn.save')}</button>
             </div>
           </div>
         </div>

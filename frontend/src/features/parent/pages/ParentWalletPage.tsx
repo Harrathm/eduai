@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from 'react-i18next';
 import { useParams, Link } from "react-router-dom";
 import { useAuthStore } from "../../../store/authStore";
 import { ArrowLeft, Wallet, Coins, Clock, AlertCircle, CreditCard } from "lucide-react";
@@ -19,15 +20,16 @@ interface ChildInfo {
   packs_actifs_count: number;
 }
 
-const POOL_LABELS: Record<string, string> = {
-  trial: "Essai",
-  subscription: "Abonnement",
-  school_allocated: "Ecole",
-  purchased: "Achete",
-  dt_purchased: "DT Achetes",
+const POOL_KEYS: Record<string, string> = {
+  trial: "parent.wallet.pools.trial",
+  subscription: "parent.wallet.pools.subscription",
+  school_allocated: "parent.wallet.pools.school",
+  purchased: "parent.wallet.pools.purchased",
+  dt_purchased: "parent.wallet.pools.dt_purchased",
 };
 
 export default function ParentWalletPage() {
+  const { t } = useTranslation();
   const { eleveId } = useParams();
   const { token } = useAuthStore();
   const [wallet, setWallet] = useState<WalletBalance | null>(null);
@@ -74,13 +76,13 @@ export default function ParentWalletPage() {
       const data = await parentWallet.creditWallet(childId, rechargeAmount);
       if (data.pay_url) {
         window.open(data.pay_url, "_blank");
-        setMessage({ type: "success", text: "Redirection vers Konnect pour le paiement..." });
+        setMessage({ type: "success", text: t('parent.wallet.redirecting') });
       } else {
-        setMessage({ type: "success", text: "Recharge effectuee avec succes." });
+        setMessage({ type: "success", text: t('parent.wallet.rechargeSuccess') });
       }
       fetchData();
     } catch {
-      setMessage({ type: "error", text: "Erreur reseau." });
+      setMessage({ type: "error", text: t('parent.wallet.networkError') });
     }
     setRechargeLoading(false);
   };
@@ -99,14 +101,14 @@ export default function ParentWalletPage() {
   return (
     <div className="space-y-6">
       <Link to="/dashboard/parent" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-navy">
-        <ArrowLeft className="w-4 h-4" /> Retour au tableau de bord
+        <ArrowLeft className="w-4 h-4" /> {t('parent.wallet.backToDashboard')}
       </Link>
 
       <div className="bg-navy rounded-3xl p-8">
         <h1 className="text-3xl font-[300] text-white">
-          Portefeuille de <span className="italic text-orange-l">{childInfo?.full_name || "l'enfant"}</span>
+          {t('parent.wallet.title')} <span className="italic text-orange-l">{childInfo?.full_name || t('parent.wallet.childFallback')}</span>
         </h1>
-        <p className="text-white/50 mt-2">Solde de credits IA et rechargement</p>
+        <p className="text-white/50 mt-2">{t('parent.wallet.subtitle')}</p>
       </div>
 
       {/* Balance */}
@@ -114,14 +116,14 @@ export default function ParentWalletPage() {
         <div className="bg-gradient-to-br from-orange-p to-cream rounded-2xl p-6">
           <div className="flex items-center gap-2 mb-2">
             <Coins className="w-5 h-5 text-orange" />
-            <span className="text-sm text-gray">Credits IA</span>
+            <span className="text-sm text-gray">{t('parent.wallet.iaCredits')}</span>
           </div>
           <div className="text-3xl font-[300] text-navy">{wallet?.total ?? 0}</div>
         </div>
         <div className="bg-gradient-to-br from-yellow-50 to-cream rounded-2xl p-6">
           <div className="flex items-center gap-2 mb-2">
             <Wallet className="w-5 h-5 text-yellow-600" />
-            <span className="text-sm text-gray">DT Achetes</span>
+            <span className="text-sm text-gray">{t('parent.wallet.purchasedDT')}</span>
           </div>
           <div className="text-3xl font-[300] text-navy">
             {wallet?.pools?.find((p) => p.pool === "dt_purchased")?.balance ?? 0}
@@ -130,7 +132,7 @@ export default function ParentWalletPage() {
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
           <div className="flex items-center gap-2 mb-2">
             <AlertCircle className="w-5 h-5 text-gray-400" />
-            <span className="text-sm text-gray">Packs actifs</span>
+            <span className="text-sm text-gray">{t('parent.wallet.activePacks')}</span>
           </div>
           <div className="text-3xl font-[300] text-navy">{childInfo?.packs_actifs_count ?? 0}</div>
         </div>
@@ -139,7 +141,7 @@ export default function ParentWalletPage() {
       {/* Recharge */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
         <h2 className="text-lg font-semibold text-navy mb-4 flex items-center gap-2">
-          <CreditCard className="w-5 h-5" /> Recharger le portefeuille
+          <CreditCard className="w-5 h-5" /> {t('parent.wallet.rechargeTitle')}
         </h2>
 
         <div className="flex flex-wrap gap-2 mb-4">
@@ -171,7 +173,7 @@ export default function ParentWalletPage() {
             disabled={rechargeLoading || rechargeAmount <= 0}
             className="px-6 py-2 bg-orange text-white text-sm font-medium rounded-xl hover:bg-orange/90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {rechargeLoading ? "Redirection..." : "Recharger via Konnect"}
+            {rechargeLoading ? t('parent.wallet.redirecting') : t('parent.wallet.rechargeViaKonnect')}
           </button>
         </div>
 
@@ -186,24 +188,24 @@ export default function ParentWalletPage() {
 
       {/* Pool detail */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
-        <h2 className="text-lg font-semibold text-navy mb-4">Detail par source</h2>
+        <h2 className="text-lg font-semibold text-navy mb-4">{t('parent.wallet.poolDetail')}</h2>
         <div className="space-y-3">
           {(wallet?.pools || []).filter((p) => p.balance > 0).map((pool) => (
             <div key={pool.pool} className="flex items-center justify-between p-3 bg-gray/5 rounded-xl">
               <div>
-                <span className="font-medium text-navy">{POOL_LABELS[pool.pool] || pool.pool}</span>
+                <span className="font-medium text-navy">{t(POOL_KEYS[pool.pool] || pool.pool)}</span>
                 {pool.expires_at && (
                   <span className="ml-2 text-xs text-gray flex items-center gap-1">
                     <Clock className="w-3 h-3" />
-                    expire le {new Date(pool.expires_at).toLocaleDateString("fr-TN")}
+                    {t('parent.wallet.expires')} {new Date(pool.expires_at).toLocaleDateString("fr-TN")}
                   </span>
                 )}
               </div>
-              <span className="font-semibold text-navy">{pool.balance} credits</span>
+              <span className="font-semibold text-navy">{pool.balance} {t('parent.wallet.credits')}</span>
             </div>
           ))}
           {(!wallet?.pools || wallet.pools.filter((p) => p.balance > 0).length === 0) && (
-            <p className="text-gray text-sm">Aucun credit disponible.</p>
+            <p className="text-gray text-sm">{t('parent.wallet.noCredits')}</p>
           )}
         </div>
       </div>

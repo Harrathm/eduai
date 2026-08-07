@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from 'react-i18next';
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { parentAPI, ProgressionData, SuiviData } from "../../../api";
 import { Wallet, ExternalLink } from "lucide-react";
@@ -6,6 +7,7 @@ import { Wallet, ExternalLink } from "lucide-react";
 const RECHARGE_AMOUNTS = [5, 10, 20, 50];
 
 export default function ChildDetailPage() {
+  const { t } = useTranslation();
   const { eleveId } = useParams<{ eleveId: string }>();
   const navigate = useNavigate();
   const id = parseInt(eleveId || "0");
@@ -34,7 +36,7 @@ export default function ChildDetailPage() {
   }, [id]);
 
   const handleUnlink = async () => {
-    if (!confirm("Voulez-vous vraiment detacher cet enfant ?")) return;
+    if (!confirm(t('parent.childDetail.detachConfirm'))) return;
     try {
       await parentAPI.delierEleve(id);
       navigate("/dashboard/parent");
@@ -69,17 +71,17 @@ export default function ChildDetailPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-[300] text-navy">{suivi.full_name}</h1>
-          <p className="text-gray-500">{suivi.niveau_scolaire || "Niveau non defini"}</p>
+          <p className="text-gray-500">{suivi.niveau_scolaire || t('parent.childDetail.levelUndefined')}</p>
         </div>
         <div className="ml-auto flex items-center gap-2">
           <Link to={`/dashboard/parent/enfant/${id}/wallet`} className="px-3 py-1.5 text-xs font-medium text-navy bg-gray-100 rounded-xl hover:bg-gray-200 flex items-center gap-1">
-            <Wallet className="w-3.5 h-3.5" /> Portefeuille
+            <Wallet className="w-3.5 h-3.5" /> {t('parent.childDetail.tabs.wallet')}
           </Link>
           <Link to={`/dashboard/parent/enfant/${id}/pack`} className="px-3 py-1.5 text-xs font-medium text-navy bg-gray-100 rounded-xl hover:bg-gray-200 flex items-center gap-1">
-            <ExternalLink className="w-3.5 h-3.5" /> Pack
+            <ExternalLink className="w-3.5 h-3.5" /> {t('parent.childDetail.tabs.pack')}
           </Link>
           <button onClick={handleUnlink} className="text-sm text-red-500 hover:text-red-700 transition-colors">
-            Detacher
+            {t('parent.childDetail.detachButton')}
           </button>
         </div>
       </div>
@@ -89,39 +91,39 @@ export default function ChildDetailPage() {
           <div className="flex items-center justify-between">
             <div>
               <div className="text-2xl font-[300] text-orange">{suivi.dt_balance} DT</div>
-              <div className="text-xs text-gray-500 mt-1">Solde portefeuille</div>
+              <div className="text-xs text-gray-500 mt-1">{t('parent.childDetail.walletBalance')}</div>
             </div>
             <button
               onClick={() => setRechargeOpen(!rechargeOpen)}
               className="flex items-center gap-1 px-3 py-2 bg-orange text-white rounded-xl text-sm font-medium hover:bg-orange-l transition-colors"
             >
               <Wallet className="w-4 h-4" />
-              Recharger
+              {t('parent.childDetail.rechargeButton')}
             </button>
           </div>
         </div>
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-black/5">
           <div className="text-2xl font-[300] text-navy">{suivi.packs_actifs.length}</div>
-          <div className="text-xs text-gray-500 mt-1">Pack{suivi.packs_actifs.length !== 1 ? "s" : ""} actif{suivi.packs_actifs.length !== 1 ? "s" : ""}</div>
+          <div className="text-xs text-gray-500 mt-1">{suivi.packs_actifs.length} {t('parent.childDetail.activePacks')}{suivi.packs_actifs.length !== 1 ? t('parent.childDetail.activePacksPlural') : ""}</div>
         </div>
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-black/5">
           <div className="text-2xl font-[300] text-green-600">{progression.badges.length}</div>
-          <div className="text-xs text-gray-500 mt-1">Badge{progression.badges.length !== 1 ? "s" : ""}</div>
+          <div className="text-xs text-gray-500 mt-1">{progression.badges.length} {t('parent.childDetail.badges')}{progression.badges.length !== 1 ? t('parent.childDetail.badgesPlural') : ""}</div>
         </div>
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-black/5">
           <div className="text-2xl font-[300] text-purple-600">
             {progression.scores.length > 0 ? Math.round(progression.scores.reduce((s, sc) => s + sc.score, 0) / progression.scores.length) : 0}%
           </div>
-          <div className="text-xs text-gray-500 mt-1">Score moyen</div>
+          <div className="text-xs text-gray-500 mt-1">{t('parent.childDetail.avgScore')}</div>
         </div>
       </div>
 
       {/* Recharge Panel */}
       {rechargeOpen && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-orange/20">
-          <h2 className="text-lg font-medium text-navy mb-4">Recharger le portefeuille de {suivi.full_name}</h2>
+          <h2 className="text-lg font-medium text-navy mb-4">{t('parent.childDetail.rechargeTitle')} {suivi.full_name}</h2>
           <p className="text-sm text-gray-500 mb-4">
-            Le solde DT est utilise pour acceder au contenu premium (cours, quiz IA, exercices).
+            {t('parent.childDetail.rechargeDesc')}
           </p>
           <div className="grid grid-cols-4 gap-3 mb-4">
             {RECHARGE_AMOUNTS.map((amt) => (
@@ -146,7 +148,7 @@ export default function ChildDetailPage() {
               step="0.5"
               value={customAmount}
               onChange={(e) => setCustomAmount(e.target.value)}
-              placeholder="Montant personnalise (TND)"
+              placeholder={t('parent.childDetail.amountPlaceholder')}
               className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5 focus:outline-none focus:ring-2 focus:ring-orange/30"
             />
           </div>
@@ -162,13 +164,13 @@ export default function ChildDetailPage() {
               ) : (
                 <ExternalLink className="w-4 h-4" />
               )}
-              Payer via Konnect
+              {t('parent.childDetail.payButton')}
             </button>
             <button
               onClick={() => setRechargeOpen(false)}
               className="px-6 py-3 bg-cream-m rounded-xl font-medium"
             >
-              Annuler
+              {t('parent.childDetail.cancelButton')}
             </button>
           </div>
         </div>
@@ -176,7 +178,7 @@ export default function ChildDetailPage() {
 
       {suivi.packs_actifs.length > 0 && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
-          <h2 className="text-lg font-medium text-navy mb-4">Packs Actifs</h2>
+          <h2 className="text-lg font-medium text-navy mb-4">{t('parent.childDetail.activePacksTitle')}</h2>
           <div className="space-y-2">
             {suivi.packs_actifs.map((p, i) => (
               <div key={i} className="flex justify-between items-center p-3 rounded-lg bg-gray-50">
@@ -184,9 +186,9 @@ export default function ChildDetailPage() {
                   <span className="text-sm font-medium text-navy">Pack #{p.pack_id}</span>
                   <span className="text-xs text-gray-400 ms-3">{p.amount_paid} {p.currency}</span>
                 </div>
-                <div className="text-xs text-gray-500">
-                  Valide jusqu'au {new Date(p.valid_until).toLocaleDateString("fr-TN")}
-                </div>
+                  <span className="text-xs text-gray-500">
+                    {t('parent.childDetail.validUntil')} {new Date(p.valid_until).toLocaleDateString("fr-TN")}
+                  </span>
               </div>
             ))}
           </div>
@@ -195,7 +197,7 @@ export default function ChildDetailPage() {
 
       {progression.objectifs.length > 0 && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
-          <h2 className="text-lg font-medium text-navy mb-4">Objectifs</h2>
+          <h2 className="text-lg font-medium text-navy mb-4">{t('parent.childDetail.objectives')}</h2>
           <div className="space-y-3">
             {progression.objectifs.map((o) => (
               <div key={o.id} className="p-3 rounded-lg bg-gray-50">
@@ -215,7 +217,7 @@ export default function ChildDetailPage() {
                 <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
                   <div className="h-full bg-orange rounded-full transition-all" style={{ width: `${Math.min(100, o.progress_pct)}%` }} />
                 </div>
-                <div className="text-xs text-gray-400 mt-1">{o.progress_pct}% — objectif: {o.target_value}</div>
+                <div className="text-xs text-gray-400 mt-1">{o.progress_pct}% — {t('parent.childDetail.objectivePrefix')} {o.target_value}</div>
               </div>
             ))}
           </div>
@@ -224,7 +226,7 @@ export default function ChildDetailPage() {
 
       {progression.badges.length > 0 && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
-          <h2 className="text-lg font-medium text-navy mb-4">Badges Obtenus</h2>
+          <h2 className="text-lg font-medium text-navy mb-4">{t('parent.childDetail.badgesObtained')}</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {progression.badges.map((b) => (
               <div key={b.badge_id} className="text-center p-3 rounded-xl border border-black/5">
@@ -241,7 +243,7 @@ export default function ChildDetailPage() {
 
       {progression.scores.length > 0 && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
-          <h2 className="text-lg font-medium text-navy mb-4">Scores Recents</h2>
+          <h2 className="text-lg font-medium text-navy mb-4">{t('parent.childDetail.recentScores')}</h2>
           <div className="space-y-2">
             {progression.scores.slice(0, 10).map((s, i) => (
               <div key={i} className="flex justify-between items-center p-2 rounded-lg text-sm">

@@ -889,6 +889,588 @@
       "newTrimester": "الفصل الجديد {{trimester}}",
       "daysRemaining": "{{count}} يوم(أيام) متبقي(ة)",
       "currentTrimester": "الفصل {{label}}"
+    },
+    "sidebar": {
+      "dashboard": "لوحة القيادة",
+      "pathway": "مساري",
+      "aiAssistant": "مساعد الذكاء الاصطناعي",
+      "courseCatalog": "كتالوج الدورات",
+      "softSkills": "المهارات الناعمة — الكتالوج",
+      "myTrainings": "تدريباتي",
+      "packs": "متجر / الباقات",
+      "subscription": "اشتراكي",
+      "wallet": "المحفظة",
+      "messages": "الرسائل",
+      "profile": "الملف الشخصي",
+      "logout": "تسجيل الخروج"
+    }
+  },
+  "teacher": {
+    "dashboard": {
+      "title": "لوحة",
+      "titleSuffix": "القيادة",
+      "welcome": "مرحباً، ",
+      "myCourses": "دروسي",
+      "myClasses": "فِئَاتي",
+      "students": "الطلاب",
+      "aiCredits": "ائتمانات الذكاء الاصطناعي",
+      "quickAccess": "وصول سريع",
+      "aiStudio": "استوديو الذكاء الاصطناعي",
+      "revenue": "الإيرادات",
+      "wallet": "المحفظة",
+      "viewAll": "عرض الكل",
+      "eleves": "طالب",
+      "cours": "دورة"
+    },
+    "aiStudio": {
+      "title": "الذكاء",
+      "titleSuffix": "الاصطناعي",
+      "subtitle": "توليد المحتوى التعليمي بالذكاء الاصطناعي",
+      "tokens": "رموز",
+      "contentType": "نوع المحتوى",
+      "subject": "المادة",
+      "level": "المستوى",
+      "trimester": "الفصل",
+      "description": "وصف المحتوى المطلوب",
+      "placeholder": "صف ما تريد توليده... مثال: 'واجب عن المعادلات من الدرجة الأولى لطلاب السنة الثالثة إعدادي، يحتوي على 5 تمارين بمستويات تدريجية'",
+      "estimatedCost": "التكلفة التقديرية: ~5 رموز",
+      "generating": "جارٍ التوليد...",
+      "generate": "توليد",
+      "result": "النتيجة",
+      "copy": "نسخ",
+      "history": "السجل",
+      "loading": "جارٍ التحميل...",
+      "noHistory": "لا يوجد سجل",
+      "quickGenerations": "توليدات سريعة",
+      "error": "خطأ في الاتصال.",
+      "quickActions": {
+        "exam": "واجب على غرار الامتحان",
+        "lesson": "درس كامل",
+        "outline": "خطة سنوية"
+      },
+      "subjects": {
+        "mathematiques": "الرياضيات",
+        "physique": "الفيزياء",
+        "chimie": "الكيمياء",
+        "biologie": "الأحياء",
+        "histoire": "التاريخ",
+        "geographie": "الجغرافيا",
+        "francais": "الفرنسية",
+        "anglais": "الإنجليزية",
+        "informatique": "علوم الحاسوب",
+        "pedagogie": "التربية"
+      },
+      "levels": {
+        "primaire": "ابتدائي",
+        "college": "إعدادي",
+        "lycee": "ثانوي",
+        "universite": "جامعي"
+      },
+      "trimesters": {
+        "t1": "الفصل الأول",
+        "t2": "الفصل الثاني",
+        "t3": "الفصل الثالث"
+      },
+      "contentTypes": {
+        "homework": "واجب",
+        "lesson": "درس",
+        "lesson_plan": "خطة الدرس",
+        "outline": "المخطط السنوي",
+        "quiz": "اختبار",
+        "summary": "ملخص"
+      }
+    },
+    "learning": {
+      "title": "تعلمّي",
+      "titleSuffix": "",
+      "description": "دروسك المُنشأة والكتالوج المتاح",
+      "myCourses": "دروسي المُنشأة",
+      "noCoursesYet": "لم تنشئ أي دروس بعد",
+      "searchPlaceholder": "ابحث عن تدريب...",
+      "allCategories": "جميع الفئات",
+      "pedagogy": "التربية والتعليم",
+      "technology": "التكنولوجيا",
+      "management": "الإدارة",
+      "loading": "جاري التحميل...",
+      "noTrainingsFound": "لم يتم العثور على تدريب",
+      "modules": "وحدات",
+      "min": "دقيقة",
+      "free": "مجاني",
+      "tokens": "رواتب",
+      "dt": "دينار",
+      "viewCourse": "عرض الدورة"
+    },
+    "elements": {
+      "title": "العناصر",
+      "titleSuffix": "التربوية",
+      "subtitle": "إنشاء وإدارة محتواك التعليمي",
+      "newElement": "عنصر جديد",
+      "loading": "جارٍ التحميل...",
+      "noResults": "لم يتم العثور على عناصر",
+      "filters": {
+        "all": "الكل",
+        "brouillon": "مسودة",
+        "en_review": "قيد المراجعة",
+        "publie": "منشور",
+        "rejete": "مرفوض"
+      },
+      "toasts": {
+        "created": "تم إنشاء العنصر",
+        "submitted": "أُرسل للمراجعة",
+        "contentAdded": "تمت إضافة المحتوى",
+        "modified": "تم تعديل العنصر"
+      },
+      "btn": {
+        "submit": "إرسال",
+        "addContent": "إضافة محتوى",
+        "edit": "تعديل",
+        "cancel": "إلغاء",
+        "create": "إنشاء",
+        "save": "حفظ"
+      },
+      "modal": {
+        "createTitle": "عنصر جديد",
+        "editTitle": "تعديل",
+        "addContentTitle": "إضافة محتوى",
+        "workflowTitle": "سير العمل"
+      },
+      "fields": {
+        "title": "العنوان",
+        "description": "الوصف (اختياري)",
+        "lessonId": "معرّف الدرس (اختياري)",
+        "difficulty": "الصعوبة",
+        "htmlContent": "المحتوى HTML",
+        "videoUrl": "رابط الفيديو",
+        "duration": "المدة (ثوانٍ)",
+        "quizSoon": "استمارة الاختبار قادمة قريباً"
+      },
+      "difficulty": {
+        "facile": "سهل",
+        "moyen": "متوسط",
+        "difficile": "صعب"
+      },
+      "types": {
+        "texte": "نص",
+        "video": "فيديو",
+        "image": "صورة",
+        "quiz": "اختبار"
+      },
+      "workflow": {
+        "noTransitions": "لا توجد انتقالات مسجلة"
+      }
+    },
+    "validation": {
+      "title": "المراجعة",
+      "titleSuffix": "التربوية",
+      "subtitle": "التحقق أو رفض المحتوى في نطاقك التربوي",
+      "stats": {
+        "total": "الإجمالي",
+        "pending": "قيد الانتظار",
+        "validated": "تم التحقق",
+        "rejected": "مرفوض"
+      },
+      "filters": {
+        "all": "الكل",
+        "pending": "قيد الانتظار",
+        "validated": "تم التحقق",
+        "rejected": "مرفوض"
+      },
+      "loading": "جارٍ التحميل...",
+      "error": "خطأ في الاتصال. يرجى المحاولة مرة أخرى.",
+      "noResults": "لا يوجد محتوى لعرضه",
+      "noResultsDesc": "ليس لديك أي محتوى في نطاقك",
+      "table": {
+        "id": "المعرّف",
+        "notion": "مفهوم",
+        "level": "المستوى",
+        "type": "النوع",
+        "status": "الحالة",
+        "actions": "الإجراءات"
+      },
+      "badges": {
+        "validated": "تم التحقق",
+        "rejected": "مرفوض",
+        "pending": "قيد الانتظار"
+      },
+      "toasts": {
+        "validated": "تم التحقق من المحتوى",
+        "validateError": "خطأ في الشبكة",
+        "rejected": "تم رفض المحتوى",
+        "rejectError": "خطأ في الشبكة"
+      },
+      "btn": {
+        "validate": "تحقق",
+        "reject": "رفض"
+      },
+      "rejectModal": {
+        "title": "رفض المحتوى",
+        "message": "رفض هذا المحتوى؟",
+        "description": "سيعود المحتوى إلى حالة \"المطلوب التحقق\".",
+        "commentLabel": "تعليق الرفض (مطلوب)",
+        "commentPlaceholder": "اشرح سبب الرفض...",
+        "cancel": "إلغاء",
+        "confirm": "رفض"
+      }
+    },
+    "abonnements": {
+      "title": "اشتراكاتي",
+      "titleSuffix": "",
+      "subtitle": "إدارة اشتراكاتك واكتشاف الباقات المتاحة",
+      "mySubscriptions": "اشتراكاتي",
+      "noActive": "لا يوجد اشتراك نشط",
+      "availablePacks": "الباقات المتاحة",
+      "loading": "جارٍ التحميل...",
+      "noPacks": "لا توجد باقات متاحة",
+      "tiers": {
+        "gratuit": "مجاني",
+        "basique": "أساسي"
+      },
+      "features": {
+        "level": "المستوى",
+        "aiQuestions": "أسئلة الذكاء الاصطناعي",
+        "included": "مشمول",
+        "aiQuiz": "اختبار الذكاء الاصطناعي"
+      },
+      "badges": {
+        "subscribed": "مشترك"
+      },
+      "btn": {
+        "upgrade": "ترقية",
+        "cancel": "إلغاء",
+        "subscribe": "اشتراك",
+        "confirm": "تأكيد"
+      },
+      "gracePeriod": "فترة السماح",
+      "toasts": {
+        "created": "تم إنشاء الاشتراك!",
+        "networkError": "خطأ في الشبكة",
+        "upgraded": "تمت الترقية!",
+        "cancelled": "تم إلغاء الاشتراك (فترة سماح 7 أيام)"
+      },
+      "confirmModal": {
+        "subscribeTitle": "الاشتراك في هذه الباقة؟",
+        "upgradeTitle": "ترقية هذا الاشتراك؟",
+        "cancelTitle": "إلغاء هذا الاشتراك؟",
+        "cancelMessage": "سيتم الإلغاء في نهاية فترة السماح (7 أيام).",
+        "upgradeMessage": "سيتم تفعيل الباقة فوراً.",
+        "subscribeMessage": "سيتم تطبيق تغيير المستوى.",
+        "cancel": "إلغاء",
+        "confirm": "تأكيد"
+      }
+    },
+    "parcours": {
+      "title": "المسارات",
+      "subtitle": "إنشاء وإدارة مساراتك التعليمية",
+      "newParcours": "مسار جديد",
+      "loading": "جارٍ التحميل...",
+      "noResults": "لا توجد مسارات. أنشئ مساراً للبدء.",
+      "chapters": "فصول",
+      "btn": {
+        "addParagraph": "إضافة فقرة",
+        "addLesson": "إضافة درس",
+        "addChapter": "إضافة فصل",
+        "cancel": "إلغاء",
+        "save": "حفظ"
+      },
+      "modal": {
+        "editTitle": "تعديل",
+        "createTitle": "إنشاء"
+      },
+      "fields": {
+        "title": "العنوان",
+        "subject": "المادة",
+        "level": "المستوى الدراسي",
+        "description": "الوصف",
+        "content": "المحتوى"
+      },
+      "toasts": {
+        "created": "تم إنشاء المسار",
+        "modified": "تم التعديل"
+      }
+    },
+    "bibliotheque": {
+      "title": "المكتبة",
+      "titleSuffix": "التربوية",
+      "subtitle": "البحث عن المحتوى والمهارات",
+      "tabs": {
+        "search": "بحث",
+        "skills": "المهارات"
+      },
+      "searchPlaceholder": "البحث عن محتوى...",
+      "searchButton": "بحث",
+      "searching": "جارٍ البحث...",
+      "noResults": "لا توجد نتائج",
+      "noResultsHint": "أدخل مصطلح البحث",
+      "globalBadge": "عام",
+      "noSkills": "لا توجد مهارات متاحة"
+    },
+    "reorientation": {
+      "title": "الإحالات",
+      "titleSuffix": "قيد الانتظار",
+      "subtitle": "التحقق أو إلغاء تغييرات المستوى التلقائية لطلابك",
+      "loading": "جارٍ التحميل...",
+      "accessDenied": "يجب تعيينك مسؤولاً تربوياً لعرض الإحالات.",
+      "noResults": "لا توجد إشعارات إحالة متاحة.",
+      "noPending": "لا توجد إحالات قيد الانتظار",
+      "profile": "الملف #",
+      "student": "الطالب #",
+      "notifiedOn": "تم الإشعار في",
+      "expiredSilence": "منتهي (الصمت = مقبول)",
+      "deadline": "الموعد النهائي:",
+      "btn": {
+        "confirm": "تأكيد",
+        "cancel": "إلغاء"
+      },
+      "badges": {
+        "confirmed": "مؤكد",
+        "cancelled": "ملغي"
+      },
+      "toasts": {
+        "confirmed": "تم تأكيد الإحالة",
+        "cancelled": "تم إلغاء الإحالة",
+        "error": "خطأ"
+      }
+    },
+    "sales": {
+      "title": "إيراداتي",
+      "titleSuffix": "",
+      "subtitle": "عرض مبيعاتك وإيراداتك",
+      "accessDenied": "ميزة مقيدة",
+      "accessDeniedMessage": "يجب أن تكون معلماً للوصول إلى هذه الصفحة.",
+      "kpi": {
+        "totalSales": "إجمالي المبيعات",
+        "totalRevenue": "إجمالي الإيرادات",
+        "avgPerSale": "المتوسط لكل عملية"
+      },
+      "historyTitle": "سجل المبيعات",
+      "loading": "جارٍ التحميل...",
+      "noResults": "لا توجد مبيعات مسجلة",
+      "table": {
+        "id": "المعرّف",
+        "course": "الدورة",
+        "amountPaid": "المبلغ المدفوع",
+        "commission": "العمولة",
+        "revenue": "إيرادك",
+        "date": "التاريخ"
+      },
+      "error": "خطأ في الاتصال"
+    },
+    "wallet": {
+      "title": "محفظتي",
+      "titleSuffix": "",
+      "subtitle": "ائتمانات الذكاء الاصطناعي وسجل الاستخدام",
+      "noCredits": "لا توجد ائتمانات ذكاء اصطناعي",
+      "noCreditsDesc": "ليس لديك ائتمانات ذكاء اصطناعي بعد. اتصل بمدرستك أو اشترِ ائتمانات.",
+      "aiCredits": "ائتمانات الذكاء الاصطناعي",
+      "tokens": "الرموز",
+      "detailBySource": "التفاصيل حسب المصدر",
+      "expiresOn": "تنتهي في",
+      "credits": "ائتمان",
+      "recentHistory": "السجل الأخير",
+      "loading": "جارٍ التحميل...",
+      "noTransactions": "لا توجد معاملات",
+      "pools": {
+        "trial": "تجريبي",
+        "subscription": "اشتراك",
+        "school": "المدرسة",
+        "purchased": "مشتراة",
+        "dt_purchased": "دينار مشتراة"
+      }
+    },
+    "classroom": {
+      "title": "الصف",
+      "titleSuffix": "الإداري",
+      "subtitle": "إدارة فِئَاتك",
+      "newClass": "فِئَة جديدة",
+      "myClasses": "فِئَاتي",
+      "loading": "جارٍ التحميل...",
+      "noClasses": "لا توجد فِئَات",
+      "createFirst": "إنشاء فِئَة",
+      "students": "طالب",
+      "coursesCount": "دورة",
+      "selectClass": "اختر فِئَة لعرض التفاصيل",
+      "studentsTitle": "الطلاب",
+      "addStudent": "إضافة طالب",
+      "noStudents": "لا يوجد طلاب في هذه الفِئَة",
+      "confirmDelete": "حذف هذه الفِئَة؟",
+      "modal": {
+        "createTitle": "فِئَة جديدة",
+        "namePlaceholder": "اسم الفِئَة...",
+        "descPlaceholder": "الوصف (اختياري)...",
+        "cancel": "إلغاء",
+        "create": "إنشاء"
+      }
+    },
+    "addStudent": {
+      "title": "إضافة طالب",
+      "searchPlaceholder": "بحث بالاسم أو البريد...",
+      "searching": "جارٍ البحث...",
+      "noResults": "لم يتم العثور على طلاب",
+      "hint": "اكتب حرفين على الأقل للبحث",
+      "addButton": "إضافة",
+      "closeButton": "إغلاق"
+    },
+    "learning": {
+      "title": "تعلمي",
+      "titleSuffix": "",
+      "subtitle": "دوراتك المنشأة والكتالوج المتاح",
+      "myCourses": "دوراتي المنشأة",
+      "noCourses": "لم تنشئ أي دورة بعد",
+      "searchPlaceholder": "البحث عن تدريب...",
+      "categories": {
+        "all": "جميع الفئات",
+        "pedagogie": "التربية",
+        "technologie": "التكنولوجيا",
+        "gestion": "الإدارة"
+      },
+      "loading": "جارٍ التحميل...",
+      "noResults": "لم يتم العثور على تدريب",
+      "modules": "وحدات",
+      "minutes": "دقيقة",
+      "free": "مجاني",
+      "viewCourse": "عرض الدورة"
+    }
+  },
+  "parent": {
+    "childDetail": {
+      "detachConfirm": "هل أنت متأكد من فصل هذا الطفل؟",
+      "rechargeError": "خطأ أثناء الشحن",
+      "levelUndefined": "المستوى غير محدد",
+      "tabs": {
+        "wallet": "المحفظة",
+        "pack": "الباقة"
+      },
+      "detachButton": "فصل",
+      "walletBalance": "رصيد المحفظة",
+      "rechargeButton": "شحن",
+      "packLabel": "الباقة",
+      "activePacks": "نشط",
+      "activePacksPlural": "نشط",
+      "badges": "شارة",
+      "badgesPlural": "ة",
+      "avgScore": "متوسط الدرجات",
+      "rechargeTitle": "شحن محفظة",
+      "rechargeDesc": "يُستخدم رصيد الدينار للوصول إلى المحتوى المميز (الدروس، اختبارات الذكاء الاصطناعي، التمارين).",
+      "amountPlaceholder": "المبلغ المخصص (دينار تونسي)",
+      "payButton": "الدفع عبر Konnect",
+      "cancelButton": "إلغاء",
+      "activePacksTitle": "الباقات النشطة",
+      "packNumber": "الباقة #",
+      "validUntil": "صالحة حتى",
+      "objectives": "الأهداف",
+      "objectivePrefix": "هدف:",
+      "badgesObtained": "الشارات المحصل عليها",
+      "recentScores": "الدرجات الأخيرة",
+      "chapterPrefix": "الفصل #"
+    },
+    "wallet": {
+      "title": "محفظة",
+      "childFallback": "الطفل",
+      "subtitle": "رصيد ائتمانات الذكاء الاصطناعي والشحن",
+      "aiCredits": "ائتمانات الذكاء الاصطناعي",
+      "purchasedDT": "دينار مشتراة",
+      "activePacks": "الباقات النشطة",
+      "rechargeTitle": "شحن المحفظة",
+      "redirecting": "جارٍ التحويل إلى Konnect للدفع...",
+      "rechargeSuccess": "تم الشحن بنجاح.",
+      "networkError": "خطأ في الشبكة.",
+      "backToDashboard": "العودة للوحة التحكم",
+      "poolDetail": "التفاصيل حسب المصدر",
+      "expires": "تنتهي في",
+      "credits": "ائتمان",
+      "noCredits": "لا توجد ائتمانات متاحة.",
+      "rechargeViaKonnect": "شحن عبر Konnect",
+      "pools": {
+        "trial": "تجريبي",
+        "subscription": "اشتراك",
+        "school": "المدرسة",
+        "purchased": "مشتراة",
+        "dt_purchased": "دينار مشتراة"
+      }
+    },
+    "messaging": {
+      "title": "الرسائل",
+      "newMessage": "رسالة جديدة",
+      "cancel": "إلغاء",
+      "recipient": "المستلم:",
+      "recipientTeacher": "المعلم",
+      "recipientAdmin": "الإدارة",
+      "subjectPlaceholder": "الموضوع",
+      "messagePlaceholder": "رسالتك...",
+      "sending": "جارٍ الإرسال...",
+      "sendButton": "إرسال",
+      "from": "من:",
+      "noMessages": "لا توجد رسائل.",
+      "toasts": {
+        "sent": "تم إرسال الرسالة!",
+        "sendError": "خطأ في الإرسال"
+      }
+    },
+    "famille": {
+      "title": "عائلتي",
+      "titleSuffix": "",
+      "subtitle": "إدارة أطفالك والاستفادة من خصومات العائلة",
+      "familyDiscounts": "خصومات العائلة",
+      "familyAccount": "حساب العائلة",
+      "linkedChildren": "أطفال مرتبطون",
+      "linkChild": "ربط طفل",
+      "childEmailPlaceholder": "بريد الطالب الإلكتروني",
+      "linking": "جارٍ الربط...",
+      "linkButton": "ربط",
+      "linkedChildrenTitle": "الأطفال المرتبطون",
+      "noLinkedChildren": "لا يوجد أطفال مرتبطون.",
+      "tableHeaders": {
+        "rank": "الترتيب",
+        "discount": "الخصم"
+      },
+      "viewButton": "عرض",
+      "discounts": {
+        "first": "الطفل الأول",
+        "firstRate": "0%",
+        "firstLabel": "السعر الكامل",
+        "second": "الطفل الثاني",
+        "secondRate": "-20%",
+        "secondLabel": "خصم العائلة",
+        "third": "الطفل الثالث+",
+        "thirdRate": "-25%",
+        "thirdLabel": "خصم العائلة الأقصى"
+      },
+      "toasts": {
+        "linkedSuccess": "تم ربط الطفل بنجاح.",
+        "networkError": "خطأ في الشبكة.",
+        "removed": "تم إزالة الطفل.",
+        "removeError": "خطأ في الشبكة."
+      },
+      "removeConfirm": "إزالة هذا الطفل من العائلة؟"
+    },
+    "pack": {
+      "title": "باقة",
+      "subtitle": "الاشتراك والتكوين",
+      "gracePeriod": "فترة السماح",
+      "graceMessage": "الباقة في فترة السماح — تنتهي في",
+      "graceDays": "يوم(أيام)",
+      "graceHint": "اشترك في باقة جديدة للحفاظ على الوصول.",
+      "activePack": "الباقة النشطة",
+      "packLabel": "الباقة",
+      "accessLabel": "الوصول",
+      "expirationLabel": "انتهاء الصلاحية",
+      "availablePacksFor": "الباقات المتاحة لـ",
+      "levelLabel": "هذا المستوى",
+      "backButton": "رجوع",
+      "activeStatus": "نشط",
+      "subscribeButton": "اشتراك",
+      "tiers": {
+        "gratuit": "مجاني",
+        "basique": "أساسي",
+        "silver": "فضي",
+        "golden": "ذهبي"
+      },
+      "features": {
+        "freeQuota": "3 دروس / فصل",
+        "basicQuota": "2 مادة من اختيارك",
+        "silverQuota": "4 مواد من اختيارك",
+        "goldenQuota": "وصول غير محدود"
+      }
     }
   }
 }
