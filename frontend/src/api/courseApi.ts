@@ -220,6 +220,9 @@ export const chapterAdmin = {
 
   delete: (courseId: number, chapterId: number) =>
     api.delete<void>(`/api/admin/courses/${courseId}/chapters/${chapterId}`),
+
+  reorder: (courseId: number, order: number[]) =>
+    api.post<void>(`/api/admin/courses/${courseId}/reorder`, { order }),
 };
 
 // ─── Admin Lesson API ───────────────────────────────────────────────────────
@@ -227,6 +230,15 @@ export const chapterAdmin = {
 export const lessonAdmin = {
   list: (moduleId: number) =>
     api.get<Lesson[]>(`/api/admin/lessons?module_id=${moduleId}`),
+
+  listAll: (params?: { search?: string; skip?: number; limit?: number }) => {
+    const sp = new URLSearchParams();
+    if (params?.search) sp.set("search", params.search);
+    if (params?.skip) sp.set("skip", String(params.skip));
+    if (params?.limit) sp.set("limit", String(params.limit));
+    const qs = sp.toString();
+    return api.get<Lesson[]>(`/api/admin/lessons${qs ? `?${qs}` : ""}`);
+  },
 
   get: (id: number) =>
     api.get<Lesson>(`/api/admin/lessons/${id}`),

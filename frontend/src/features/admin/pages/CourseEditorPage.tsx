@@ -1,4 +1,4 @@
-import { CheckCircle, AlertCircle } from "lucide-react";
+import { CheckCircle, AlertCircle, LayoutGrid } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { PageSpinner } from "../../../components/ui";
 import { useCourseEditor } from "../hooks/useCourseEditor";
@@ -76,6 +76,7 @@ export default function CourseEditorPage() {
         onSetActiveChapter={setActiveChapter}
         onUpdateChapterTitle={handleUpdateChapterTitle}
         onCourseFieldChange={updateCourseField}
+        onOpenBuilder={() => navigate(`/dashboard/admin/courses/${courseId}/builder`)}
       />
 
       {/* Main Content */}

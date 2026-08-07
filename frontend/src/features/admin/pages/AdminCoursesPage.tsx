@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { BookOpen, Plus, RefreshCw, Eye, EyeOff, Pencil, Trash2, Search, Copy, Archive, X, FileText, Clock, Users, Tag, Send } from "lucide-react";
+import { BookOpen, Plus, RefreshCw, Eye, EyeOff, Pencil, Trash2, Search, Copy, Archive, X, FileText, Clock, Users, Tag, Send, LayoutGrid } from "lucide-react";
 import { AdminTable, KPICard, StatusBadge, Modal, ConfirmModal } from "../components";
 import { adminCourses, pathwayApi } from "../../../api";
 import type { AdminCourse } from "../../../api";
@@ -222,6 +222,10 @@ export default function AdminCoursesPage() {
         <button onClick={() => window.location.href = `/dashboard/admin/courses/${c.id}`}
           className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100" title={t("admin.courses.btn.edit")}>
           <Pencil className="w-4 h-4" />
+        </button>
+        <button onClick={() => window.location.href = `/dashboard/admin/courses/${c.id}/builder`}
+          className="p-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100" title="Builder DnD">
+          <LayoutGrid className="w-4 h-4" />
         </button>
         <button onClick={() => handlePreview(c.id)} disabled={previewLoading}
           className="p-1.5 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100" title={t("admin.courses.btn.preview")}>

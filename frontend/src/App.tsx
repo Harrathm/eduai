@@ -178,6 +178,7 @@ export default function App() {
               <Route path="schools" element={<AdminSchoolsPage />} />
               <Route path="courses" element={<AdminCoursesPage />} />
               <Route path="courses/:courseId" element={<CourseEditorPage />} />
+              <Route path="courses/:courseId/builder" element={<CourseBuilderPage />} />
               <Route path="analytics" element={<AdminAnalyticsPage />} />
               <Route path="teachers" element={<AdminTeacherQueuePage />} />
               <Route path="finance" element={<FinanceCenter />} />

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Eye, EyeOff, Copy, Archive, Save, GripVertical, Plus, AlertCircle } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Copy, Archive, Save, GripVertical, Plus, AlertCircle, LayoutGrid } from "lucide-react";
 import { Button, Input } from "../../../../components/ui";
 import { pathwayApi } from "../../../../api";
 import { useAuthStore } from "../../../../store/authStore";
@@ -23,12 +23,13 @@ interface CourseSidebarProps {
   onSetActiveChapter: (id: number | null) => void;
   onUpdateChapterTitle: (id: number, title: string) => void;
   onCourseFieldChange: (field: string, value: any) => void;
+  onOpenBuilder?: () => void;
 }
 
 export function CourseSidebar({
   course, chapters, activeChapter, saving, previewLoading, publishErrors,
   onBack, onPreview, onDuplicate, onPublish, onUnpublish, onArchive,
-  onSave, onAddChapter, onSetActiveChapter, onUpdateChapterTitle, onCourseFieldChange,
+  onSave, onAddChapter, onSetActiveChapter, onUpdateChapterTitle, onCourseFieldChange, onOpenBuilder,
 }: CourseSidebarProps) {
   const { user } = useAuthStore();
   const isTeacher = user?.role === "teacher" || user?.activeRole === "teacher";
@@ -73,6 +74,11 @@ export function CourseSidebar({
             <Copy className="w-3 h-3" /> Dupliquer
           </Button>
         </div>
+        {onOpenBuilder && (
+          <Button variant="primary" size="sm" className="w-full" onClick={onOpenBuilder}>
+            <LayoutGrid className="w-3 h-3" /> Builder Drag & Drop
+          </Button>
+        )}
         <div className="flex gap-2">
           {course.status === "published" ? (
             <Button variant="secondary" size="sm" className="flex-1" onClick={onUnpublish} loading={saving}>
