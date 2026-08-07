@@ -458,6 +458,10 @@ class CourseCreate(BaseModel):
     prerequisites: Optional[str] = None
     learning_objectives: Optional[str] = None
     language: Optional[str] = "fr"
+    # ABAC targeting
+    category_cible: Optional[str] = "Scolaire"      # Scolaire, Soft_Skill, Teacher_Training
+    niveau_scolaire: Optional[str] = None            # Required when category_cible=Scolaire
+    tag_pack_requis: Optional[str] = "Basic"         # Basic, Silver, Golden
     # SEO
     slug: Optional[str] = None
     meta_title: Optional[str] = None
@@ -487,6 +491,10 @@ class CourseUpdate(BaseModel):
     prerequisites: Optional[str] = None
     learning_objectives: Optional[str] = None
     language: Optional[str] = None
+    # ABAC targeting
+    category_cible: Optional[str] = None
+    niveau_scolaire: Optional[str] = None
+    tag_pack_requis: Optional[str] = None
     # SEO
     slug: Optional[str] = None
     meta_title: Optional[str] = None

@@ -396,3 +396,10 @@ export const updateParagraphe = pathwayParagraphes.update;
 
 export type Competence = { id: number; name: string; description: string | null };
 export type WorkflowEntry = { id: number; status: string; user_id: number; timestamp: string };
+
+// ─── Matières by niveau (for course creation ABAC) ────────────────────────
+
+export const pathwayApi = {
+  getMatieresByNiveau: (niveauScolaire: string) =>
+    api.get<any[]>(`/api/pathway/matieres-by-niveau?niveau_scolaire=${encodeURIComponent(niveauScolaire)}`),
+};

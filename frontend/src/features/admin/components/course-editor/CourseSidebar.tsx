@@ -1,5 +1,8 @@
+import { useState, useEffect } from "react";
 import { ArrowLeft, Eye, EyeOff, Copy, Archive, Save, GripVertical, Plus, AlertCircle } from "lucide-react";
 import { Button, Input } from "../../../../components/ui";
+import { pathwayApi } from "../../../../api";
+import { useAuthStore } from "../../../../store/authStore";
 import type { Chapter } from "../../hooks/useCourseEditor";
 
 interface CourseSidebarProps {
@@ -27,6 +30,20 @@ export function CourseSidebar({
   onBack, onPreview, onDuplicate, onPublish, onUnpublish, onArchive,
   onSave, onAddChapter, onSetActiveChapter, onUpdateChapterTitle, onCourseFieldChange,
 }: CourseSidebarProps) {
+  const { user } = useAuthStore();
+  const isTeacher = user?.role === "teacher" || user?.activeRole === "teacher";
+  const categoryCible = course.category_cible || "Scolaire";
+  const isScolaire = categoryCible === "Scolaire";
+  const [matieres, setMatieres] = useState<{id: number; nom: string}[]>([]);
+
+  useEffect(() => {
+    if (isScolaire && course.niveau_scolaire) {
+      pathwayApi.getMatieresByNiveau(course.niveau_scolaire)
+        .then(data => setMatieres(Array.isArray(data) ? data : []))
+        .catch(() => setMatieres([]));
+    }
+  }, [isScolaire, course.niveau_scolaire]);
+
   const tagsDisplay = course.tags
     ? (typeof course.tags === "string" ? JSON.parse(course.tags) : course.tags)
     : [];
@@ -109,6 +126,42 @@ export function CourseSidebar({
             </select>
           </div>
         </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="block text-xs font-medium mb-1">Type de formation *</label>
+            <select
+              value={categoryCible}
+              onChange={e => onCourseFieldChange("category_cible", e.target.value)}
+              disabled={isTeacher}
+              className="w-full px-2 py-1 text-sm border rounded disabled:opacity-50 disabled:bg-gray-100">
+              <option value="Scolaire">Scolaire</option>
+              <option value="Soft_Skill">Soft Skill</option>
+              <option value="Teacher_Training">Teacher Training</option>
+            </select>
+          </div>
+          {isScolaire && (
+            <div>
+              <label className="block text-xs font-medium mb-1">Niveau scolaire *</label>
+              <input value={course.niveau_scolaire || ""} onChange={e => onCourseFieldChange("niveau_scolaire", e.target.value)}
+                className="w-full px-2 py-1 text-sm border rounded" placeholder="Ex: 3ème année secondaire" />
+            </div>
+          )}
+        </div>
+        {isScolaire && (
+          <div>
+            <label className="block text-xs font-medium mb-1">Matière (catégorie) *</label>
+            {matieres.length > 0 ? (
+              <select value={course.category || ""} onChange={e => onCourseFieldChange("category", e.target.value)}
+                className="w-full px-2 py-1 text-sm border rounded">
+                <option value="">-- Choisir --</option>
+                {matieres.map(m => <option key={m.id} value={m.nom}>{m.nom}</option>)}
+              </select>
+            ) : (
+              <input value={course.category || ""} onChange={e => onCourseFieldChange("category", e.target.value)}
+                className="w-full px-2 py-1 text-sm border rounded" placeholder="Ex: Mathématiques" />
+            )}
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-2">
           <div>
             <label className="block text-xs font-medium mb-1">Visibilité</label>

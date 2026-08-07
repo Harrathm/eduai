@@ -31,6 +31,8 @@ def has_course_access(user: User, course: Course, db: Session) -> bool:
     """
     Vérifie si un utilisateur a accès à un cours.
     Ordre de vérification :
+      0. Cours Soft_Skill → accès si pack Golden OU cours acheté
+      0b. Cours Teacher_Training → accès par inscription directe ou Bulk Seats (pas d'ABAC)
       1. Cours gratuit (price=None ou 0) ou déjà acheté individuellement
       2. L'utilisateur est l'auteur du cours
       3. Inscription existante (CourseEnrollment)
@@ -38,7 +40,59 @@ def has_course_access(user: User, course: Course, db: Session) -> bool:
       5. Accès école via SchoolCourseAccess
       6. Pack individuel actif (student) — niveau + matières correspondent
       7. Pack école actif (school) — niveau de l'ÉLÈVE + matières correspondent
+      8. ABAC: vérifie le tag_pack_requis via le système d'abonnement
     """
+    category_cible = getattr(course, "category_cible", "Scolaire") or "Scolaire"
+
+    # 0a. Cours Soft_Skill : accès si pack Golden OU cours acheté individuellement
+    if category_cible == "Soft_Skill":
+        purchase = db.query(CoursePurchase).filter(
+            CoursePurchase.student_id == user.id,
+            CoursePurchase.course_id == course.id,
+        ).first()
+        if purchase:
+            return True
+        # Vérifie si l'utilisateur a un abonnement Golden
+        now = datetime.now(timezone.utc)
+        token = _tenant_filter_suppressed.set(True)
+        try:
+            abonnement = db.query(Abonnement).join(PackDefinition).filter(
+                Abonnement.user_id == user.id,
+                Abonnement.statut.in_(["actif", "grace"]),
+                Abonnement.fin > now,
+            ).order_by(Abonnement.created_at.desc()).first()
+        finally:
+            _tenant_filter_suppressed.reset(token)
+        if abonnement and abonnement.pack:
+            pack_tier = abonnement.pack.tier or ""
+            if pack_tier.lower() == "golden":
+                return True
+        return False
+
+    # 0b. Cours Teacher_Training : pas d'ABAC — accès par inscription directe ou Bulk Seats
+    if category_cible == "Teacher_Training":
+        enrollment = db.query(CourseEnrollment).filter(
+            CourseEnrollment.student_id == user.id,
+            CourseEnrollment.course_id == course.id,
+        ).first()
+        if enrollment and enrollment.status == "active":
+            return True
+        purchase = db.query(CoursePurchase).filter(
+            CoursePurchase.student_id == user.id,
+            CoursePurchase.course_id == course.id,
+        ).first()
+        if purchase:
+            return True
+        if user.school_id:
+            sca = db.query(SchoolCourseAccess).filter(
+                SchoolCourseAccess.school_id == user.school_id,
+                SchoolCourseAccess.course_id == course.id,
+                SchoolCourseAccess.is_active == True,
+            ).first()
+            if sca:
+                return True
+        return False
+
     # 1. Cours gratuit
     if course.price is None or course.price == 0:
         return True
@@ -144,10 +198,18 @@ def check_abac_access(user: User, course: Course, db: Session) -> bool:
       - tag_pack_requis="Silver" → abonnement Silver ou Golden requis
       - tag_pack_requis="Golden" → abonnement Golden requis
       - Règle des matières : Basic/Silver → vérifie que course.category est dans matieres_config
+      - Pour les cours Soft_Skill : accès Golden requis (pas de vérification matière)
+      - Pour les cours Teacher_Training : ABAC non applicable (pass-through)
 
     Retourne True si l'accès est accordé, False sinon.
     Lève HTTPException 402 si accès refusé pour upsell.
     """
+    category_cible = getattr(course, "category_cible", "Scolaire") or "Scolaire"
+
+    # Teacher_Training : ABAC non applicable
+    if category_cible == "Teacher_Training":
+        return True
+
     tag_requis = getattr(course, "tag_pack_requis", "Basic") or "Basic"
     required_level = TIER_HIERARCHY.get(tag_requis, 1)
 
@@ -173,8 +235,8 @@ def check_abac_access(user: User, course: Course, db: Session) -> bool:
     if user_tier_level < required_level:
         return False
 
-    # Règle des matières : Basic et Silver vérifient la matière
-    if pack_tier in ("basic", "Basic", "silver", "Silver"):
+    # Règle des matières : Basic et Silver vérifient la matière (Scolaire uniquement)
+    if pack_tier in ("basic", "Basic", "silver", "Silver") and category_cible == "Scolaire":
         matieres_config = abonnement.pack.matieres if abonnement.pack else None
         if matieres_config:
             # matieres_config peut être une liste ou un dict avec clé "matieres"
@@ -198,6 +260,12 @@ def require_abac_access(user: User, course: Course, db: Session) -> None:
     Variante de check_abac_access qui lève une HTTPException 402 si l'accès est refusé.
     Utile pour les endpoints qui doivent bloquer avec un message d'upsell.
     """
+    category_cible = getattr(course, "category_cible", "Scolaire") or "Scolaire"
+
+    # Teacher_Training : ABAC non applicable
+    if category_cible == "Teacher_Training":
+        return
+
     tag_requis = getattr(course, "tag_pack_requis", "Basic") or "Basic"
     required_level = TIER_HIERARCHY.get(tag_requis, 1)
 
@@ -229,8 +297,8 @@ def require_abac_access(user: User, course: Course, db: Session) -> None:
                    f"Votre pack actuel ({pack_tier}) ne couvre pas ce niveau.",
         )
 
-    # Règle des matières
-    if pack_tier in ("basic", "Basic", "silver", "Silver"):
+    # Règle des matières (Scolaire uniquement)
+    if pack_tier in ("basic", "Basic", "silver", "Silver") and category_cible == "Scolaire":
         matieres_config = abonnement.pack.matieres if abonnement.pack else None
         if matieres_config:
             if isinstance(matieres_config, dict):

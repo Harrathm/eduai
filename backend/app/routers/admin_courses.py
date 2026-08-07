@@ -25,6 +25,43 @@ router = APIRouter(tags=["Admin Courses"])
 
 # ---- Pydantic Schemas ----
 
+VALID_CATEGORY_CIBLE = {"Scolaire", "Soft_Skill", "Teacher_Training"}
+
+
+def _validate_course_fields(admin: User, data, is_update: bool = False):
+    """Validate category_cible RBAC and Scolaire field obligations."""
+    role = get_user_role(admin)
+    category_cible = getattr(data, "category_cible", None)
+
+    # Teachers can ONLY create Scolaire courses
+    if role == "teacher" and category_cible and category_cible != "Scolaire":
+        raise HTTPException(
+            status_code=403,
+            detail="Les enseignants ne peuvent créer que des cours de type 'Scolaire'.",
+        )
+
+    if category_cible and category_cible not in VALID_CATEGORY_CIBLE:
+        raise HTTPException(
+            status_code=400,
+            detail=f"category_cible invalide : '{category_cible}'. Valeurs autorisées : {', '.join(sorted(VALID_CATEGORY_CIBLE))}",
+        )
+
+    # For Scolaire courses, niveau_scolaire and category are mandatory
+    if category_cible == "Scolaire":
+        niveau = getattr(data, "niveau_scolaire", None)
+        cat = getattr(data, "category", None)
+        missing = []
+        if not niveau:
+            missing.append("niveau_scolaire")
+        if not cat:
+            missing.append("category (matière)")
+        if missing:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Pour un cours de type 'Scolaire', les champs suivants sont obligatoires : {', '.join(missing)}.",
+            )
+
+
 class CourseCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
@@ -42,6 +79,9 @@ class CourseCreate(BaseModel):
     visibility: Optional[str] = "public"
     enrollment_type: Optional[str] = "open"
     tags: Optional[list[str]] = None
+    category_cible: Optional[str] = "Scolaire"
+    niveau_scolaire: Optional[str] = None
+    tag_pack_requis: Optional[str] = "Basic"
 
     model_config = ConfigDict(extra="allow")
 
@@ -63,6 +103,9 @@ class CourseUpdate(BaseModel):
     visibility: Optional[str] = None
     enrollment_type: Optional[str] = None
     tags: Optional[list[str]] = None
+    category_cible: Optional[str] = None
+    niveau_scolaire: Optional[str] = None
+    tag_pack_requis: Optional[str] = None
 
     model_config = ConfigDict(extra="allow")
 
@@ -100,6 +143,13 @@ def _validate_publish(course: Course, db: Session) -> list[str]:
         errors.append("Le titre est obligatoire")
     if not course.short_description and not course.description:
         errors.append("La description courte ou la description est obligatoire")
+    # ABAC: Scolaire courses must have niveau_scolaire and category
+    category_cible = getattr(course, "category_cible", "Scolaire") or "Scolaire"
+    if category_cible == "Scolaire":
+        if not course.niveau_scolaire:
+            errors.append("Le niveau scolaire est obligatoire pour les cours de type 'Scolaire'")
+        if not course.category:
+            errors.append("La matière (category) est obligatoire pour les cours de type 'Scolaire'")
     modules_count = db.query(Module).filter(Module.course_id == course.id).count()
     if modules_count == 0:
         errors.append("Le cours doit avoir au moins un chapitre")
@@ -272,6 +322,8 @@ def create_course(data: CourseCreate, db: Session = Depends(get_db), admin: User
     if not admin.school_id:
         raise HTTPException(status_code=400, detail="Aucun établissement associé à votre compte")
 
+    _validate_course_fields(admin, data)
+
     course = Course(
         school_id=admin.school_id,
         author_id=admin.id,
@@ -280,6 +332,9 @@ def create_course(data: CourseCreate, db: Session = Depends(get_db), admin: User
         short_description=data.short_description,
         thumbnail_url=data.cover_url or data.thumbnail_url,
         category=data.category,
+        category_cible=data.category_cible or "Scolaire",
+        niveau_scolaire=data.niveau_scolaire,
+        tag_pack_requis=data.tag_pack_requis or "Basic",
         level=data.level or "beginner",
         price_tokens=data.price_tokens or 0,
         price_dt=data.price_dt or 0.0,
@@ -309,6 +364,8 @@ def update_course(course_id: int, data: CourseUpdate, db: Session = Depends(get_
         raise HTTPException(status_code=404, detail="Course not found")
     if not _can_access_course(admin, course):
         raise HTTPException(status_code=403, detail="Access denied")
+
+    _validate_course_fields(admin, data, is_update=True)
 
     update_data = data.model_dump(exclude_unset=True, exclude_none=True)
     if "cover_url" in update_data:

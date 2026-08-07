@@ -8,9 +8,43 @@ from datetime import datetime, timezone
 
 from app.db import get_db
 from app.auth import get_current_user
-from app.deps import set_tenant_context, check_school_access, require_teacher_or_admin
+from app.deps import set_tenant_context, check_school_access, require_teacher_or_admin, get_user_role
 from app.models import User, Course, Module, Lesson, CourseEnrollment
 from app.models import UserRole, CourseStatus, Transaction, TransactionType, Currency
+
+VALID_CATEGORY_CIBLE = {"Scolaire", "Soft_Skill", "Teacher_Training"}
+
+
+def _validate_course_abac_fields(user: User, data, is_update: bool = False):
+    """RBAC + ABAC field validation for teacher-facing course endpoints."""
+    role = get_user_role(user)
+    category_cible = getattr(data, "category_cible", None)
+
+    if role == "teacher" and category_cible and category_cible != "Scolaire":
+        raise HTTPException(
+            status_code=403,
+            detail="Les enseignants ne peuvent créer que des cours de type 'Scolaire'.",
+        )
+
+    if category_cible and category_cible not in VALID_CATEGORY_CIBLE:
+        raise HTTPException(
+            status_code=400,
+            detail=f"category_cible invalide : '{category_cible}'. Valeurs autorisées : {', '.join(sorted(VALID_CATEGORY_CIBLE))}",
+        )
+
+    if category_cible == "Scolaire":
+        niveau = getattr(data, "niveau_scolaire", None)
+        cat = getattr(data, "category", None)
+        missing = []
+        if not niveau:
+            missing.append("niveau_scolaire")
+        if not cat:
+            missing.append("category (matière)")
+        if missing:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Pour un cours de type 'Scolaire', les champs suivants sont obligatoires : {', '.join(missing)}.",
+            )
 from app.schemas import (
     CourseRead,
     CourseCreate,
@@ -125,6 +159,8 @@ def create_course(
     current_user: User = Depends(require_teacher_or_admin),
 ):
     """Create a new course (teachers and admins only)"""
+    _validate_course_abac_fields(current_user, course_in)
+
     course = Course(
         **course_in.model_dump(),
         school_id=current_user.school_id,
@@ -154,6 +190,8 @@ def update_course(
         raise HTTPException(status_code=404, detail="Course not found")
     
     check_school_access(current_user, course.school_id)
+
+    _validate_course_abac_fields(current_user, course_update, is_update=True)
     
     if course_update.title is not None:
         course.title = course_update.title
@@ -165,6 +203,12 @@ def update_course(
         course.price_dt = course_update.price_dt
     if course_update.status is not None:
         course.status = course_update.status
+    if course_update.category_cible is not None:
+        course.category_cible = course_update.category_cible
+    if course_update.niveau_scolaire is not None:
+        course.niveau_scolaire = course_update.niveau_scolaire
+    if course_update.tag_pack_requis is not None:
+        course.tag_pack_requis = course_update.tag_pack_requis
     
     db.commit()
     db.refresh(course)

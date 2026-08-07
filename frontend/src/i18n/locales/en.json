@@ -386,7 +386,9 @@
           "btnCancel": "Cancel",
           "btnCreate": "Create",
           "validation": {
-            "titleRequired": "Title is required"
+            "titleRequired": "Title is required",
+            "niveauRequired": "School level is required for Scolaire courses",
+            "categoryRequired": "Subject (category) is required for Scolaire courses"
           }
         }
       }

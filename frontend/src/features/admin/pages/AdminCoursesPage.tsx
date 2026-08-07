@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { BookOpen, Plus, RefreshCw, Eye, EyeOff, Pencil, Trash2, Search, Copy, Archive, X, FileText, Clock, Users, Tag, Send } from "lucide-react";
 import { AdminTable, KPICard, StatusBadge, Modal, ConfirmModal } from "../components";
-import { adminCourses } from "../../../api";
+import { adminCourses, pathwayApi } from "../../../api";
 import type { AdminCourse } from "../../../api";
+import { useAuthStore } from "../../../store/authStore";
 import DOMPurify from "dompurify";
 
 const statusColors: Record<string, string> = {
@@ -465,6 +466,8 @@ function CourseFormModal({ open, onClose, onSubmit, loading }: {
   open: boolean; onClose: () => void; onSubmit: (d: any) => void; loading: boolean;
 }) {
   const { t } = useTranslation();
+  const { user } = useAuthStore();
+  const isTeacher = user?.role === "teacher" || user?.activeRole === "teacher";
   const [title, setTitle] = useState("");
   const [shortDescription, setShortDescription] = useState("");
   const [description, setDescription] = useState("");
@@ -475,13 +478,34 @@ function CourseFormModal({ open, onClose, onSubmit, loading }: {
   const [tags, setTags] = useState("");
   const [prerequisites, setPrerequisites] = useState("");
   const [learningObjectives, setLearningObjectives] = useState("");
+  const [categoryCible, setCategoryCible] = useState("Scolaire");
+  const [niveauScolaire, setNiveauScolaire] = useState("");
+  const [matieres, setMatieres] = useState<{id: number; nom: string}[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
+
+  const isScolaire = categoryCible === "Scolaire";
+
+  useEffect(() => {
+    if (isTeacher) setCategoryCible("Scolaire");
+  }, [isTeacher]);
+
+  useEffect(() => {
+    if (isScolaire && niveauScolaire) {
+      pathwayApi.getMatieresByNiveau(niveauScolaire)
+        .then(data => setMatieres(Array.isArray(data) ? data : []))
+        .catch(() => setMatieres([]));
+    }
+  }, [isScolaire, niveauScolaire]);
 
   if (!open) return null;
 
   const handleSubmit = () => {
     const errs: string[] = [];
     if (!title.trim()) errs.push(t("admin.courses.modal.create.validation.titleRequired"));
+    if (isScolaire) {
+      if (!niveauScolaire) errs.push(t("admin.courses.modal.create.validation.niveauRequired"));
+      if (!category) errs.push(t("admin.courses.modal.create.validation.categoryRequired"));
+    }
     if (errs.length > 0) { setErrors(errs); return; }
     setErrors([]);
     onSubmit({
@@ -490,6 +514,8 @@ function CourseFormModal({ open, onClose, onSubmit, loading }: {
       tags: tags ? tags.split(",").map(t => t.trim()).filter(Boolean) : undefined,
       prerequisites: prerequisites || undefined,
       learning_objectives: learningObjectives || undefined,
+      category_cible: categoryCible,
+      niveau_scolaire: isScolaire ? niveauScolaire || undefined : undefined,
     });
   };
 
@@ -528,9 +554,14 @@ function CourseFormModal({ open, onClose, onSubmit, loading }: {
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray mb-1.5">{t("admin.courses.modal.create.categoryLabel")}</label>
-            <input value={category} onChange={e => setCategory(e.target.value)}
-              className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5 focus:outline-none" placeholder={t("admin.courses.modal.create.categoryPlaceholder")} />
+            <label className="block text-sm font-medium text-gray mb-1.5">Type de formation *</label>
+            <select value={categoryCible} onChange={e => setCategoryCible(e.target.value)}
+              disabled={isTeacher}
+              className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5 focus:outline-none disabled:opacity-50 disabled:bg-gray-100">
+              <option value="Scolaire">Scolaire</option>
+              <option value="Soft_Skill">Soft Skill</option>
+              <option value="Teacher_Training">Teacher Training</option>
+            </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray mb-1.5">{t("admin.courses.modal.create.levelLabel")}</label>
@@ -542,6 +573,30 @@ function CourseFormModal({ open, onClose, onSubmit, loading }: {
             </select>
           </div>
         </div>
+        {isScolaire && (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray mb-1.5">Niveau scolaire *</label>
+              <input value={niveauScolaire} onChange={e => setNiveauScolaire(e.target.value)}
+                className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5 focus:outline-none"
+                placeholder="Ex: 3ème année secondaire" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray mb-1.5">Matière (catégorie) *</label>
+              {matieres.length > 0 ? (
+                <select value={category} onChange={e => setCategory(e.target.value)}
+                  className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5 focus:outline-none">
+                  <option value="">-- Choisir une matière --</option>
+                  {matieres.map(m => <option key={m.id} value={m.nom}>{m.nom}</option>)}
+                </select>
+              ) : (
+                <input value={category} onChange={e => setCategory(e.target.value)}
+                  className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5 focus:outline-none"
+                  placeholder="Ex: Mathématiques" />
+              )}
+            </div>
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray mb-1.5">{t("admin.courses.modal.create.visibilityLabel")}</label>

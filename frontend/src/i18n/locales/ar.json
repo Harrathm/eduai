@@ -386,7 +386,9 @@
           "btnCancel": "إلغاء",
           "btnCreate": "إنشاء",
           "validation": {
-            "titleRequired": "العنوان مطلوب"
+            "titleRequired": "العنوان مطلوب",
+            "niveauRequired": "المستوى الدراسي مطلوب لدروس المدرسة",
+            "categoryRequired": "المادة (الفئة) مطلوبة لدروس المدرسة"
           }
         }
       }

@@ -386,7 +386,9 @@
           "btnCancel": "Annuler",
           "btnCreate": "Créer",
           "validation": {
-            "titleRequired": "Le titre est obligatoire"
+            "titleRequired": "Le titre est obligatoire",
+            "niveauRequired": "Le niveau scolaire est obligatoire pour les cours Scolaire",
+            "categoryRequired": "La matière (catégorie) est obligatoire pour les cours Scolaire"
           }
         }
       }

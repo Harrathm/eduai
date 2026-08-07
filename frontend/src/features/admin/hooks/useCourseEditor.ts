@@ -116,6 +116,9 @@ export function useCourseEditor(courseId: string | undefined) {
         tags: tagsArray,
         language: course.language,
         max_students: course.max_students,
+        category_cible: course.category_cible || "Scolaire",
+        niveau_scolaire: course.niveau_scolaire || null,
+        tag_pack_requis: course.tag_pack_requis || "Basic",
       });
       showToast("Cours enregistré avec succès");
     } catch (e: any) {
