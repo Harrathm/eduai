@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { inboxApi } from "../../../api";
-import { PageWrapper } from "../../../components/ui";
+import { Button, Modal, EmptyState, PageWrapper } from "../../../components/ui";
 import { Inbox } from "lucide-react";
 
 interface InboxMessage {
@@ -75,22 +75,20 @@ export default function InboxPage() {
       icon={<Inbox className="w-8 h-8" />}
       actions={
         <div className="flex gap-2">
-          <button
+          <Button
+            variant={filter === "all" ? "ghost" : "secondary"}
+            size="sm"
             onClick={() => setFilter("all")}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-              filter === "all" ? "bg-white text-navy" : "bg-white/20 text-white hover:bg-white/30"
-            }`}
           >
             {t('inbox.all')}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={filter === "unread" ? "ghost" : "secondary"}
+            size="sm"
             onClick={() => setFilter("unread")}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-              filter === "unread" ? "bg-white text-navy" : "bg-white/20 text-white hover:bg-white/30"
-            }`}
           >
             {t('inbox.unread')} {unreadCount > 0 && `(${unreadCount})`}
-          </button>
+          </Button>
         </div>
       }
     >
@@ -99,12 +97,10 @@ export default function InboxPage() {
         {loading ? (
           <div className="p-12 text-center text-gray">{t('inbox.loading')}</div>
         ) : messages.length === 0 ? (
-          <div className="p-12 text-center text-gray">
-            <svg className="w-12 h-12 mx-auto mb-4 text-gray/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-            </svg>
-            {t('inbox.noMessages')}
-          </div>
+          <EmptyState
+            icon={<Inbox className="w-12 h-12" />}
+            title={t('inbox.noMessages')}
+          />
         ) : (
           <div className="divide-y divide-black/5">
             {messages.map((msg) => (
@@ -146,30 +142,23 @@ export default function InboxPage() {
       </div>
 
       {/* Message detail modal */}
-      {selected && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setSelected(null)}>
-          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[80vh] overflow-y-auto p-8" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-navy">{selected.subject}</h3>
-              <button onClick={() => setSelected(null)} className="text-gray hover:text-navy">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="flex items-center gap-3 mb-4 pb-4 border-b border-black/5">
-              <div className="w-8 h-8 rounded-full bg-navy/10 flex items-center justify-center text-navy text-xs font-bold">
-                {selected.sender_name?.charAt(0) || "A"}
-              </div>
-              <div>
-                <p className="text-sm font-medium text-navy">{selected.sender_name}</p>
-                <p className="text-xs text-gray">{formatDate(selected.created_at)}</p>
-              </div>
-            </div>
-            <p className="text-sm text-navy/80 leading-relaxed whitespace-pre-wrap">{selected.body}</p>
+      <Modal
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        title={selected?.subject}
+        maxWidth="max-w-lg"
+      >
+        <div className="flex items-center gap-3 mb-4 pb-4 border-b border-black/5">
+          <div className="w-8 h-8 rounded-full bg-navy/10 flex items-center justify-center text-navy text-xs font-bold">
+            {selected?.sender_name?.charAt(0) || "A"}
+          </div>
+          <div>
+            <p className="text-sm font-medium text-navy">{selected?.sender_name}</p>
+            <p className="text-xs text-gray">{selected && formatDate(selected.created_at)}</p>
           </div>
         </div>
-      )}
+        <p className="text-sm text-navy/80 leading-relaxed whitespace-pre-wrap">{selected?.body}</p>
+      </Modal>
     </PageWrapper>
   );
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { api, userApi } from "../../../api";
+import { Button, Modal, EmptyState, PageSpinner } from "../../../components/ui";
 import { 
   Send, 
   Inbox, 
@@ -139,13 +140,15 @@ export default function AdminInboxView() {
             </h1>
             <p className="text-gray mt-2">Envoyez des messages et notifications</p>
           </div>
-          <button
+          <Button
             onClick={() => setShowComposeModal(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange to-orange-l text-white rounded-xl font-medium"
+            variant="primary"
+            size="lg"
+            className="flex items-center gap-2"
           >
             <SendIcon className="w-5 h-5" />
             Nouveau Message
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -170,34 +173,31 @@ export default function AdminInboxView() {
       {/* Tabs */}
       <div className="bg-white rounded-2xl shadow-sm border border-black/5 overflow-hidden">
         <div className="flex border-b">
-          <button
+          <Button
             onClick={() => setActiveTab("inbox")}
-            className={`flex-1 px-6 py-4 text-sm font-medium transition-colors ${
+            variant="ghost"
+            className={`flex-1 px-6 py-4 text-sm font-medium transition-colors rounded-none ${
               activeTab === "inbox" ? "text-orange border-b-2 border-orange" : "text-gray hover:text-navy"
             }`}
           >
             Inbox
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => setActiveTab("sent")}
-            className={`flex-1 px-6 py-4 text-sm font-medium transition-colors ${
+            variant="ghost"
+            className={`flex-1 px-6 py-4 text-sm font-medium transition-colors rounded-none ${
               activeTab === "sent" ? "text-orange border-b-2 border-orange" : "text-gray hover:text-navy"
             }`}
           >
             Envoyés
-          </button>
+          </Button>
         </div>
 
         <div className="p-6">
           {loading ? (
-            <div className="text-center py-8">
-              <Loader2 className="w-8 h-8 mx-auto animate-spin text-orange" />
-            </div>
+            <PageSpinner />
           ) : messages.length === 0 ? (
-            <div className="text-center py-12 text-gray">
-              <Inbox className="w-16 h-16 mx-auto mb-4 opacity-20" />
-              <p>Aucun message</p>
-            </div>
+            <EmptyState icon={Inbox} message="Aucun message" />
           ) : (
             <div className="space-y-4">
               {messages.map((msg) => (
@@ -225,12 +225,14 @@ export default function AdminInboxView() {
                         </div>
                       </div>
                     </div>
-                    <button
+                    <Button
                       onClick={() => deleteMessage(msg.id)}
-                      className="p-2 hover:bg-red-100 text-red-600 rounded-lg"
+                      variant="danger"
+                      size="sm"
+                      className="p-2"
                     >
                       <Trash2 className="w-4 h-4" />
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -240,136 +242,133 @@ export default function AdminInboxView() {
       </div>
 
       {/* Compose Modal */}
-      {showComposeModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-            <div className="p-8">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-semibold text-navy">Nouveau Message</h2>
-                <button onClick={() => setShowComposeModal(false)} className="p-2 hover:bg-cream rounded-lg">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray mb-3">Type</label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <button
-                      onClick={() => setComposeType("broadcast")}
-                      className={`p-4 rounded-xl text-center ${
-                        composeType === "broadcast" ? "bg-purple-100 border-2 border-purple-500" : "bg-cream-m"
-                      }`}
-                    >
-                      <Megaphone className="w-6 h-6 mx-auto text-purple-600 mb-2" />
-                      <div className="text-sm font-medium">Broadcast</div>
-                    </button>
-                    <button
-                      onClick={() => setComposeType("direct")}
-                      className={`p-4 rounded-xl text-center ${
-                        composeType === "direct" ? "bg-blue-100 border-2 border-blue-500" : "bg-cream-m"
-                      }`}
-                    >
-                      <User className="w-6 h-6 mx-auto text-blue-600 mb-2" />
-                      <div className="text-sm font-medium">Direct</div>
-                    </button>
-                  </div>
-                </div>
-
-                {composeType === "broadcast" && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray mb-2">Destinataires</label>
-                    <select
-                      value={composeForm.targetRole}
-                      onChange={(e) => setComposeForm({ ...composeForm, targetRole: e.target.value })}
-                      className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5"
-                    >
-                      <option value="all">Tous les utilisateurs</option>
-                      <option value="teacher">Tous les teachers</option>
-                      <option value="student">Tous les students</option>
-                    </select>
-                  </div>
-                )}
-
-                {composeType === "direct" && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray mb-2">Destinataire</label>
-                    <div className="relative">
-                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray" />
-                      <input
-                        type="text"
-                        value={searchUser}
-                        onChange={(e) => setSearchUser(e.target.value)}
-                        className="w-full ps-12 pe-4 py-3 bg-cream-m rounded-xl border border-black/5"
-                        placeholder="Rechercher..."
-                      />
-                    </div>
-                    {searchUser && (
-                      <div className="mt-2 max-h-40 overflow-y-auto bg-white border rounded-xl">
-                        {filteredUsers.slice(0, 5).map((u) => (
-                          <button
-                            key={u.id}
-                            onClick={() => { setSelectedUser(u); setSearchUser(""); }}
-                            className="w-full px-4 py-2 text-start hover:bg-cream"
-                          >
-                            <div className="font-medium">{u.full_name}</div>
-                            <div className="text-xs text-gray">{u.role}</div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {selectedUser && (
-                      <div className="mt-2 flex items-center gap-2 p-2 bg-green-50 rounded-xl">
-                        <CheckCircle className="w-4 h-4 text-green-600" />
-                        <span className="text-sm">{selectedUser.full_name}</span>
-                        <button onClick={() => setSelectedUser(null)} className="ml-auto text-gray">
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-sm font-medium text-gray mb-2">Sujet</label>
-                  <input
-                    type="text"
-                    value={composeForm.title}
-                    onChange={(e) => setComposeForm({ ...composeForm, title: e.target.value })}
-                    className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5"
-                    placeholder="Sujet..."
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray mb-2">Message</label>
-                  <textarea
-                    value={composeForm.content}
-                    onChange={(e) => setComposeForm({ ...composeForm, content: e.target.value })}
-                    className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5 min-h-[150px]"
-                    placeholder="Message..."
-                  />
-                </div>
-
-                <button
-                  onClick={sendMessage}
-                  disabled={sending || !composeForm.title || !composeForm.content || (composeType === "direct" && !selectedUser)}
-                  className="w-full py-4 bg-gradient-to-r from-orange to-orange-l text-white rounded-xl font-medium disabled:opacity-50"
-                >
-                  {sending ? "Envoi..." : "Envoyer"}
-                </button>
-                {sendResult && (
-                  <div className={`p-4 rounded-xl text-center ${
-                    sendResult.success ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                  }`}>
-                    {sendResult.message}
-                  </div>
-                )}
-              </div>
+      <Modal
+        open={showComposeModal}
+        onClose={() => setShowComposeModal(false)}
+        title="Nouveau Message"
+        maxWidth="max-w-2xl"
+      >
+        <div className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray mb-3">Type</label>
+            <div className="grid grid-cols-2 gap-4">
+              <Button
+                onClick={() => setComposeType("broadcast")}
+                variant="ghost"
+                className={`p-4 rounded-xl text-center ${
+                  composeType === "broadcast" ? "bg-purple-100 border-2 border-purple-500" : "bg-cream-m"
+                }`}
+              >
+                <Megaphone className="w-6 h-6 mx-auto text-purple-600 mb-2" />
+                <div className="text-sm font-medium">Broadcast</div>
+              </Button>
+              <Button
+                onClick={() => setComposeType("direct")}
+                variant="ghost"
+                className={`p-4 rounded-xl text-center ${
+                  composeType === "direct" ? "bg-blue-100 border-2 border-blue-500" : "bg-cream-m"
+                }`}
+              >
+                <User className="w-6 h-6 mx-auto text-blue-600 mb-2" />
+                <div className="text-sm font-medium">Direct</div>
+              </Button>
             </div>
           </div>
+
+          {composeType === "broadcast" && (
+            <div>
+              <label className="block text-sm font-medium text-gray mb-2">Destinataires</label>
+              <select
+                value={composeForm.targetRole}
+                onChange={(e) => setComposeForm({ ...composeForm, targetRole: e.target.value })}
+                className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5"
+              >
+                <option value="all">Tous les utilisateurs</option>
+                <option value="teacher">Tous les teachers</option>
+                <option value="student">Tous les students</option>
+              </select>
+            </div>
+          )}
+
+          {composeType === "direct" && (
+            <div>
+              <label className="block text-sm font-medium text-gray mb-2">Destinataire</label>
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray" />
+                <input
+                  type="text"
+                  value={searchUser}
+                  onChange={(e) => setSearchUser(e.target.value)}
+                  className="w-full ps-12 pe-4 py-3 bg-cream-m rounded-xl border border-black/5"
+                  placeholder="Rechercher..."
+                />
+              </div>
+              {searchUser && (
+                <div className="mt-2 max-h-40 overflow-y-auto bg-white border rounded-xl">
+                  {filteredUsers.slice(0, 5).map((u) => (
+                    <Button
+                      key={u.id}
+                      onClick={() => { setSelectedUser(u); setSearchUser(""); }}
+                      variant="ghost"
+                      className="w-full px-4 py-2 text-start rounded-none first:rounded-t-xl last:rounded-b-xl"
+                    >
+                      <div className="font-medium">{u.full_name}</div>
+                      <div className="text-xs text-gray">{u.role}</div>
+                    </Button>
+                  ))}
+                </div>
+              )}
+              {selectedUser && (
+                <div className="mt-2 flex items-center gap-2 p-2 bg-green-50 rounded-xl">
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  <span className="text-sm">{selectedUser.full_name}</span>
+                  <Button onClick={() => setSelectedUser(null)} variant="ghost" size="sm" className="ml-auto p-1">
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray mb-2">Sujet</label>
+            <input
+              type="text"
+              value={composeForm.title}
+              onChange={(e) => setComposeForm({ ...composeForm, title: e.target.value })}
+              className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5"
+              placeholder="Sujet..."
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray mb-2">Message</label>
+            <textarea
+              value={composeForm.content}
+              onChange={(e) => setComposeForm({ ...composeForm, content: e.target.value })}
+              className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5 min-h-[150px]"
+              placeholder="Message..."
+            />
+          </div>
+
+          <Button
+            onClick={sendMessage}
+            disabled={sending || !composeForm.title || !composeForm.content || (composeType === "direct" && !selectedUser)}
+            variant="primary"
+            loading={sending}
+            className="w-full py-4"
+          >
+            {sending ? "Envoi..." : "Envoyer"}
+          </Button>
+          {sendResult && (
+            <div className={`p-4 rounded-xl text-center ${
+              sendResult.success ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+            }`}>
+              {sendResult.message}
+            </div>
+          )}
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

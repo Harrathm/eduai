@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Search, Coins, Wallet, Ban, CheckCircle, Shield, ShieldCheck, GraduationCap, Users, RefreshCw, Trash2, Pencil, Download, ArrowUp, ArrowDown, Save, X, Plus, BookOpen, Loader2 } from "lucide-react";
 import { AdminTable, KPICard, StatusBadge, ConfirmModal, Modal } from "../components";
+import { Button } from "../../../components/ui";
 import { adminUsers, adminSchools } from "../../../api";
 import type { AdminUser, AdminSchool, PaginatedResponse } from "../../../api";
 
@@ -219,7 +220,7 @@ export default function AdminUsersPage() {
   const users = result?.items || [];
 
   const columns = [
-    { key: "full_name", header: <button onClick={() => handleSort("full_name")} className="flex items-center gap-1">{t("admin.users.table.colUser")} <SortIcon field="full_name" /></button>, render: (u: AdminUser) => (
+    { key: "full_name", header: <Button variant="ghost" size="sm" onClick={() => handleSort("full_name")} className="flex items-center gap-1">{t("admin.users.table.colUser")} <SortIcon field="full_name" /></Button>, render: (u: AdminUser) => (
       <div className="flex items-center gap-3">
         <div className="w-9 h-9 rounded-full bg-gradient-to-r from-orange to-orange-l text-white flex items-center justify-center font-semibold text-xs">
           {u.full_name?.charAt(0) || u.email.charAt(0).toUpperCase()}
@@ -230,7 +231,7 @@ export default function AdminUsersPage() {
         </div>
       </div>
     )},
-    { key: "role", header: <button onClick={() => handleSort("role")} className="flex items-center gap-1">{t("admin.users.table.colRole")} <SortIcon field="role" /></button>, render: (u: AdminUser) => (
+    { key: "role", header: <Button variant="ghost" size="sm" onClick={() => handleSort("role")} className="flex items-center gap-1">{t("admin.users.table.colRole")} <SortIcon field="role" /></Button>, render: (u: AdminUser) => (
       <div className="flex items-center gap-1.5 text-xs font-medium capitalize">
         {ROLE_ICONS[u.role] || ROLE_ICONS.member}
         <span className={u.role === "super_admin" ? "text-orange" : u.role === "pedagogical_admin" ? "text-blue" : u.role === "pedagogical_lead" ? "text-teal" : "text-navy"}>{t(`admin.users.roles.${u.role}`) || u.role}</span>
@@ -238,29 +239,29 @@ export default function AdminUsersPage() {
     )},
     { key: "school", header: t("admin.users.table.colSchool"), render: (u: AdminUser) => <span className="text-sm text-gray">{u.school_name || "—"}</span> },
     { key: "is_active", header: t("admin.users.table.colStatus"), render: (u: AdminUser) => (
-      <button onClick={() => toggleActive(u)} className={`px-2 py-1 text-xs rounded-full font-medium transition-all ${u.is_active ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-gray-100 text-gray-400 hover:bg-gray-200"}`}>
+      <Button variant={u.is_active ? "success" : "ghost"} size="sm" onClick={() => toggleActive(u)}>
         {u.is_active ? t("admin.users.status.active") : t("admin.users.status.inactive")}
-      </button>
+      </Button>
     )},
     { key: "token_balance", header: t("admin.users.table.colTokens"), render: (u: AdminUser) => <span className="font-semibold text-blue-600">{u.token_balance?.toLocaleString("fr-TN")}</span> },
     { key: "dt_balance", header: t("admin.users.table.colBalance"), render: (u: AdminUser) => <span className="font-semibold text-green-600">{u.dt_balance?.toLocaleString("fr-TN")} DT</span> },
-    { key: "created_at", header: <button onClick={() => handleSort("created_at")} className="flex items-center gap-1">{t("admin.users.table.colJoined")} <SortIcon field="created_at" /></button>, render: (u: AdminUser) => (
+    { key: "created_at", header: <Button variant="ghost" size="sm" onClick={() => handleSort("created_at")} className="flex items-center gap-1">{t("admin.users.table.colJoined")} <SortIcon field="created_at" /></Button>, render: (u: AdminUser) => (
       <span className="text-xs text-gray">{new Date(u.created_at).toLocaleDateString("fr-TN")}</span>
     )},
     { key: "actions", header: t("admin.users.table.colActions"), render: (u: AdminUser) => (
       <div className="flex items-center gap-1">
-        <button onClick={() => openEditModal(u)} className="p-1.5 bg-cream-m text-navy rounded-lg hover:bg-cream" title={t("admin.users.btn.edit")}>
+        <Button variant="ghost" size="sm" onClick={() => openEditModal(u)} title={t("admin.users.btn.edit")}>
           <Pencil className="w-4 h-4" />
-        </button>
-        <button onClick={() => setBalanceModal({ user: u, type: "tokens", mode: "add", amount: 0 })} className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100" title={t("admin.users.btn.addTokens")}>
+        </Button>
+        <Button variant="secondary" size="sm" onClick={() => setBalanceModal({ user: u, type: "tokens", mode: "add", amount: 0 })} title={t("admin.users.btn.addTokens")}>
           <Coins className="w-4 h-4" />
-        </button>
-        <button onClick={() => setRoleModal(u)} className="p-1.5 bg-purple-50 text-purple-500 rounded-lg hover:bg-purple-100" title={t("admin.users.btn.changeRole")}>
+        </Button>
+        <Button variant="secondary" size="sm" onClick={() => setRoleModal(u)} title={t("admin.users.btn.changeRole")}>
           <Shield className="w-4 h-4" />
-        </button>
-        <button onClick={() => setDeleteTarget(u)} className="p-1.5 bg-red-50 text-red-400 rounded-lg hover:bg-red-100" title={t("admin.users.btn.delete")}>
+        </Button>
+        <Button variant="danger" size="sm" onClick={() => setDeleteTarget(u)} title={t("admin.users.btn.delete")}>
           <Trash2 className="w-4 h-4" />
-        </button>
+        </Button>
       </div>
     )},
   ];
@@ -273,15 +274,15 @@ export default function AdminUsersPage() {
           <p className="text-gray text-sm mt-1">{result ? t("admin.users.subtitle", { count: result.total }) : t("admin.users.loading")}</p>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={() => setCreateModal(true)} className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange to-orange-l text-white rounded-xl font-medium text-sm hover:shadow-lg transition-shadow">
+          <Button size="md" onClick={() => setCreateModal(true)}>
             <Plus className="w-4 h-4" /> {t("admin.users.btnNew")}
-          </button>
-          <button onClick={() => fetchUsers(true)} className="p-2.5 bg-white rounded-xl shadow-sm border border-black/5 hover:bg-cream">
+          </Button>
+          <Button variant="ghost" size="md" onClick={() => fetchUsers(true)}>
             <RefreshCw className={`w-5 h-5 text-gray ${refreshing ? "animate-spin" : ""}`} />
-          </button>
-          <button onClick={exportCSV} disabled={!users.length} className="flex items-center gap-2 px-4 py-2.5 bg-navy text-white rounded-xl font-medium text-sm hover:bg-navy-m disabled:opacity-50 shadow-sm">
+          </Button>
+          <Button variant="secondary" size="md" onClick={exportCSV} disabled={!users.length}>
             <Download className="w-4 h-4" /> {t("admin.users.btnExport")}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -324,9 +325,9 @@ export default function AdminUsersPage() {
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-2xl p-6 flex flex-col items-center justify-center text-center">
           <p className="text-red-600 mb-4">{error}</p>
-          <button onClick={() => fetchUsers()} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium">
+          <Button variant="danger" size="md" onClick={() => fetchUsers()}>
             {t("admin.users.btn.retry")}
-          </button>
+          </Button>
         </div>
       )}
 
@@ -344,10 +345,10 @@ export default function AdminUsersPage() {
           title={t(`admin.users.balanceModal.${balanceModal.mode === "add" ? "addTitle" : "deductTitle"}.${balanceModal.type}`)}
           footer={
             <>
-              <button onClick={() => setBalanceModal(null)} className="flex-1 py-3 bg-cream-m rounded-xl font-medium">{t("admin.users.balanceModal.btnCancel")}</button>
-              <button onClick={handleBalance} disabled={processing || !balanceModal.amount} className="flex-1 py-3 bg-orange text-white rounded-xl font-medium disabled:opacity-50">
-                {processing ? "..." : t("admin.users.balanceModal.btnConfirm")}
-              </button>
+              <Button variant="ghost" size="md" className="flex-1" onClick={() => setBalanceModal(null)}>{t("admin.users.balanceModal.btnCancel")}</Button>
+              <Button size="md" className="flex-1" onClick={handleBalance} disabled={processing || !balanceModal.amount} loading={processing}>
+                {t("admin.users.balanceModal.btnConfirm")}
+              </Button>
             </>
           }>
           <div className="space-y-4">
@@ -359,18 +360,16 @@ export default function AdminUsersPage() {
             </div>
             <div className="flex gap-2 mb-2">
               {(["tokens", "dt"] as const).map(tp => (
-                <button key={tp} onClick={() => setBalanceModal({ ...balanceModal, type: tp })}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${balanceModal.type === tp ? "bg-orange text-white" : "bg-cream-m text-navy"}`}>
+                <Button key={tp} variant={balanceModal.type === tp ? "primary" : "ghost"} size="md" className="flex-1" onClick={() => setBalanceModal({ ...balanceModal, type: tp })}>
                   {tp === "tokens" ? t("admin.users.balanceModal.tokens") : "DT"}
-                </button>
+                </Button>
               ))}
             </div>
             <div className="flex gap-2 mb-2">
               {(["add", "deduct"] as const).map(m => (
-                <button key={m} onClick={() => setBalanceModal({ ...balanceModal, mode: m })}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${balanceModal.mode === m ? "bg-navy text-white" : "bg-cream-m text-navy"}`}>
+                <Button key={m} variant={balanceModal.mode === m ? "secondary" : "ghost"} size="md" className="flex-1" onClick={() => setBalanceModal({ ...balanceModal, mode: m })}>
                   {t(`admin.users.balanceModal.mode.${m}`)}
-                </button>
+                </Button>
               ))}
             </div>
             <div>
@@ -386,18 +385,17 @@ export default function AdminUsersPage() {
         <Modal open onClose={() => setRoleModal(null)} title={t("admin.users.roleModal.title")}
           footer={
             <>
-              <button onClick={() => setRoleModal(null)} className="flex-1 py-3 bg-cream-m rounded-xl font-medium">{t("admin.users.roleModal.btnCancel")}</button>
-              <button onClick={handleRoleChange} disabled={processing || newRole === roleModal.role} className="flex-1 py-3 bg-orange text-white rounded-xl font-medium disabled:opacity-50">
-                {processing ? "..." : t("admin.users.roleModal.btnSave")}
-              </button>
+              <Button variant="ghost" size="md" className="flex-1" onClick={() => setRoleModal(null)}>{t("admin.users.roleModal.btnCancel")}</Button>
+              <Button size="md" className="flex-1" onClick={handleRoleChange} disabled={processing || newRole === roleModal.role} loading={processing}>
+                {t("admin.users.roleModal.btnSave")}
+              </Button>
             </>
           }>
           <div className="space-y-2">
             {(["student", "teacher", "admin_school", "pedagogical_admin", "pedagogical_lead"] as const).map(r => (
-              <button key={r} onClick={() => setNewRole(r)}
-                className={`w-full p-4 rounded-xl text-start font-medium capitalize transition-all ${newRole === r ? "bg-orange text-white" : "bg-cream-m hover:bg-cream text-navy"}`}>
+              <Button key={r} variant={newRole === r ? "primary" : "ghost"} size="md" className="w-full text-start" onClick={() => setNewRole(r)}>
                 {t(`admin.users.roles.${r}`)}
-              </button>
+              </Button>
             ))}
           </div>
         </Modal>
@@ -407,10 +405,10 @@ export default function AdminUsersPage() {
         <Modal open onClose={() => setEditModal(null)} title={t("admin.users.editModal.title")} size="lg"
           footer={
             <>
-              <button onClick={() => setEditModal(null)} className="flex-1 py-3 bg-cream-m rounded-xl font-medium">{t("admin.users.editModal.btnCancel")}</button>
-              <button onClick={handleEditSave} disabled={processing} className="flex-1 py-3 bg-orange text-white rounded-xl font-medium disabled:opacity-50">
-                {processing ? t("admin.users.editModal.saving") : t("admin.users.editModal.btnSave")}
-              </button>
+              <Button variant="ghost" size="md" className="flex-1" onClick={() => setEditModal(null)}>{t("admin.users.editModal.btnCancel")}</Button>
+              <Button size="md" className="flex-1" onClick={handleEditSave} disabled={processing} loading={processing}>
+                {t("admin.users.editModal.btnSave")}
+              </Button>
             </>
           }>
           <div className="space-y-4">
@@ -470,11 +468,10 @@ export default function AdminUsersPage() {
         <Modal open onClose={() => setCreateModal(false)} title={t("admin.users.createModal.title")} size="lg"
           footer={
             <>
-              <button onClick={() => setCreateModal(false)} className="flex-1 py-3 bg-cream-m rounded-xl font-medium">{t("admin.users.createModal.btnCancel")}</button>
-              <button onClick={handleCreateUser} disabled={creating || !newUserData.email || !newUserData.password}
-                className="flex-1 py-3 bg-orange text-white rounded-xl font-medium disabled:opacity-50">
-                {creating ? t("admin.users.createModal.creating") : t("admin.users.createModal.btnCreate")}
-              </button>
+              <Button variant="ghost" size="md" className="flex-1" onClick={() => setCreateModal(false)}>{t("admin.users.createModal.btnCancel")}</Button>
+              <Button size="md" className="flex-1" onClick={handleCreateUser} disabled={creating || !newUserData.email || !newUserData.password} loading={creating}>
+                {t("admin.users.createModal.btnCreate")}
+              </Button>
             </>
           }>
           <div className="space-y-4">

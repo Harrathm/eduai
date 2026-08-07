@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { courseAdmin, api } from "../../../api";
+import { Button, Modal, EmptyState, PageSpinner } from "../../../components/ui";
 import { 
   Search,
   BookOpen,
@@ -200,17 +201,15 @@ export default function ContentModerationView() {
           </div>
           <div className="flex gap-2">
             {(["all", "pending", "published", "rejected"] as const).map((f) => (
-              <button
+              <Button
                 key={f}
                 onClick={() => setStatusFilter(f)}
-                className={`px-4 py-2 rounded-xl text-sm font-medium capitalize ${
-                  statusFilter === f
-                    ? "bg-orange text-white"
-                    : "bg-cream-m text-gray hover:bg-cream"
-                }`}
+                variant={statusFilter === f ? "primary" : "secondary"}
+                size="sm"
+                className="capitalize"
               >
                 {f}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -235,18 +234,22 @@ export default function ContentModerationView() {
                     <p className="text-sm text-gray line-clamp-1">{course.description}</p>
                   </div>
                   <div className="flex gap-2">
-                    <button
+                    <Button
                       onClick={() => approveCourse(course.id)}
-                      className="flex items-center gap-1 px-4 py-2 bg-green-500 text-white rounded-lg text-sm"
+                      variant="success"
+                      size="sm"
+                      loading={processing}
                     >
                       <CheckCircle className="w-4 h-4" /> Approuver
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => rejectCourse(course.id)}
-                      className="flex items-center gap-1 px-4 py-2 bg-red-500 text-white rounded-lg text-sm"
+                      variant="danger"
+                      size="sm"
+                      loading={processing}
                     >
                       <XCircle className="w-4 h-4" /> Rejeter
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -258,14 +261,9 @@ export default function ContentModerationView() {
       {/* Course List */}
       <div className="space-y-4">
         {loading ? (
-          <div className="bg-white rounded-3xl p-12 text-center">
-            <Loader2 className="w-8 h-8 mx-auto animate-spin text-orange" />
-          </div>
+          <PageSpinner />
         ) : filteredCourses.length === 0 ? (
-          <div className="bg-white rounded-3xl p-12 text-center text-gray">
-            <BookOpen className="w-16 h-16 mx-auto mb-4 opacity-20" />
-            <p className="text-lg">Aucun cours trouvé</p>
-          </div>
+          <EmptyState icon={<BookOpen className="w-16 h-16" />} title="Aucun cours trouvé" />
         ) : (
           filteredCourses.map((course) => (
             <div key={course.id} className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
@@ -302,37 +300,39 @@ export default function ContentModerationView() {
                   <div className="flex gap-2">
                     {course.status === "pending" && (
                       <>
-                        <button onClick={() => approveCourse(course.id)} className="p-2 bg-green-500 text-white rounded-lg">
+                        <Button onClick={() => approveCourse(course.id)} variant="success" size="sm" loading={processing}>
                           <CheckCircle className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => rejectCourse(course.id)} className="p-2 bg-red-500 text-white rounded-lg">
+                        </Button>
+                        <Button onClick={() => rejectCourse(course.id)} variant="danger" size="sm" loading={processing}>
                           <XCircle className="w-4 h-4" />
-                        </button>
+                        </Button>
                       </>
                     )}
-                    <button
+                    <Button
                       onClick={() => toggleVisibility(course.id, course.is_published)}
-                      className={`p-2 rounded-lg ${
-                        course.is_published ? "bg-gray-100 text-gray-600" : "bg-green-100 text-green-600"
-                      }`}
+                      variant="secondary"
+                      size="sm"
                       title={course.is_published ? "Masquer" : "Publier"}
                     >
                       {course.is_published ? <Eye className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
+                    </Button>
                     {course.students_enrolled > 0 && (
-                      <button
+                      <Button
                         onClick={() => viewEnrollments(course)}
-                        className="p-2 bg-blue-100 text-blue-600 rounded-lg"
+                        variant="secondary"
+                        size="sm"
                       >
                         <Users className="w-4 h-4" />
-                      </button>
+                      </Button>
                     )}
-                    <button
+                    <Button
                       onClick={() => deleteCourse(course.id)}
-                      className="p-2 bg-red-100 text-red-600 rounded-lg"
+                      variant="danger"
+                      size="sm"
+                      loading={processing}
                     >
                       <Trash2 className="w-4 h-4" />
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -341,45 +341,30 @@ export default function ContentModerationView() {
         )}
       </div>
 
-      {/* Enrollments Modal */}
-      {showEnrollments && selectedCourse && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-            <div className="p-8">
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <h2 className="text-2xl font-semibold text-navy">Étudiants inscrits</h2>
-                  <p className="text-gray">{selectedCourse.title}</p>
-                </div>
-                <button onClick={() => setShowEnrollments(false)} className="p-2 hover:bg-cream rounded-lg">
-                  <X className="w-5 h-5" />
-                </button>
+      <Modal open={showEnrollments && !!selectedCourse} onClose={() => setShowEnrollments(false)} title="Étudiants inscrits" maxWidth="max-w-2xl">
+        <p className="text-gray mb-4">{selectedCourse?.title}</p>
+        <div className="space-y-3">
+          {enrollments.map((e) => (
+            <div key={e.id} className="flex items-center gap-4 p-4 bg-cream-m rounded-xl">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-orange to-orange-l flex items-center justify-center text-white font-medium">
+                {e.student_name.charAt(0)}
               </div>
-              <div className="space-y-3">
-                {enrollments.map((e) => (
-                  <div key={e.id} className="flex items-center gap-4 p-4 bg-cream-m rounded-xl">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-orange to-orange-l flex items-center justify-center text-white font-medium">
-                      {e.student_name.charAt(0)}
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-medium">{e.student_name}</div>
-                      <div className="text-sm text-gray">{e.student_email}</div>
-                    </div>
-                    <div className="text-end">
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div className="h-full bg-orange rounded-full" style={{ width: `${e.progress}%` }} />
-                        </div>
-                        <span className="text-sm font-medium">{e.progress}%</span>
-                      </div>
-                    </div>
+              <div className="flex-1">
+                <div className="font-medium">{e.student_name}</div>
+                <div className="text-sm text-gray">{e.student_email}</div>
+              </div>
+              <div className="text-end">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-orange rounded-full" style={{ width: `${e.progress}%` }} />
                   </div>
-                ))}
+                  <span className="text-sm font-medium">{e.progress}%</span>
+                </div>
               </div>
             </div>
-          </div>
+          ))}
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { Package, AlertTriangle, CheckCircle, Clock, RefreshCw, ArrowUpCircle, A
 import { useTrimesterReconfiguration } from "../hooks/useTrimesterReconfiguration";
 import { TrimesterReconfigBanner } from "../components/trimester/TrimesterReconfigBanner";
 import { TrimesterInfo } from "../components/trimester/TrimesterInfo";
-import { PageWrapper } from "../../../components/ui";
+import { Button, EmptyState, PageWrapper } from "../../../components/ui";
 
 interface MonPackData {
   current_tier: string;
@@ -169,18 +169,18 @@ export default function StudentPackPage() {
         <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-center gap-3">
           <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0" />
           <p className="text-sm text-red-700">{error}</p>
-          <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-600">
+          <Button variant="ghost" size="sm" onClick={() => setError(null)} className="ml-auto">
             <XCircle className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
       )}
       {successMsg && (
         <div className="bg-green-50 border border-green-200 rounded-2xl p-4 flex items-center gap-3">
           <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
           <p className="text-sm text-green-700">{successMsg}</p>
-          <button onClick={() => setSuccessMsg(null)} className="ml-auto text-green-400 hover:text-green-600">
+          <Button variant="ghost" size="sm" onClick={() => setSuccessMsg(null)} className="ml-auto">
             <XCircle className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
       )}
 
@@ -227,13 +227,14 @@ export default function StudentPackPage() {
               {t('pack.scheduledChangeNote')}
             </p>
           </div>
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={handleCancelScheduled}
             disabled={actionLoading}
-            className="px-3 py-1.5 text-xs font-medium text-blue-600 border border-blue-300 rounded-xl hover:bg-blue-100 disabled:opacity-50"
           >
             {t('pack.cancel')}
-          </button>
+          </Button>
         </div>
       )}
 
@@ -340,21 +341,23 @@ export default function StudentPackPage() {
                           <Clock className="w-3 h-3" /> {t('pack.scheduled')}
                         </span>
                       ) : isUpgrade ? (
-                        <button
+                        <Button
+                          variant="primary"
+                          size="sm"
                           onClick={() => handleChangeTier(pack.id)}
                           disabled={actionLoading}
-                          className="px-3 py-1.5 bg-navy text-white text-xs font-medium rounded-xl hover:bg-navy/90 disabled:opacity-50 flex items-center gap-1"
                         >
                           <ArrowUpCircle className="w-3 h-3" /> {t('pack.upgrade')}
-                        </button>
+                        </Button>
                       ) : isDowngrade ? (
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => handleChangeTier(pack.id)}
                           disabled={actionLoading}
-                          className="px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded-xl hover:bg-gray-200 disabled:opacity-50 flex items-center gap-1"
                         >
                           <ArrowDownCircle className="w-3 h-3" />
-                        </button>
+                        </Button>
                       ) : null}
                     </div>
                   </div>
@@ -363,14 +366,14 @@ export default function StudentPackPage() {
             })}
           </div>
         ) : (
-          <div className="bg-gray-50 rounded-2xl p-8 text-center">
-            <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500">
-              {data?.niveau_scolaire
+          <EmptyState
+            icon={<Package className="w-12 h-12" />}
+            title={
+              data?.niveau_scolaire
                 ? t('pack.noPacksForLevel', { level: data.niveau_scolaire })
-                : t('pack.noPacksAvailable')}
-            </p>
-          </div>
+                : t('pack.noPacksAvailable')
+            }
+          />
         )}
       </div>
 

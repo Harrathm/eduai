@@ -7,6 +7,7 @@ import {
   createElementTexte, createElementVideo,
   type ElementPedagogique, type WorkflowEntry,
 } from "../../../api";
+import { Button, PageSpinner, EmptyState, Modal } from "../../../components/ui";
 
 const STATUT_COLORS: Record<string, string> = {
   brouillon: "bg-gray-100 text-gray-600",
@@ -118,9 +119,9 @@ export default function TeacherElementsPage() {
             </h1>
             <p className="text-gray mt-2">{t('teacher.elements.subtitle')}</p>
         </div>
-        <button onClick={() => setCreateModal(true)} className="flex items-center gap-2 bg-orange text-white px-4 py-2 rounded-xl hover:bg-orange/90">
+        <Button onClick={() => setCreateModal(true)}>
           <Plus size={16} /> {t('teacher.elements.newElement')}
-        </button>
+        </Button>
       </div>
 
       {toast.show && (
@@ -132,20 +133,19 @@ export default function TeacherElementsPage() {
       {/* Filters */}
       <div className="flex gap-2 flex-wrap">
         {["all", "brouillon", "en_review", "publie", "rejete"].map((f) => (
-          <button key={f} onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 rounded-full text-sm ${filter === f ? "bg-navy text-white" : "bg-gray/10 text-gray hover:bg-gray/20"}`}>
+          <Button key={f} variant={filter === f ? "secondary" : "ghost"} size="sm" onClick={() => setFilter(f)}>
             {f === "all" ? t('teacher.elements.filters.all') : f === "brouillon" ? t('teacher.elements.filters.draft') : f === "en_review" ? t('teacher.elements.filters.review') : f === "publie" ? t('teacher.elements.filters.published') : t('teacher.elements.filters.rejected')}
-          </button>
+          </Button>
         ))}
       </div>
 
       {loading ? (
-        <div className="text-center py-20 text-gray">{t('teacher.elements.loading')}</div>
+        <PageSpinner message={t('teacher.elements.loading')} />
       ) : filtered.length === 0 ? (
-        <div className="text-center py-20 text-gray">
-          <Puzzle size={48} className="mx-auto mb-4 opacity-30" />
-          <p>{t('teacher.elements.noResults')}</p>
-        </div>
+        <EmptyState
+          icon={<Puzzle size={48} />}
+          title={t('teacher.elements.noResults')}
+        />
       ) : (
         <div className="grid gap-3">
           {filtered.map((el) => (
@@ -162,19 +162,19 @@ export default function TeacherElementsPage() {
               </div>
               <div className="flex items-center gap-1">
                 {el.statut === "brouillon" && (
-                  <button onClick={() => handleSubmit(el.id)} title={t('teacher.elements.btn.submit')} className="p-2 hover:bg-blue-50 rounded-lg text-blue-600">
+                  <Button variant="secondary" size="sm" onClick={() => handleSubmit(el.id)} title={t('teacher.elements.btn.submit')}>
                     <Send size={14} />
-                  </button>
+                  </Button>
                 )}
-                <button onClick={() => setSubtypeModal({ element: el, type: el.type })} title={t('teacher.elements.btn.addContent')} className="p-2 hover:bg-green-50 rounded-lg text-green-600">
+                <Button variant="ghost" size="sm" onClick={() => setSubtypeModal({ element: el, type: el.type })} title={t('teacher.elements.btn.addContent')}>
                   <Plus size={14} />
-                </button>
-                <button onClick={() => openWorkflow(el)} title="Workflow" className="p-2 hover:bg-gray-100 rounded-lg text-gray">
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => openWorkflow(el)} title="Workflow">
                   <Clock size={14} />
-                </button>
-                <button onClick={() => setEditModal(el)} title={t('teacher.elements.btn.edit')} className="p-2 hover:bg-gray-100 rounded-lg text-gray">
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setEditModal(el)} title={t('teacher.elements.btn.edit')}>
                   <Edit2 size={14} />
-                </button>
+                </Button>
               </div>
             </div>
           ))}
@@ -182,79 +182,59 @@ export default function TeacherElementsPage() {
       )}
 
       {/* Create Modal */}
-      {createModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-navy">{t('teacher.elements.modal.newElement')}</h3>
-              <button onClick={() => setCreateModal(false)} className="p-1 hover:bg-gray/10 rounded"><X size={18} /></button>
-            </div>
-            <div className="space-y-3">
-              <input value={form.titre} onChange={(e) => setForm({ ...form, titre: e.target.value })} placeholder={t('teacher.elements.fields.title')} className="w-full border rounded-xl px-3 py-2 text-sm" />
-              <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="w-full border rounded-xl px-3 py-2 text-sm">
-                <option value="texte">{t('teacher.elements.types.texte')}</option>
-                <option value="video">{t('teacher.elements.types.video')}</option>
-                <option value="image">{t('teacher.elements.types.image')}</option>
-                <option value="quiz">{t('teacher.elements.types.quiz')}</option>
-                <option value="pdf">PDF</option>
-              </select>
-              <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder={t('teacher.elements.fields.description')} className="w-full border rounded-xl px-3 py-2 text-sm" />
-              <input value={form.lecon_id} onChange={(e) => setForm({ ...form, lecon_id: e.target.value })} placeholder={t('teacher.elements.fields.leconId')} type="number" className="w-full border rounded-xl px-3 py-2 text-sm" />
-              <select value={form.difficulte} onChange={(e) => setForm({ ...form, difficulte: e.target.value })} className="w-full border rounded-xl px-3 py-2 text-sm">
-                <option value="facile">{t('teacher.elements.difficulty.facile')}</option>
-                <option value="moyen">{t('teacher.elements.difficulty.moyen')}</option>
-                <option value="difficile">{t('teacher.elements.difficulty.difficile')}</option>
-              </select>
-            </div>
-            <div className="flex gap-2 mt-4 justify-end">
-              <button onClick={() => setCreateModal(false)} className="px-4 py-2 text-sm text-gray hover:bg-gray/10 rounded-xl">{t('teacher.elements.btn.cancel')}</button>
-              <button onClick={handleCreate} className="px-4 py-2 text-sm bg-orange text-white rounded-xl hover:bg-orange/90">{t('teacher.elements.btn.create')}</button>
-            </div>
-          </div>
+      <Modal open={createModal} onClose={() => setCreateModal(false)} title={t('teacher.elements.modal.newElement')}>
+        <div className="space-y-3">
+          <input value={form.titre} onChange={(e) => setForm({ ...form, titre: e.target.value })} placeholder={t('teacher.elements.fields.title')} className="w-full border rounded-xl px-3 py-2 text-sm" />
+          <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="w-full border rounded-xl px-3 py-2 text-sm">
+            <option value="texte">{t('teacher.elements.types.texte')}</option>
+            <option value="video">{t('teacher.elements.types.video')}</option>
+            <option value="image">{t('teacher.elements.types.image')}</option>
+            <option value="quiz">{t('teacher.elements.types.quiz')}</option>
+            <option value="pdf">PDF</option>
+          </select>
+          <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder={t('teacher.elements.fields.description')} className="w-full border rounded-xl px-3 py-2 text-sm" />
+          <input value={form.lecon_id} onChange={(e) => setForm({ ...form, lecon_id: e.target.value })} placeholder={t('teacher.elements.fields.leconId')} type="number" className="w-full border rounded-xl px-3 py-2 text-sm" />
+          <select value={form.difficulte} onChange={(e) => setForm({ ...form, difficulte: e.target.value })} className="w-full border rounded-xl px-3 py-2 text-sm">
+            <option value="facile">{t('teacher.elements.difficulty.facile')}</option>
+            <option value="moyen">{t('teacher.elements.difficulty.moyen')}</option>
+            <option value="difficile">{t('teacher.elements.difficulty.difficile')}</option>
+          </select>
         </div>
-      )}
+        <div className="flex gap-2 mt-4 justify-end">
+          <Button variant="ghost" size="sm" onClick={() => setCreateModal(false)}>{t('teacher.elements.btn.cancel')}</Button>
+          <Button size="sm" onClick={handleCreate}>{t('teacher.elements.btn.create')}</Button>
+        </div>
+      </Modal>
 
       {/* Subtype Modal */}
-      {subtypeModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-navy">{t('teacher.elements.modal.addContent')} {subtypeModal.type}</h3>
-              <button onClick={() => setSubtypeModal(null)} className="p-1 hover:bg-gray/10 rounded"><X size={18} /></button>
-            </div>
-            <div className="space-y-3">
-              {subtypeModal.type === "texte" && (
-                <textarea value={subtypeForm.contenu_html} onChange={(e) => setSubtypeForm({ ...subtypeForm, contenu_html: e.target.value })}
-                  placeholder={t('teacher.elements.fields.contenuHtml')} className="w-full border rounded-xl px-3 py-2 text-sm h-32" />
-              )}
-              {subtypeModal.type === "video" && (
-                <>
-                  <input value={subtypeForm.url} onChange={(e) => setSubtypeForm({ ...subtypeForm, url: e.target.value })}
-                    placeholder={t('teacher.elements.fields.urlVideo')} className="w-full border rounded-xl px-3 py-2 text-sm" />
-                  <input value={subtypeForm.duree_secondes} onChange={(e) => setSubtypeForm({ ...subtypeForm, duree_secondes: e.target.value })}
-                    placeholder={t('teacher.elements.fields.duree')} type="number" className="w-full border rounded-xl px-3 py-2 text-sm" />
-                </>
-              )}
-              {subtypeModal.type === "quiz" && (
-                <p className="text-sm text-gray">{t('teacher.elements.fields.quizSoon')}</p>
-              )}
-            </div>
-            <div className="flex gap-2 mt-4 justify-end">
-              <button onClick={() => setSubtypeModal(null)} className="px-4 py-2 text-sm text-gray hover:bg-gray/10 rounded-xl">{t('teacher.elements.btn.cancel')}</button>
-              <button onClick={handleAddSubtype} className="px-4 py-2 text-sm bg-orange text-white rounded-xl hover:bg-orange/90">{t('teacher.elements.btn.save')}</button>
-            </div>
-          </div>
+      <Modal open={!!subtypeModal} onClose={() => setSubtypeModal(null)} title={subtypeModal ? `${t('teacher.elements.modal.addContent')} ${subtypeModal.type}` : ''}>
+        <div className="space-y-3">
+          {subtypeModal?.type === "texte" && (
+            <textarea value={subtypeForm.contenu_html} onChange={(e) => setSubtypeForm({ ...subtypeForm, contenu_html: e.target.value })}
+              placeholder={t('teacher.elements.fields.contenuHtml')} className="w-full border rounded-xl px-3 py-2 text-sm h-32" />
+          )}
+          {subtypeModal?.type === "video" && (
+            <>
+              <input value={subtypeForm.url} onChange={(e) => setSubtypeForm({ ...subtypeForm, url: e.target.value })}
+                placeholder={t('teacher.elements.fields.urlVideo')} className="w-full border rounded-xl px-3 py-2 text-sm" />
+              <input value={subtypeForm.duree_secondes} onChange={(e) => setSubtypeForm({ ...subtypeForm, duree_secondes: e.target.value })}
+                placeholder={t('teacher.elements.fields.duree')} type="number" className="w-full border rounded-xl px-3 py-2 text-sm" />
+            </>
+          )}
+          {subtypeModal?.type === "quiz" && (
+            <p className="text-sm text-gray">{t('teacher.elements.fields.quizSoon')}</p>
+          )}
         </div>
-      )}
+        <div className="flex gap-2 mt-4 justify-end">
+          <Button variant="ghost" size="sm" onClick={() => setSubtypeModal(null)}>{t('teacher.elements.btn.cancel')}</Button>
+          <Button size="sm" onClick={handleAddSubtype}>{t('teacher.elements.btn.save')}</Button>
+        </div>
+      </Modal>
 
       {/* Workflow Modal */}
-      {workflowModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-navy">{t('teacher.elements.modal.workflow')}: {workflowModal.element.titre}</h3>
-              <button onClick={() => setWorkflowModal(null)} className="p-1 hover:bg-gray/10 rounded"><X size={18} /></button>
-            </div>
+      <Modal open={!!workflowModal} onClose={() => setWorkflowModal(null)} title={workflowModal ? `${t('teacher.elements.modal.workflow')}: ${workflowModal.element.titre}` : ''}>
+        {workflowModal && (
+          <>
             {workflowModal.history.length === 0 ? (
               <p className="text-sm text-gray text-center py-4">{t('teacher.elements.workflow.noTransitions')}</p>
             ) : (
@@ -271,41 +251,33 @@ export default function TeacherElementsPage() {
                 ))}
               </div>
             )}
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
 
       {/* Edit Modal */}
-      {editModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-navy">{t('teacher.elements.modal.edit')}: {editModal.titre}</h3>
-              <button onClick={() => setEditModal(null)} className="p-1 hover:bg-gray/10 rounded"><X size={18} /></button>
-            </div>
-            <div className="space-y-3">
-              <input defaultValue={editModal.titre} onChange={(e) => setForm({ ...form, titre: e.target.value })} placeholder={t('teacher.elements.fields.title')} className="w-full border rounded-xl px-3 py-2 text-sm" />
-              <input defaultValue={editModal.description || ""} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder={t('teacher.elements.fields.description')} className="w-full border rounded-xl px-3 py-2 text-sm" />
-              <select defaultValue={editModal.difficulte} onChange={(e) => setForm({ ...form, difficulte: e.target.value })} className="w-full border rounded-xl px-3 py-2 text-sm">
-                <option value="facile">{t('teacher.elements.difficulty.facile')}</option>
-                <option value="moyen">{t('teacher.elements.difficulty.moyen')}</option>
-                <option value="difficile">{t('teacher.elements.difficulty.difficile')}</option>
-              </select>
-            </div>
-            <div className="flex gap-2 mt-4 justify-end">
-              <button onClick={() => setEditModal(null)} className="px-4 py-2 text-sm text-gray hover:bg-gray/10 rounded-xl">{t('teacher.elements.btn.cancel')}</button>
-              <button onClick={async () => {
-                try {
-                  await updateElement(editModal.id, form);
-                  showToast(t('teacher.elements.toasts.modified'));
-                  setEditModal(null);
-                  load();
-                } catch (e: any) { showToast(e.message, "error"); }
-              }} className="px-4 py-2 text-sm bg-orange text-white rounded-xl hover:bg-orange/90">{t('teacher.elements.btn.save')}</button>
-            </div>
-          </div>
+      <Modal open={!!editModal} onClose={() => setEditModal(null)} title={editModal ? `${t('teacher.elements.modal.edit')}: ${editModal.titre}` : ''}>
+        <div className="space-y-3">
+          <input defaultValue={editModal?.titre} onChange={(e) => setForm({ ...form, titre: e.target.value })} placeholder={t('teacher.elements.fields.title')} className="w-full border rounded-xl px-3 py-2 text-sm" />
+          <input defaultValue={editModal?.description || ""} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder={t('teacher.elements.fields.description')} className="w-full border rounded-xl px-3 py-2 text-sm" />
+          <select defaultValue={editModal?.difficulte} onChange={(e) => setForm({ ...form, difficulte: e.target.value })} className="w-full border rounded-xl px-3 py-2 text-sm">
+            <option value="facile">{t('teacher.elements.difficulty.facile')}</option>
+            <option value="moyen">{t('teacher.elements.difficulty.moyen')}</option>
+            <option value="difficile">{t('teacher.elements.difficulty.difficile')}</option>
+          </select>
         </div>
-      )}
+        <div className="flex gap-2 mt-4 justify-end">
+          <Button variant="ghost" size="sm" onClick={() => setEditModal(null)}>{t('teacher.elements.btn.cancel')}</Button>
+          <Button size="sm" onClick={async () => {
+            try {
+              await updateElement(editModal!.id, form);
+              showToast(t('teacher.elements.toasts.modified'));
+              setEditModal(null);
+              load();
+            } catch (e: any) { showToast(e.message, "error"); }
+          }}>{t('teacher.elements.btn.save')}</Button>
+        </div>
+      </Modal>
     </div>
   );
 }

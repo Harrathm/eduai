@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuthStore } from "../../../store/authStore";
 import { DollarSign, TrendingUp, ShoppingCart, Calendar, RefreshCw } from "lucide-react";
 import { teacherSalesApi } from "../../../api";
+import { Button } from "../../../components/ui";
 
 interface Sale {
   id: number;
@@ -77,13 +78,15 @@ export default function TeacherSalesPage() {
             </h1>
             <p className="text-gray mt-2">{t('teacher.sales.subtitle')}</p>
           </div>
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={fetchSales}
-            disabled={loading}
-            className="p-2 hover:bg-white rounded-xl shadow-sm border border-black/5"
+            loading={loading}
+            className="p-2"
           >
-            <RefreshCw className={`w-5 h-5 text-gray ${loading ? "animate-spin" : ""}`} />
-          </button>
+            {!loading && <RefreshCw className="w-5 h-5 text-gray" />}
+          </Button>
         </div>
       </div>
 

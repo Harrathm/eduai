@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from 'react-i18next';
-import { CheckCircle, XCircle, Clock, AlertTriangle, Eye } from "lucide-react";
+import { CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { useAuthStore } from "../../../store/authStore";
 import { pathwayResponsables, pathwayContenus } from "../../../api";
+import { Button, Modal, PageSpinner, EmptyState } from "../../../components/ui";
 
 interface ContenuItem {
   id: number;
@@ -128,36 +129,30 @@ export default function TeacherValidationContenuPage() {
       {/* Filters */}
       <div className="flex gap-2">
         {(["all", "en_attente", "valide", "rejete"] as const).map(f => (
-          <button
+          <Button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-              filter === f
-                ? "bg-navy text-white"
-                : "bg-white text-gray border border-black/5 hover:bg-gray-50"
-            }`}
+            variant={filter === f ? "secondary" : "ghost"}
+            size="md"
           >
             {f === "all" ? t('teacher.validation.filters.all') : f === "en_attente" ? t('teacher.validation.filters.pending') : f === "valide" ? t('teacher.validation.filters.validated') : t('teacher.validation.filters.rejected')}
-          </button>
+          </Button>
         ))}
       </div>
 
       {/* Contenus */}
       {loading ? (
-        <div className="text-center py-12 text-gray">Chargement...</div>
+        <PageSpinner />
       ) : error ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-black/5 p-12 text-center">
-          <Eye className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray">{error}</p>
-        </div>
+        <EmptyState
+          title={error}
+          description={error}
+        />
       ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-black/5 p-12 text-center">
-          <Eye className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray">Aucun contenu à afficher</p>
-          <p className="text-gray text-sm mt-1">
-            {filter === "all" ? "Vous n'avez aucun contenu dans votre périmètre" : `Aucun contenu "${filter}"`}
-          </p>
-        </div>
+        <EmptyState
+          title="Aucun contenu à afficher"
+          description={filter === "all" ? "Vous n'avez aucun contenu dans votre périmètre" : `Aucun contenu "${filter}"`}
+        />
       ) : (
         <div className="bg-white rounded-2xl shadow-sm border border-black/5 overflow-hidden">
           <div className="px-6 py-4 bg-gray-50 border-b border-black/5">
@@ -182,20 +177,22 @@ export default function TeacherValidationContenuPage() {
                 <div>{statusBadge(c.statut_validation_pedagogique)}</div>
                 <div className="flex justify-end gap-2">
                   {c.statut_validation_pedagogique !== "valide" && (
-                    <button
+                    <Button
                       onClick={() => handleValider(c.id)}
-                      className="px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors"
+                      variant="success"
+                      size="sm"
                     >
                       <CheckCircle className="w-3.5 h-3.5" /> Valider
-                    </button>
+                    </Button>
                   )}
                   {c.statut_validation_pedagogique !== "rejete" && (
-                    <button
+                    <Button
                       onClick={() => setRejectModal({ contenuId: c.id, contenuNom: `Contenu #${c.id}` })}
-                      className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors"
+                      variant="danger"
+                      size="sm"
                     >
                       <XCircle className="w-3.5 h-3.5" /> Rejeter
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>
@@ -205,45 +202,49 @@ export default function TeacherValidationContenuPage() {
       )}
 
       {/* Reject Modal */}
-      {rejectModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="w-5 h-5 text-red-500" />
-              <h2 className="text-lg font-semibold text-navy font-display">Rejeter le contenu</h2>
-            </div>
-            <p className="text-sm text-gray">
-              Rejeter le contenu <span className="font-medium text-navy">{rejectModal.contenuNom}</span> ?
-              Le contenu repassera en statut "À valider".
-            </p>
-            <div>
-              <label className="text-sm font-medium text-gray block mb-1">Commentaire de rejet (obligatoire)</label>
-              <textarea
-                value={commentaire}
-                onChange={e => setCommentaire(e.target.value)}
-                placeholder="Expliquez la raison du rejet..."
-                rows={3}
-                className="w-full px-4 py-2.5 bg-cream-m rounded-xl border border-black/5 text-sm focus:border-orange focus:outline-none resize-none"
-              />
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                onClick={() => { setRejectModal(null); setCommentaire(""); }}
-                className="px-4 py-2 text-gray border border-black/10 rounded-xl text-sm hover:bg-gray-50"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleRejeter}
-                disabled={!commentaire.trim()}
-                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Rejeter
-              </button>
-            </div>
+      <Modal
+        open={!!rejectModal}
+        onClose={() => { setRejectModal(null); setCommentaire(""); }}
+        title="Rejeter le contenu"
+        maxWidth="max-w-md"
+      >
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-red-500" />
+          </div>
+          <p className="text-sm text-gray">
+            Rejeter le contenu <span className="font-medium text-navy">{rejectModal?.contenuNom}</span> ?
+            Le contenu repassera en statut "À valider".
+          </p>
+          <div>
+            <label className="text-sm font-medium text-gray block mb-1">Commentaire de rejet (obligatoire)</label>
+            <textarea
+              value={commentaire}
+              onChange={e => setCommentaire(e.target.value)}
+              placeholder="Expliquez la raison du rejet..."
+              rows={3}
+              className="w-full px-4 py-2.5 bg-cream-m rounded-xl border border-black/5 text-sm focus:border-orange focus:outline-none resize-none"
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              onClick={() => { setRejectModal(null); setCommentaire(""); }}
+              variant="ghost"
+              size="md"
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={handleRejeter}
+              disabled={!commentaire.trim()}
+              variant="danger"
+              size="md"
+            >
+              Rejeter
+            </Button>
           </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

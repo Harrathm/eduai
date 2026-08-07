@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from "../../../store/authStore";
 import { aiApi } from "../../../api";
-import { Sparkles, BookOpen, FileText, Clock, Zap, Send, Coins, Loader2 } from "lucide-react";
+import { Sparkles, BookOpen, FileText, Clock, Zap, Send, Coins } from "lucide-react";
 import { conversationApi } from "../../../api";
+import { Button, Spinner } from "../../../components/ui";
 const { exportMessagePdf, exportMessageDocx } = conversationApi;
 
 const SUBJECTS = [
@@ -155,18 +156,16 @@ export default function TeacherAIStudio() {
             </h2>
             <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
               {CONTENT_TYPES.map((type) => (
-                <button
+                <Button
                   key={type.id}
                   onClick={() => setSelectedType(type.id)}
-                  className={`p-4 rounded-xl text-center transition-all ${
-                    selectedType === type.id
-                      ? "bg-orange text-white"
-                      : "bg-cream-m hover:bg-cream text-gray"
-                  }`}
+                  variant={selectedType === type.id ? "primary" : "ghost"}
+                  size="md"
+                  className="p-4 rounded-xl text-center transition-all"
                 >
                   <div className="text-2xl mb-1">{type.icon}</div>
                   <div className="text-sm font-medium">{type.label}</div>
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -240,14 +239,17 @@ export default function TeacherAIStudio() {
               <p className="text-sm text-gray">
                 {t('teacher.aiStudio.estimatedCost')}
               </p>
-              <button
+              <Button
                 onClick={generateContent}
                 disabled={generating || !prompt}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange to-orange-l text-white rounded-xl font-medium disabled:opacity-50"
+                variant="primary"
+                size="md"
+                loading={generating}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl font-medium"
               >
                 <Zap className="w-5 h-5" />
                 {generating ? t('teacher.aiStudio.generating') : t('teacher.aiStudio.generate')}
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -257,38 +259,46 @@ export default function TeacherAIStudio() {
               <div className="bg-navy p-4 flex justify-between items-center">
                 <h3 className="text-white font-semibold">{t('teacher.aiStudio.result')}</h3>
                 <div className="flex items-center gap-2">
-                  <button
+                  <Button
                     onClick={() => handleExport("pdf")}
                     disabled={exporting === "pdf"}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm transition-colors disabled:opacity-50"
+                    variant="ghost"
+                    size="sm"
+                    loading={exporting === "pdf"}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-white rounded-lg text-sm transition-colors"
                   >
                     {exporting === "pdf" ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <Spinner className="w-3.5 h-3.5" />
                     ) : (
                       <FileText className="w-3.5 h-3.5" />
                     )}
                     PDF
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={() => handleExport("docx")}
                     disabled={exporting === "docx"}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm transition-colors disabled:opacity-50"
+                    variant="ghost"
+                    size="sm"
+                    loading={exporting === "docx"}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-white rounded-lg text-sm transition-colors"
                   >
                     {exporting === "docx" ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <Spinner className="w-3.5 h-3.5" />
                     ) : (
                       <FileText className="w-3.5 h-3.5" />
                     )}
                     DOCX
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={() => {
                       if (result) navigator.clipboard.writeText(result);
                     }}
+                    variant="ghost"
+                    size="sm"
                     className="text-white/70 hover:text-white text-sm ms-2"
                   >
                     {t('teacher.aiStudio.copy')}
-                  </button>
+                  </Button>
                 </div>
               </div>
               <div className="p-6 prose max-w-none">
@@ -333,13 +343,15 @@ export default function TeacherAIStudio() {
             <h3 className="text-white font-semibold mb-4">{t('teacher.aiStudio.quickGenerations')}</h3>
             <div className="space-y-2">
               {[t('teacher.aiStudio.quickActions.exam'), t('teacher.aiStudio.quickActions.lesson'), t('teacher.aiStudio.quickActions.outline')].map((q) => (
-                <button
+                <Button
                   key={q}
                   onClick={() => setPrompt(q)}
-                  className="w-full p-3 bg-white/10 text-white text-start rounded-xl text-sm hover:bg-white/20 transition-colors"
+                  variant="ghost"
+                  size="sm"
+                  className="w-full p-3 text-white text-start rounded-xl text-sm transition-colors"
                 >
                   {q}
-                </button>
+                </Button>
               ))}
             </div>
           </div>

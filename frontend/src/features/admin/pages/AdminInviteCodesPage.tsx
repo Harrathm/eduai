@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Search, Copy, RefreshCw, Check, Key, Building2 } from "lucide-react";
+import { Button, EmptyState, PageSpinner } from "../../../components/ui";
 import { adminSchools } from "../../../api";
 import type { AdminSchool, PaginatedResponse } from "../../../api";
 
@@ -133,9 +134,11 @@ export default function AdminInviteCodesPage() {
                       <code className="px-3 py-1.5 bg-navy/5 rounded-lg text-sm font-mono text-navy select-all">
                         {school.invite_code}
                       </code>
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => handleCopy(school.invite_code!, school.id)}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                        className="p-1.5 rounded-lg transition-colors"
                         title="Copier"
                       >
                         {copiedId === school.id ? (
@@ -143,21 +146,24 @@ export default function AdminInviteCodesPage() {
                         ) : (
                           <Copy className="w-4 h-4 text-gray" />
                         )}
-                      </button>
+                      </Button>
                     </div>
                   ) : (
                     <span className="text-xs text-gray italic">Aucun code</span>
                   )}
                 </td>
                 <td className="px-6 py-4 text-end">
-                  <button
+                  <Button
+                    variant="primary"
+                    size="sm"
                     onClick={() => handleRegenerate(school.id, school.name)}
                     disabled={regeneratingId === school.id}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-orange bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors disabled:opacity-50 ms-auto"
+                    loading={regeneratingId === school.id}
+                    className="flex items-center gap-1.5 ms-auto"
                   >
-                    <RefreshCw className={`w-3.5 h-3.5 ${regeneratingId === school.id ? "animate-spin" : ""}`} />
+                    <RefreshCw className="w-3.5 h-3.5" />
                     Régénérer
-                  </button>
+                  </Button>
                 </td>
               </tr>
             ))}

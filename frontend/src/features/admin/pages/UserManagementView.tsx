@@ -152,16 +152,16 @@ export default function UserManagementView() {
                     <td className="px-6 py-4 text-end font-medium text-yellow-700">{formatCurrency(user.dt_balance || 0)}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1">
-                        <button onClick={() => setBalanceModal({ user, type: "tokens", mode: "add", amount: 0 })} className="p-2 bg-orange/10 text-orange rounded-lg hover:bg-orange/20" title="Ajouter Tokens"><Coins className="w-4 h-4" /></button>
-                        <button onClick={() => setBalanceModal({ user, type: "tokens", mode: "deduct", amount: 0 })} className="p-2 bg-orange/10 text-orange rounded-lg hover:bg-orange/20" title="Retirer Tokens"><Minus className="w-4 h-4" /></button>
-                        <button onClick={() => setBalanceModal({ user, type: "dt", mode: "add", amount: 0 })} className="p-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200" title="Ajouter DT"><Wallet className="w-4 h-4" /></button>
-                        <button onClick={() => setBalanceModal({ user, type: "dt", mode: "deduct", amount: 0 })} className="p-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200" title="Retirer DT"><Minus className="w-4 h-4" /></button>
-                        <button onClick={() => { setEditRoleModal(user); setNewRole(user.role); }} className="p-2 bg-purple-10 text-purple-600 rounded-lg hover:bg-purple/20" title="Changer rôle"><Shield className="w-4 h-4" /></button>
-                        <button onClick={() => toggleUserStatus(user.id, user.is_active)} className={`p-2 rounded-lg ${user.is_active ? "bg-red-100 text-red-600 hover:bg-red-200" : "bg-green-100 text-green-600 hover:bg-green-200"}`} title={user.is_active ? "Suspendre" : "Activer"}>
+                        <Button variant="ghost" size="sm" onClick={() => setBalanceModal({ user, type: "tokens", mode: "add", amount: 0 })} title="Ajouter Tokens"><Coins className="w-4 h-4" /></Button>
+                        <Button variant="ghost" size="sm" onClick={() => setBalanceModal({ user, type: "tokens", mode: "deduct", amount: 0 })} title="Retirer Tokens"><Minus className="w-4 h-4" /></Button>
+                        <Button variant="ghost" size="sm" onClick={() => setBalanceModal({ user, type: "dt", mode: "add", amount: 0 })} title="Ajouter DT"><Wallet className="w-4 h-4" /></Button>
+                        <Button variant="ghost" size="sm" onClick={() => setBalanceModal({ user, type: "dt", mode: "deduct", amount: 0 })} title="Retirer DT"><Minus className="w-4 h-4" /></Button>
+                        <Button variant="ghost" size="sm" onClick={() => { setEditRoleModal(user); setNewRole(user.role); }} title="Changer rôle"><Shield className="w-4 h-4" /></Button>
+                        <Button variant={user.is_active ? "danger" : "success"} size="sm" onClick={() => toggleUserStatus(user.id, user.is_active)} title={user.is_active ? "Suspendre" : "Activer"}>
                           {user.is_active ? <Ban className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
-                        </button>
+                        </Button>
                         {user.role === "teacher" && !user.is_approved && (
-                          <button onClick={() => approveTeacher(user.id)} className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200" title="Approuver"><CheckCircle className="w-4 h-4" /></button>
+                          <Button variant="success" size="sm" onClick={() => approveTeacher(user.id)} title="Approuver"><CheckCircle className="w-4 h-4" /></Button>
                         )}
                       </div>
                     </td>
@@ -206,10 +206,12 @@ export default function UserManagementView() {
           <>
             <div className="space-y-3">
               {(["student", "teacher", "admin_school", "pedagogical_admin", "pedagogical_lead"] as const).map((role) => (
-                <button
+                <Button
                   key={role}
+                  variant={newRole === role ? "primary" : "ghost"}
+                  size="md"
                   onClick={() => setNewRole(role)}
-                  className={`w-full p-4 rounded-xl text-start transition-all ${newRole === role ? "bg-orange text-white" : "bg-cream-m hover:bg-cream"}`}
+                  className="w-full text-start"
                 >
                   <div className="flex items-center gap-3">
                     {role === "student" && <GraduationCap className="w-5 h-5" />}
@@ -218,7 +220,7 @@ export default function UserManagementView() {
                     {(role === "pedagogical_admin" || role === "pedagogical_lead") && <BookOpen className="w-5 h-5" />}
                     <span className="font-medium capitalize">{role === "admin_school" ? "Admin École" : role === "pedagogical_admin" ? "Resp. Pédago. (Plateforme)" : role === "pedagogical_lead" ? "Resp. Pédago. (École)" : role}</span>
                   </div>
-                </button>
+                </Button>
               ))}
             </div>
             <div className="flex gap-4 mt-6">

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Plus, Trash2, Users, BookOpen } from "lucide-react";
+import { Button, Modal, EmptyState } from "../../../components/ui";
 import { pathwayMatieres, pathwaySpecialites, pathwayResponsables } from "../../../api";
 
 interface Specialite {
@@ -99,22 +100,19 @@ export default function AdminSpecialitesPedagogiquesPage() {
           </h1>
           <p className="text-gray text-sm mt-1">Gérer les spécialités et assigner les responsables</p>
         </div>
-        <button
+        <Button
+          variant="primary"
           onClick={() => setShowCreate(true)}
-          className="px-4 py-2 bg-gradient-to-r from-orange to-orange-l text-white rounded-xl text-sm font-medium flex items-center gap-2"
+          className="flex items-center gap-2"
         >
           <Plus className="w-4 h-4" /> Nouvelle Spécialité
-        </button>
+        </Button>
       </div>
 
       {loading ? (
         <div className="text-center py-12 text-gray">Chargement...</div>
       ) : specialites.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-black/5 p-12 text-center">
-          <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray">Aucune spécialité pédagogique créée</p>
-          <p className="text-gray text-sm mt-1">Créez une spécialité pour grouper les matières par domaine</p>
-        </div>
+        <EmptyState icon={<BookOpen className="w-12 h-12" />} title="Aucune spécialité pédagogique créée" description="Créez une spécialité pour grouper les matières par domaine" />
       ) : (
         <div className="grid gap-4">
           {specialites.map(spec => (
@@ -132,12 +130,14 @@ export default function AdminSpecialitesPedagogiquesPage() {
                     </span>
                   </div>
                 </div>
-                <button
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => setAssignModal({ specId: spec.id, specNom: spec.nom })}
-                  className="px-3 py-1.5 bg-navy/5 hover:bg-navy/10 text-navy rounded-lg text-sm flex items-center gap-1.5 transition-colors"
+                  className="flex items-center gap-1.5"
                 >
                   <Users className="w-4 h-4" /> Assigner
-                </button>
+                </Button>
               </div>
 
               {spec.matiere_ids.length > 0 && (
@@ -157,104 +157,74 @@ export default function AdminSpecialitesPedagogiquesPage() {
         </div>
       )}
 
-      {/* Create Modal */}
-      {showCreate && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-navy font-display">Nouvelle Spécialité</h2>
-            <div>
-              <label className="text-sm font-medium text-gray block mb-1">Nom</label>
-              <input
-                type="text"
-                value={newSpec.nom}
-                onChange={e => setNewSpec(prev => ({ ...prev, nom: e.target.value }))}
-                placeholder="Ex: Sciences, Lettres, Mathématiques..."
-                className="w-full px-4 py-2.5 bg-cream-m rounded-xl border border-black/5 text-sm focus:border-orange focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray block mb-1">Cycle scolaire</label>
-              <select
-                value={newSpec.cycle_scolaire}
-                onChange={e => setNewSpec(prev => ({ ...prev, cycle_scolaire: e.target.value }))}
-                className="w-full px-4 py-2.5 bg-cream-m rounded-xl border border-black/5 text-sm focus:border-orange focus:outline-none"
-              >
-                <option value="2eme_cycle">2ème cycle (Collège - 7ème à 9ème)</option>
-                <option value="3eme_cycle">3ème cycle (Lycée - 1ère à 4ème année)</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray block mb-2">Matières associées</label>
-              <div className="max-h-48 overflow-y-auto space-y-1 bg-cream-m rounded-xl p-3 border border-black/5">
-                {matieres.length === 0 && (
-                  <p className="text-xs text-gray">Aucune matière disponible</p>
-                )}
-                {matieres.map(m => (
-                  <label key={m.id} className="flex items-center gap-2 cursor-pointer py-1">
-                    <input
-                      type="checkbox"
-                      checked={newSpec.matiere_ids.includes(m.id)}
-                      onChange={() => toggleMatiere(m.id)}
-                      className="rounded border-gray-300 text-orange focus:ring-orange"
-                    />
-                    <span className="text-sm text-gray">{m.nom}</span>
-                    <span className="text-xs text-gray/50">({m.niveau_etude_nom})</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                onClick={() => setShowCreate(false)}
-                className="px-4 py-2 text-gray border border-black/10 rounded-xl text-sm hover:bg-gray-50"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleCreate}
-                className="px-4 py-2 bg-gradient-to-r from-orange to-orange-l text-white rounded-xl text-sm font-medium"
-              >
-                Créer
-              </button>
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Nouvelle Spécialité">
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium text-gray block mb-1">Nom</label>
+            <input
+              type="text"
+              value={newSpec.nom}
+              onChange={e => setNewSpec(prev => ({ ...prev, nom: e.target.value }))}
+              placeholder="Ex: Sciences, Lettres, Mathématiques..."
+              className="w-full px-4 py-2.5 bg-cream-m rounded-xl border border-black/5 text-sm focus:border-orange focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray block mb-1">Cycle scolaire</label>
+            <select
+              value={newSpec.cycle_scolaire}
+              onChange={e => setNewSpec(prev => ({ ...prev, cycle_scolaire: e.target.value }))}
+              className="w-full px-4 py-2.5 bg-cream-m rounded-xl border border-black/5 text-sm focus:border-orange focus:outline-none"
+            >
+              <option value="2eme_cycle">2ème cycle (Collège - 7ème à 9ème)</option>
+              <option value="3eme_cycle">3ème cycle (Lycée - 1ère à 4ème année)</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray block mb-2">Matières associées</label>
+            <div className="max-h-48 overflow-y-auto space-y-1 bg-cream-m rounded-xl p-3 border border-black/5">
+              {matieres.length === 0 && (
+                <p className="text-xs text-gray">Aucune matière disponible</p>
+              )}
+              {matieres.map(m => (
+                <label key={m.id} className="flex items-center gap-2 cursor-pointer py-1">
+                  <input
+                    type="checkbox"
+                    checked={newSpec.matiere_ids.includes(m.id)}
+                    onChange={() => toggleMatiere(m.id)}
+                    className="rounded border-gray-300 text-orange focus:ring-orange"
+                  />
+                  <span className="text-sm text-gray">{m.nom}</span>
+                  <span className="text-xs text-gray/50">({m.niveau_etude_nom})</span>
+                </label>
+              ))}
             </div>
           </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" onClick={() => setShowCreate(false)}>Annuler</Button>
+            <Button variant="primary" onClick={handleCreate}>Créer</Button>
+          </div>
         </div>
-      )}
+      </Modal>
 
-      {/* Assign Modal */}
-      {assignModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-navy font-display">
-              Assigner un responsable — <span className="italic text-orange">{assignModal.specNom}</span>
-            </h2>
-            <div>
-              <label className="text-sm font-medium text-gray block mb-1">ID de l'enseignant</label>
-              <input
-                type="number"
-                value={assignData.user_id || ""}
-                onChange={e => setAssignData(prev => ({ ...prev, user_id: parseInt(e.target.value) || 0 }))}
-                placeholder="ID utilisateur"
-                className="w-full px-4 py-2.5 bg-cream-m rounded-xl border border-black/5 text-sm focus:border-orange focus:outline-none"
-              />
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                onClick={() => setAssignModal(null)}
-                className="px-4 py-2 text-gray border border-black/10 rounded-xl text-sm hover:bg-gray-50"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleAssign}
-                className="px-4 py-2 bg-gradient-to-r from-orange to-orange-l text-white rounded-xl text-sm font-medium"
-              >
-                Assigner
-              </button>
-            </div>
+      <Modal open={!!assignModal} onClose={() => setAssignModal(null)} title={`Assigner un responsable — ${assignModal?.specNom ?? ""}`} maxWidth="max-w-md">
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium text-gray block mb-1">ID de l'enseignant</label>
+            <input
+              type="number"
+              value={assignData.user_id || ""}
+              onChange={e => setAssignData(prev => ({ ...prev, user_id: parseInt(e.target.value) || 0 }))}
+              placeholder="ID utilisateur"
+              className="w-full px-4 py-2.5 bg-cream-m rounded-xl border border-black/5 text-sm focus:border-orange focus:outline-none"
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" onClick={() => setAssignModal(null)}>Annuler</Button>
+            <Button variant="primary" onClick={handleAssign}>Assigner</Button>
           </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

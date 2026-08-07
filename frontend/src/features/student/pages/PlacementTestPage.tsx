@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import apiClient from "../../../utils/apiClient";
+import { Button, Spinner } from "../../../components/ui";
 
 interface Question {
   question: string;
@@ -72,7 +73,7 @@ export default function PlacementTestPage() {
     }
   };
 
-  if (loading) return <div className="flex justify-center p-12"><div className="animate-spin w-8 h-8 border-2 border-navy-600 border-t-transparent rounded-full" /></div>;
+  if (loading) return <div className="flex justify-center p-12"><Spinner size="lg" /></div>;
   if (!test) return null;
 
   if (result) {
@@ -95,18 +96,20 @@ export default function PlacementTestPage() {
                 <p className="text-xs text-green-600 mt-1">Niveau: {result.auto_enroll.niveau_assimilation}</p>
               </div>
             )}
-            <button
+            <Button
               onClick={() => navigate(result.auto_enroll ? "/dashboard/mon-parcours" : "/dashboard/parcours-catalog")}
-              className="px-6 py-3 bg-gradient-to-r from-orange to-orange-l text-white rounded-xl font-medium hover:opacity-90"
+              variant="primary"
+              size="md"
             >
               {result.auto_enroll ? "Voir mon parcours" : "Voir le catalogue"}
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => navigate("/dashboard")}
-              className="px-6 py-3 text-gray-500 hover:text-navy"
+              variant="ghost"
+              size="md"
             >
               {t("common.back")}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -144,45 +147,51 @@ export default function PlacementTestPage() {
             <p className="text-lg font-medium text-navy mb-4">{q.question}</p>
             <div className="space-y-3">
               {q.options.map((opt, i) => (
-                <button
+                <Button
                   key={i}
                   onClick={() => handleAnswer(currentQ, opt)}
-                  className={`w-full text-start px-4 py-3 rounded-xl border-2 transition-all ${
+                  variant="ghost"
+                  size="md"
+                  className={`w-full text-start border-2 transition-all ${
                     answers[currentQ] === opt
                       ? "border-navy-600 bg-navy-50 text-navy-700"
                       : "border-gray-200 hover:border-gray-300"
                   }`}
                 >
                   {opt}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
         )}
 
         <div className="flex justify-between mt-8">
-          <button
+          <Button
             onClick={() => setCurrentQ(Math.max(0, currentQ - 1))}
             disabled={currentQ === 0}
-            className="px-4 py-2 text-gray-500 disabled:opacity-30"
+            variant="ghost"
+            size="sm"
           >
             {t("common.previous")}
-          </button>
+          </Button>
           {allAnswered ? (
-            <button
+            <Button
               onClick={handleSubmit}
               disabled={submitting}
-              className="px-6 py-3 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 disabled:opacity-50"
+              variant="success"
+              size="md"
+              loading={submitting}
             >
-              {submitting ? t("common.loading") : t("placement.submit")}
-            </button>
+              {t("placement.submit")}
+            </Button>
           ) : (
-            <button
+            <Button
               onClick={() => setCurrentQ(Math.min(questions.length - 1, currentQ + 1))}
-              className="px-4 py-2 text-navy-600"
+              variant="secondary"
+              size="sm"
             >
               {t("common.next")}
-            </button>
+            </Button>
           )}
         </div>
       </div>

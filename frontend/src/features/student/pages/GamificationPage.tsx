@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Trophy, Flame, Star, Award, Medal, Crown, TrendingUp, CheckCircle } from "lucide-react";
 import { useAuthStore } from "../../../store/authStore";
 import { gamificationApi } from "../../../api";
+import { Button, Modal, EmptyState, PageSpinner } from "../../../components/ui";
 
 interface Badge {
   id: number; nom: string; description: string; icon_url: string | null;
@@ -54,7 +55,7 @@ export default function GamificationPage() {
   useEffect(() => { load(); }, [load]);
 
   if (loading) {
-    return <div className="text-center py-12 text-gray">Chargement...</div>;
+    return <PageSpinner />;
   }
 
   const earnedCount = badges.filter(b => b.obtenu).length;
@@ -88,15 +89,14 @@ export default function GamificationPage() {
       {/* Tabs */}
       <div className="flex gap-2 p-1 bg-cream-m rounded-xl w-fit">
         {(["badges", "streak", "rankings"] as const).map(tab => (
-          <button
+          <Button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-              activeTab === tab ? "bg-white text-navy shadow-sm" : "text-gray hover:text-navy"
-            }`}
+            variant={activeTab === tab ? "primary" : "ghost"}
+            size="sm"
           >
             {tab === "badges" ? "Badges" : tab === "streak" ? "Séries" : "Classements"}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -226,7 +226,7 @@ export default function GamificationPage() {
               );
             })}
             {rankings.length === 0 && (
-              <p className="text-center py-8 text-gray">Aucun classement disponible</p>
+              <EmptyState title="Aucun classement disponible" />
             )}
           </div>
         </div>

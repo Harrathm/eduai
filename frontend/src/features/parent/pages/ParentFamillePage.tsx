@@ -4,6 +4,7 @@ import { useAuthStore } from "../../../store/authStore";
 import { Link } from "react-router-dom";
 import { Users, Percent, ArrowRight, UserPlus, Trash2 } from "lucide-react";
 import { parentFamille, parentEnfants } from "../../../api";
+import { Button } from "../../../components/ui";
 
 interface CompteFamille {
   id: number;
@@ -151,13 +152,14 @@ export default function ParentFamillePage() {
             placeholder={t('parent.famille.childEmailPlaceholder')}
             className="flex-1 px-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange/30"
           />
-          <button
+          <Button
             onClick={handleLink}
             disabled={linkLoading || !linkEmail.trim()}
-            className="px-6 py-2 bg-navy text-white text-sm font-medium rounded-xl hover:bg-navy/90 disabled:opacity-50"
+            variant="secondary"
+            loading={linkLoading}
           >
-            {linkLoading ? t('parent.famille.linking') : t('parent.famille.linkButton')}
-          </button>
+            {t('parent.famille.linkButton')}
+          </Button>
         </div>
       </div>
 
@@ -196,12 +198,13 @@ export default function ParentFamillePage() {
                     >
                       {t('parent.famille.viewButton')} <ArrowRight className="w-3 h-3" />
                     </Link>
-                    <button
+                    <Button
                       onClick={() => handleUnlink(enfant.eleve_id)}
-                      className="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-xl hover:bg-red-100"
+                      variant="danger"
+                      size="sm"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    </Button>
                   </div>
                 </div>
               );

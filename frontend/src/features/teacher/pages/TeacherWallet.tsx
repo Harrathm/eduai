@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../../../store/authStore";
 import { Wallet, Coins, Clock } from "lucide-react";
+import { EmptyState } from "../../../components/ui";
 
 const API_URL = "";
 
@@ -80,12 +81,12 @@ export default function TeacherWallet() {
 
       {/* Empty State */}
       {!loading && balance && balance.total === 0 && history.length === 0 && (
-        <div className="bg-white rounded-2xl p-12 shadow-sm border border-black/5 text-center">
-          <Wallet className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-navy mb-2">{t('teacher.wallet.noCredits')}</h3>
-          <p className="text-gray">
-            {t('teacher.wallet.noCreditsDesc')}
-          </p>
+        <div className="bg-white rounded-2xl p-12 shadow-sm border border-black/5">
+          <EmptyState
+            icon={<Wallet className="w-16 h-16" />}
+            title={t('teacher.wallet.noCredits')}
+            description={t('teacher.wallet.noCreditsDesc')}
+          />
         </div>
       )}
 

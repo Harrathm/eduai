@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuthStore } from "../../../store/authStore";
+import { Button } from "../../../components/ui";
 
 const NIVEAUX = [
   { group: "Primaire", items: ["1ère année","2ème année","3ème année","4ème année","5ème année","6ème année"] },
@@ -214,9 +215,10 @@ export default function RegisterPage() {
 
             {/* Role selector */}
             <div className="flex gap-2 mb-6 p-1 bg-cream-m rounded-xl">
-              <button
+              <Button
                 type="button"
                 onClick={() => { setRole("student"); setTrialMode(false); }}
+                variant="ghost"
                 className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
                   role === "student"
                     ? "bg-white text-navy shadow-sm"
@@ -224,10 +226,11 @@ export default function RegisterPage() {
                 }`}
               >
                 Élève
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={() => setRole("teacher")}
+                variant="ghost"
                 className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
                   role === "teacher"
                     ? "bg-white text-navy shadow-sm"
@@ -235,7 +238,7 @@ export default function RegisterPage() {
                 }`}
               >
                 Enseignant
-              </button>
+              </Button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -341,14 +344,15 @@ export default function RegisterPage() {
                   {showDropdown && schoolResults.length > 0 && (
                     <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-auto">
                       {schoolResults.map((school) => (
-                        <button
+                        <Button
                           key={school.id}
                           type="button"
                           onClick={() => handleSelectSchool(school)}
+                          variant="ghost"
                           className="w-full text-start px-5 py-3 hover:bg-orange/5 transition-colors border-b border-gray-100 last:border-0"
                         >
                           <span className="text-sm text-navy">{school.name}</span>
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   )}
@@ -367,27 +371,28 @@ export default function RegisterPage() {
                       ? "Vous allez créer un compte de démonstration lié à l'école EDUAI. Vous aurez accès à toutes les fonctionnalités pendant 30 jours."
                       : "Vous souhaitez rejoindre une école existante ? Votre demande sera examinée par l'administrateur."}
                   </p>
-                  <button
+                  <Button
                     type="button"
                     onClick={() => setTrialMode(!trialMode)}
+                    variant="ghost"
                     className="text-sm text-blue-600 font-semibold hover:underline"
                   >
                     {trialMode ? "Rejoindre une école existante" : "Tester gratuitement (école de démo)"}
-                  </button>
+                  </Button>
                 </div>
               )}
 
-              <button
+              <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-gradient-to-r from-orange to-orange-l text-white font-semibold py-4 rounded-xl hover:opacity-90 hover:translate-y-[-2px] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                variant="primary"
+                loading={isLoading}
+                className="w-full font-semibold py-4 rounded-xl hover:opacity-90 hover:translate-y-[-2px] transition-all"
               >
-                {isLoading
-                  ? "Création en cours..."
-                  : role === "teacher" && trialMode
-                    ? "Commencer l'essai gratuit"
-                    : "Créer mon compte"}
-              </button>
+                {role === "teacher" && trialMode
+                  ? "Commencer l'essai gratuit"
+                  : "Créer mon compte"}
+              </Button>
             </form>
           </div>
 

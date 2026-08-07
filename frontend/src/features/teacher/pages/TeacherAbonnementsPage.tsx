@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from 'react-i18next';
 import { api, abonnementApi } from "../../../api";
 import { ShoppingCart, Check, X, ArrowUpCircle, AlertCircle, Package, CreditCard } from "lucide-react";
+import { Button, Modal } from "../../../components/ui";
 
 interface Pack {
   id: number;
@@ -151,14 +152,14 @@ export default function TeacherAbonnementsPage() {
                 <div className="flex gap-1">
                   {ab.statut === "actif" && (
                     <>
-                      <button onClick={() => setConfirmModal({ action: "upgrade", abonnementId: ab.id })}
-                        className="text-xs px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 flex items-center gap-1">
+                      <Button onClick={() => setConfirmModal({ action: "upgrade", abonnementId: ab.id })}
+                        variant="ghost" size="sm">
                         <ArrowUpCircle size={12} /> {t('teacher.abonnements.btn.upgrade')}
-                      </button>
-                      <button onClick={() => setConfirmModal({ action: "cancel", abonnementId: ab.id })}
-                        className="text-xs px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 flex items-center gap-1">
+                      </Button>
+                      <Button onClick={() => setConfirmModal({ action: "cancel", abonnementId: ab.id })}
+                        variant="danger" size="sm">
                         <X size={12} /> {t('teacher.abonnements.btn.cancel')}
-                      </button>
+                      </Button>
                     </>
                   )}
                   {ab.statut === "grace" && (
@@ -209,10 +210,10 @@ export default function TeacherAbonnementsPage() {
                     {isSubscribed ? (
                       <span className="text-xs text-green-600 font-medium">{t('teacher.abonnements.badges.subscribed')}</span>
                     ) : (
-                      <button onClick={() => setConfirmModal({ action: "subscribe", packId: pack.id })}
-                        className="text-xs px-3 py-1.5 bg-orange text-white rounded-lg hover:bg-orange/90 flex items-center gap-1">
+                      <Button onClick={() => setConfirmModal({ action: "subscribe", packId: pack.id })}
+                        variant="primary" size="sm">
                         <ShoppingCart size={12} /> {t('teacher.abonnements.btn.subscribe')}
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -223,31 +224,34 @@ export default function TeacherAbonnementsPage() {
       </div>
 
       {/* Confirmation modal */}
-      {confirmModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl text-center">
-            <AlertCircle size={40} className="mx-auto text-amber-400 mb-3" />
-            <h3 className="text-lg font-semibold text-navy mb-2">
-              {confirmModal.action === "subscribe" && t('teacher.abonnements.confirmModal.subscribeTitle')}
-              {confirmModal.action === "upgrade" && t('teacher.abonnements.confirmModal.upgradeTitle')}
-              {confirmModal.action === "cancel" && t('teacher.abonnements.confirmModal.cancelTitle')}
-            </h3>
-            <p className="text-sm text-gray mb-4">
-              {confirmModal.action === "cancel" && t('teacher.abonnements.confirmModal.cancelMessage')}
-              {confirmModal.action === "subscribe" && t('teacher.abonnements.confirmModal.subscribeMessage')}
-              {confirmModal.action === "upgrade" && t('teacher.abonnements.confirmModal.upgradeMessage')}
-            </p>
-            <div className="flex gap-2 justify-center">
-              <button onClick={() => setConfirmModal(null)} className="px-4 py-2 text-sm text-gray hover:bg-gray/10 rounded-xl">{t('teacher.abonnements.confirmModal.cancel')}</button>
-              <button onClick={() => {
-                if (confirmModal.action === "subscribe" && confirmModal.packId) handleSubscribe(confirmModal.packId);
-                if (confirmModal.action === "upgrade" && confirmModal.abonnementId) handleUpgrade(confirmModal.abonnementId);
-                if (confirmModal.action === "cancel" && confirmModal.abonnementId) handleCancel(confirmModal.abonnementId);
-              }} className="px-4 py-2 text-sm bg-orange text-white rounded-xl hover:bg-orange/90">{t('teacher.abonnements.confirmModal.confirm')}</button>
-            </div>
+      <Modal open={!!confirmModal} onClose={() => setConfirmModal(null)}
+        title={
+          confirmModal?.action === "subscribe" ? t('teacher.abonnements.confirmModal.subscribeTitle') :
+          confirmModal?.action === "upgrade" ? t('teacher.abonnements.confirmModal.upgradeTitle') :
+          confirmModal?.action === "cancel" ? t('teacher.abonnements.confirmModal.cancelTitle') : ""
+        }
+        maxWidth="max-w-sm">
+        <div className="text-center">
+          <AlertCircle size={40} className="mx-auto text-amber-400 mb-3" />
+          <p className="text-sm text-gray mb-4">
+            {confirmModal?.action === "cancel" && t('teacher.abonnements.confirmModal.cancelMessage')}
+            {confirmModal?.action === "subscribe" && t('teacher.abonnements.confirmModal.subscribeMessage')}
+            {confirmModal?.action === "upgrade" && t('teacher.abonnements.confirmModal.upgradeMessage')}
+          </p>
+          <div className="flex gap-2 justify-center">
+            <Button onClick={() => setConfirmModal(null)} variant="ghost" size="sm">
+              {t('teacher.abonnements.confirmModal.cancel')}
+            </Button>
+            <Button onClick={() => {
+              if (confirmModal?.action === "subscribe" && confirmModal?.packId) handleSubscribe(confirmModal.packId);
+              if (confirmModal?.action === "upgrade" && confirmModal?.abonnementId) handleUpgrade(confirmModal.abonnementId);
+              if (confirmModal?.action === "cancel" && confirmModal?.abonnementId) handleCancel(confirmModal.abonnementId);
+            }} variant="primary" size="sm">
+              {t('teacher.abonnements.confirmModal.confirm')}
+            </Button>
           </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

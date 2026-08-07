@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { lessonLearner, quizLearner, courseLearner } from "../../../api";
+import { Button } from "../../../components/ui";
 const learnerAPI = {
   syllabus: courseLearner.syllabus,
   lesson: lessonLearner.get,
@@ -250,9 +251,9 @@ export default function LearnerPlayerPage() {
     return (
       <div className="p-6">
         <p>Course not found</p>
-        <button onClick={() => navigate("/dashboard")} className="text-navy-600">
+        <Button onClick={() => navigate("/dashboard")} variant="ghost">
           Back
-        </button>
+        </Button>
       </div>
     );
   }
@@ -280,12 +281,13 @@ export default function LearnerPlayerPage() {
               </p>
             </div>
           )}
-          <button
+          <Button
             onClick={handleEnroll}
-            className="w-full px-4 py-3 bg-navy-600 text-white rounded-lg hover:bg-navy-700"
+            variant="secondary"
+            className="w-full py-3"
           >
             {course.price_tokens > 0 || course.price_dt > 0 ? "Enroll Now" : "Start Learning"}
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -300,13 +302,14 @@ export default function LearnerPlayerPage() {
         } bg-white border-r transition-all overflow-hidden flex flex-col`}
       >
         <div className="p-4 border-b">
-          <button
+          <Button
             onClick={() => navigate("/dashboard")}
+            variant="ghost"
             className="flex items-center gap-1 text-sm text-gray-600 mb-2"
           >
             <ChevronLeft className="w-4 h-4" />
             Exit
-          </button>
+          </Button>
           <h2 className="font-semibold text-sm">{course.title}</h2>
           {certLoading ? (
             <div className="mt-2 p-2 bg-navy-50 rounded text-xs text-navy-600">Checking certificate...</div>
@@ -317,13 +320,15 @@ export default function LearnerPlayerPage() {
                 <span className="text-sm font-semibold text-green-800">Certificate Earned!</span>
               </div>
               <p className="text-xs text-green-700 mb-2">No: {certificate.certificate_number}</p>
-              <button
+              <Button
                 onClick={downloadCertificate}
-                className="w-full flex items-center justify-center gap-1 px-3 py-1.5 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                variant="success"
+                size="sm"
+                className="w-full flex items-center justify-center gap-1"
               >
                 <Download className="w-3 h-3" />
                 Download PDF
-              </button>
+              </Button>
             </div>
           ) : null}
         </div>
@@ -334,10 +339,11 @@ export default function LearnerPlayerPage() {
               <div className="p-3 bg-gray-50 font-medium text-sm">{chapter.title}</div>
               <div>
                 {chapter.lessons.map((lesson) => (
-                  <button
+                  <Button
                     key={lesson.id}
                     onClick={() => loadLesson(lesson.id)}
-                    className={`w-full flex items-center gap-3 p-3 text-start hover:bg-gray-50 ${
+                    variant="ghost"
+                    className={`w-full flex items-center gap-3 p-3 text-start ${
                       currentLesson?.id === lesson.id ? "bg-navy-50" : ""
                     }`}
                   >
@@ -346,7 +352,7 @@ export default function LearnerPlayerPage() {
                       <p className="text-sm">{lesson.title}</p>
                       <p className="text-xs text-gray-500">{lesson.duration_minutes} min</p>
                     </div>
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
@@ -354,10 +360,10 @@ export default function LearnerPlayerPage() {
         </div>
 
         <div className="p-4 border-t">
-          <button className="flex items-center gap-2 text-sm text-gray-600">
+          <Button variant="ghost" className="flex items-center gap-2 text-sm text-gray-600">
             <Award className="w-4 h-4" />
             My Certificates
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -365,28 +371,31 @@ export default function LearnerPlayerPage() {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <div className="p-3 border-b bg-white flex items-center gap-3">
-          <button
+          <Button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 hover:bg-gray-100 rounded"
+            variant="ghost"
+            className="p-2"
           >
             {sidebarOpen ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
-          </button>
+          </Button>
           <div className="flex-1">
             <h3 className="font-medium">{currentLesson?.title}</h3>
           </div>
           <div className="flex gap-2">
-            <button
+            <Button
               onClick={() => navigateLesson("prev")}
-              className="p-2 hover:bg-gray-100 rounded"
+              variant="ghost"
+              className="p-2"
             >
               <ChevronLeft className="w-5 h-5" />
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => navigateLesson("next")}
-              className="p-2 hover:bg-gray-100 rounded"
+              variant="ghost"
+              className="p-2"
             >
               <ChevronRight className="w-5 h-5" />
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -444,13 +453,14 @@ export default function LearnerPlayerPage() {
           )}
 
           <div className="mt-6 flex justify-center">
-            <button
+            <Button
               onClick={markContentComplete}
-              className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              variant="success"
+              className="flex items-center gap-2"
             >
               <CheckCircle className="w-5 h-5" />
               Mark as Complete
-            </button>
+            </Button>
           </div>
         </div>
       </div>

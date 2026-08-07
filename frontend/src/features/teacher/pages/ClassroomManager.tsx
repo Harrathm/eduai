@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../../../store/authStore";
 import { Plus, Users, Trash2, UserPlus } from "lucide-react";
+import { Button, Modal, EmptyState, PageSpinner } from "../../../components/ui";
 import AddStudentModal from "./AddStudentModal";
 import { teacherClassesApi } from "../../../api";
 
@@ -113,13 +114,10 @@ export default function ClassroomManager() {
             </h1>
             <p className="text-gray mt-2">{t('teacher.classroom.subtitle')}</p>
           </div>
-          <button
-            onClick={() => setShowNewClass(true)}
-            className="flex items-center gap-2 px-5 py-3 bg-orange text-white rounded-xl font-medium"
-          >
+          <Button variant="primary" onClick={() => setShowNewClass(true)}>
             <Plus className="w-5 h-5" />
               {t('teacher.classroom.newClass')}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -128,18 +126,17 @@ export default function ClassroomManager() {
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
             <h2 className="text-lg font-semibold text-navy mb-4">{t('teacher.classroom.myClasses')}</h2>
             {loading ? (
-              <div className="text-center py-8 text-gray">{t('teacher.classroom.loading')}</div>
+              <PageSpinner message={t('teacher.classroom.loading')} />
             ) : classes.length === 0 ? (
-              <div className="text-center py-8 text-gray">
-                <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                <p>{t('teacher.classroom.noClasses')}</p>
-                <button
-                  onClick={() => setShowNewClass(true)}
-                  className="mt-3 text-orange text-sm font-medium"
-                >
-                  + {t('teacher.classroom.createClass')}
-                </button>
-              </div>
+              <EmptyState
+                icon={<Users className="w-10 h-10" />}
+                title={t('teacher.classroom.noClasses')}
+                action={
+                  <Button variant="ghost" size="sm" onClick={() => setShowNewClass(true)}>
+                    + {t('teacher.classroom.createClass')}
+                  </Button>
+                }
+              />
             ) : (
               <div className="space-y-2">
                 {classes.map((cls) => (
@@ -161,19 +158,17 @@ export default function ClassroomManager() {
                           {cls.students_count} {t('teacher.classroom.students')} · {cls.courses_count} {t('teacher.classroom.courses')}
                         </div>
                       </div>
-                      <button
+                      <Button
+                        variant="danger"
+                        size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
                           deleteClass(cls.id);
                         }}
-                        className={`p-2 rounded-lg ${
-                          selectedClass === cls.id
-                            ? "hover:bg-white/20"
-                            : "hover:bg-red-100 text-red-600"
-                        }`}
+                        className={selectedClass === cls.id ? "hover:bg-white/20 text-white" : ""}
                       >
                         <Trash2 className="w-4 h-4" />
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -185,20 +180,19 @@ export default function ClassroomManager() {
         <div className="lg:col-span-2 space-y-4">
           {!selectedClass ? (
             <div className="bg-white rounded-2xl p-12 text-center text-gray shadow-sm border border-black/5">
-              <Users className="w-16 h-16 mx-auto mb-4 opacity-30" />
-              <p>{t('teacher.classroom.selectClass')}</p>
+              <EmptyState
+                icon={<Users className="w-16 h-16" />}
+                title={t('teacher.classroom.selectClass')}
+              />
             </div>
           ) : (
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold text-navy">{t('teacher.classroom.studentsTitle')}</h2>
-                <button
-                  onClick={() => setShowAddStudent(true)}
-                  className="flex items-center gap-2 text-sm text-orange font-medium"
-                >
+                <Button variant="ghost" size="sm" onClick={() => setShowAddStudent(true)}>
                   <UserPlus className="w-4 h-4" />
                   {t('teacher.classroom.addStudent')}
-                </button>
+                </Button>
               </div>
               {students.length === 0 ? (
                 <div className="text-center py-8 text-gray">
@@ -212,12 +206,13 @@ export default function ClassroomManager() {
                       className="flex items-center gap-2 bg-cream-m px-3 py-2 rounded-xl"
                     >
                       <span className="text-sm">{s.student_name}</span>
-                      <button
+                      <Button
+                        variant="danger"
+                        size="sm"
                         onClick={() => removeStudent(s.student_id)}
-                        className="p-1 hover:bg-red-100 rounded text-red-600"
                       >
                         <Trash2 className="w-3 h-3" />
-                      </button>
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -237,44 +232,31 @@ export default function ClassroomManager() {
         />
       )}
 
-      {showNewClass && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-8">
-            <h2 className="text-2xl font-semibold text-navy mb-6">
-            {t('teacher.classroom.newClass')}
-            </h2>
-            <div className="space-y-4">
-              <input
-                type="text"
-                value={newClassName}
-                onChange={(e) => setNewClassName(e.target.value)}
-                className="w-full px-5 py-3 bg-cream-m rounded-xl border border-black/5"
-                placeholder={t('teacher.classroom.classNamePlaceholder')}
-              />
-              <textarea
-                value={newClassDescription}
-                onChange={(e) => setNewClassDescription(e.target.value)}
-                className="w-full px-5 py-3 bg-cream-m rounded-xl border border-black/5 min-h-[80px]"
-                placeholder="Description (optionnel)..."
-              />
-            </div>
-            <div className="flex gap-4 mt-6">
-              <button
-                onClick={() => setShowNewClass(false)}
-                className="flex-1 py-3 bg-cream-m rounded-xl"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={createClass}
-                className="flex-1 py-3 bg-orange text-white rounded-xl font-medium"
-              >
-                Creer
-              </button>
-            </div>
-          </div>
+      <Modal open={showNewClass} onClose={() => setShowNewClass(false)} title={t('teacher.classroom.newClass')}>
+        <div className="space-y-4">
+          <input
+            type="text"
+            value={newClassName}
+            onChange={(e) => setNewClassName(e.target.value)}
+            className="w-full px-5 py-3 bg-cream-m rounded-xl border border-black/5"
+            placeholder={t('teacher.classroom.classNamePlaceholder')}
+          />
+          <textarea
+            value={newClassDescription}
+            onChange={(e) => setNewClassDescription(e.target.value)}
+            className="w-full px-5 py-3 bg-cream-m rounded-xl border border-black/5 min-h-[80px]"
+            placeholder="Description (optionnel)..."
+          />
         </div>
-      )}
+        <div className="flex gap-4 mt-6">
+          <Button variant="ghost" className="flex-1" onClick={() => setShowNewClass(false)}>
+            Annuler
+          </Button>
+          <Button variant="primary" className="flex-1" onClick={createClass}>
+            Creer
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

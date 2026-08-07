@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { School, BookOpen, Users, CheckCircle, XCircle, Plus, Loader2, AlertCircle, RefreshCw, Search, Ban } from "lucide-react";
+import { Button } from "../../../components/ui";
 import { tokenStorage } from "../../../utils/tokenStorage";
 
 const API_URL = "";
@@ -147,19 +148,16 @@ export default function SchoolCourseDistribution() {
               : "Manage which schools can access which academy courses"}
           </p>
         </div>
-        <button
-          onClick={fetchData}
-          className="p-2.5 bg-white rounded-xl shadow-sm border border-black/5 hover:bg-cream"
-        >
+        <Button variant="ghost" size="md" onClick={fetchData}>
           <RefreshCw className={`w-5 h-5 text-gray ${loading ? "animate-spin" : ""}`} />
-        </button>
+        </Button>
       </div>
 
       {error && (
         <div className="flex items-center gap-3 px-4 py-3 bg-red-50 text-red-600 rounded-xl text-sm">
           <AlertCircle className="w-5 h-5" />
           {error}
-          <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-600">&times;</button>
+          <Button variant="ghost" size="sm" onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-600">&times;</Button>
         </div>
       )}
 
@@ -200,14 +198,17 @@ export default function SchoolCourseDistribution() {
               ))}
             </select>
           </div>
-          <button
+          <Button
+            variant="primary"
+            size="md"
             onClick={handleGrant}
             disabled={granting || !selectedSchoolId || !selectedCourseId}
-            className="px-6 py-2.5 bg-orange text-white rounded-xl font-medium text-sm hover:bg-orange-w disabled:opacity-50 flex items-center gap-2 shadow-sm whitespace-nowrap"
+            loading={granting}
+            className="px-6 py-2.5 flex items-center gap-2 shadow-sm whitespace-nowrap"
           >
-            {granting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+            <Plus className="w-4 h-4" />
             {granting ? "Granting..." : "Grant to School"}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -297,13 +298,15 @@ export default function SchoolCourseDistribution() {
                             {course.purchased_at ? new Date(course.purchased_at).toLocaleDateString("fr-TN") : "—"}
                           </span>
                         </div>
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => handleRevoke(school.school_id, course.course_id, course.course_title)}
                           className="absolute top-2 right-2 p-1 text-gray/30 hover:text-red-500 transition-colors"
                           title="Revoke access"
                         >
                           <XCircle className="w-3.5 h-3.5" />
-                        </button>
+                        </Button>
                       </div>
                     ))}
                   </div>

@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from "../../../store/authStore";
-import { BookOpen, Plus, ChevronDown, ChevronRight, Edit2, FileText, Layers, GraduationCap, X } from "lucide-react";
+import { BookOpen, Plus, ChevronDown, ChevronRight, Edit2, FileText, Layers, GraduationCap } from "lucide-react";
+import { Button, Modal } from "../../../components/ui";
 import {
   listParcours, createParcours, updateParcours,
   listChapitres, createChapitre, updateChapitre,
@@ -125,9 +126,9 @@ export default function TeacherParcoursPage() {
           </h1>
           <p className="text-gray mt-2">{t('teacher.parcours.subtitle')}</p>
         </div>
-        <button onClick={() => openCreate("parcours")} className="flex items-center gap-2 bg-orange text-white px-4 py-2 rounded-xl hover:bg-orange/90">
+        <Button onClick={() => openCreate("parcours")} variant="primary" size="md" className="flex items-center gap-2">
           <Plus size={16} /> {t('teacher.parcours.newParcours')}
-        </button>
+        </Button>
       </div>
 
       {toast.show && (
@@ -157,9 +158,9 @@ export default function TeacherParcoursPage() {
                   <span className="ml-2 text-xs text-gray">{item.parcours.niveau_scolaire}</span>
                 </div>
                 <span className="text-xs text-gray">{item.chapitres.length} {t('teacher.parcours.chapters')}</span>
-                <button onClick={(e) => { e.stopPropagation(); openEdit("parcours", item.parcours); }} className="p-1 hover:bg-gray/10 rounded">
+                <Button onClick={(e) => { e.stopPropagation(); openEdit("parcours", item.parcours); }} variant="ghost" size="sm" className="p-1">
                   <Edit2 size={14} />
-                </button>
+                </Button>
               </div>
 
               {/* Chapitres */}
@@ -171,9 +172,9 @@ export default function TeacherParcoursPage() {
                         {expanded[chap.id] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                         <Layers size={16} className="text-blue-500" />
                         <span className="flex-1 text-sm">{chap.titre}</span>
-                        <button onClick={(e) => { e.stopPropagation(); openEdit("chapitre", chap); }} className="p-1 hover:bg-gray/10 rounded">
+                        <Button onClick={(e) => { e.stopPropagation(); openEdit("chapitre", chap); }} variant="ghost" size="sm" className="p-1">
                           <Edit2 size={12} />
-                        </button>
+                        </Button>
                       </div>
 
                       {/* Lecons */}
@@ -185,9 +186,9 @@ export default function TeacherParcoursPage() {
                                 {expanded[lec.id] ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                                 <BookOpen size={14} className="text-green-500" />
                                 <span className="flex-1 text-sm">{lec.titre}</span>
-                                <button onClick={(e) => { e.stopPropagation(); openEdit("lecon", lec); }} className="p-1 hover:bg-gray/10 rounded">
+                                <Button onClick={(e) => { e.stopPropagation(); openEdit("lecon", lec); }} variant="ghost" size="sm" className="p-1">
                                   <Edit2 size={12} />
-                                </button>
+                                </Button>
                               </div>
 
                               {/* Paragraphes */}
@@ -197,28 +198,28 @@ export default function TeacherParcoursPage() {
                                     <div key={para.id} className="p-2 flex items-center gap-2 text-sm hover:bg-gray/5">
                                       <FileText size={12} className="text-purple-500" />
                                       <span className="flex-1">{para.titre}</span>
-                                      <button onClick={() => openEdit("paragraphe", para)} className="p-1 hover:bg-gray/10 rounded">
-                                        <Edit2 size={10} />
-                                      </button>
+                                        <Button onClick={() => openEdit("paragraphe", para)} variant="ghost" size="sm" className="p-1">
+                                          <Edit2 size={10} />
+                                        </Button>
                                     </div>
                                   ))}
-                                  <button onClick={() => openCreate("paragraphe", lec.id)} className="ml-2 mt-1 text-xs text-blue-500 hover:underline flex items-center gap-1">
+                                  <Button onClick={() => openCreate("paragraphe", lec.id)} variant="ghost" size="sm" className="ml-2 mt-1 flex items-center gap-1">
                                     <Plus size={10} /> {t('teacher.parcours.btn.addParagraph')}
-                                  </button>
+                                  </Button>
                                 </div>
                               )}
                             </div>
                           ))}
-                          <button onClick={() => openCreate("lecon", chap.id)} className="ml-2 mt-1 text-xs text-blue-500 hover:underline flex items-center gap-1">
+                          <Button onClick={() => openCreate("lecon", chap.id)} variant="ghost" size="sm" className="ml-2 mt-1 flex items-center gap-1">
                             <Plus size={10} /> {t('teacher.parcours.btn.addLesson')}
-                          </button>
+                          </Button>
                         </div>
                       )}
                     </div>
                   ))}
-                  <button onClick={() => openCreate("chapitre", item.parcours.id)} className="ml-2 mt-1 text-xs text-blue-500 hover:underline flex items-center gap-1">
+                  <Button onClick={() => openCreate("chapitre", item.parcours.id)} variant="ghost" size="sm" className="ml-2 mt-1 flex items-center gap-1">
                     <Plus size={10} /> {t('teacher.parcours.btn.addChapter')}
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
@@ -228,38 +229,30 @@ export default function TeacherParcoursPage() {
 
       {/* Modal */}
       {editItem && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-navy">
-                {editItem.item.id ? t('teacher.parcours.modal.editTitle') : t('teacher.parcours.modal.createTitle')} {editItem.type}
-              </h3>
-              <button onClick={() => setEditItem(null)} className="p-1 hover:bg-gray/10 rounded"><X size={18} /></button>
-            </div>
-            <div className="space-y-3">
-              <input value={form.titre || ""} onChange={(e) => setForm({ ...form, titre: e.target.value })}
-                placeholder={t('teacher.parcours.fields.title')} className="w-full border rounded-xl px-3 py-2 text-sm" />
-              {editItem.type === "parcours" && (
-                <>
-                  <input value={form.matiere || ""} onChange={(e) => setForm({ ...form, matiere: e.target.value })}
-                    placeholder={t('teacher.parcours.fields.subject')} className="w-full border rounded-xl px-3 py-2 text-sm" />
-                  <input value={form.niveau_scolaire || ""} onChange={(e) => setForm({ ...form, niveau_scolaire: e.target.value })}
-                    placeholder={t('teacher.parcours.fields.level')} className="w-full border rounded-xl px-3 py-2 text-sm" />
-                  <textarea value={form.description || ""} onChange={(e) => setForm({ ...form, description: e.target.value })}
-                    placeholder={t('teacher.parcours.fields.description')} className="w-full border rounded-xl px-3 py-2 text-sm h-20" />
-                </>
-              )}
-              {editItem.type === "paragraphe" && (
-                <textarea value={form.contenu || ""} onChange={(e) => setForm({ ...form, contenu: e.target.value })}
-                  placeholder={t('teacher.parcours.fields.content')} className="w-full border rounded-xl px-3 py-2 text-sm h-32" />
-              )}
-            </div>
-            <div className="flex gap-2 mt-4 justify-end">
-              <button onClick={() => setEditItem(null)} className="px-4 py-2 text-sm text-gray hover:bg-gray/10 rounded-xl">{t('teacher.parcours.btn.cancel')}</button>
-              <button onClick={handleSave} className="px-4 py-2 text-sm bg-orange text-white rounded-xl hover:bg-orange/90">{t('teacher.parcours.btn.save')}</button>
-            </div>
+        <Modal open={!!editItem} onClose={() => setEditItem(null)} title={`${editItem.item.id ? t('teacher.parcours.modal.editTitle') : t('teacher.parcours.modal.createTitle')} ${editItem.type}`}>
+          <div className="space-y-3">
+            <input value={form.titre || ""} onChange={(e) => setForm({ ...form, titre: e.target.value })}
+              placeholder={t('teacher.parcours.fields.title')} className="w-full border rounded-xl px-3 py-2 text-sm" />
+            {editItem.type === "parcours" && (
+              <>
+                <input value={form.matiere || ""} onChange={(e) => setForm({ ...form, matiere: e.target.value })}
+                  placeholder={t('teacher.parcours.fields.subject')} className="w-full border rounded-xl px-3 py-2 text-sm" />
+                <input value={form.niveau_scolaire || ""} onChange={(e) => setForm({ ...form, niveau_scolaire: e.target.value })}
+                  placeholder={t('teacher.parcours.fields.level')} className="w-full border rounded-xl px-3 py-2 text-sm" />
+                <textarea value={form.description || ""} onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  placeholder={t('teacher.parcours.fields.description')} className="w-full border rounded-xl px-3 py-2 text-sm h-20" />
+              </>
+            )}
+            {editItem.type === "paragraphe" && (
+              <textarea value={form.contenu || ""} onChange={(e) => setForm({ ...form, contenu: e.target.value })}
+                placeholder={t('teacher.parcours.fields.content')} className="w-full border rounded-xl px-3 py-2 text-sm h-32" />
+            )}
           </div>
-        </div>
+          <div className="flex gap-2 mt-4 justify-end">
+            <Button onClick={() => setEditItem(null)} variant="ghost" size="md">{t('teacher.parcours.btn.cancel')}</Button>
+            <Button onClick={handleSave} variant="primary" size="md">{t('teacher.parcours.btn.save')}</Button>
+          </div>
+        </Modal>
       )}
     </div>
   );

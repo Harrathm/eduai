@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Search, Library, BookOpen, Award } from "lucide-react";
 import { useAuthStore } from "../../../store/authStore";
 import { searchElements, listCompetences, type ElementPedagogique, type Competence } from "../../../api";
+import { Button, EmptyState } from "../../../components/ui";
 
 const STATUT_COLORS: Record<string, string> = {
   brouillon: "bg-gray-100 text-gray-600",
@@ -74,12 +75,22 @@ export default function TeacherBibliothequePage() {
 
       {/* Tabs */}
       <div className="flex gap-2">
-        <button onClick={() => setTab("search")} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm ${tab === "search" ? "bg-navy text-white" : "bg-gray/10 text-gray"}`}>
+        <Button
+          variant={tab === "search" ? "secondary" : "ghost"}
+          size="sm"
+          onClick={() => setTab("search")}
+          className="flex items-center gap-2"
+        >
           <Search size={16} /> {t('teacher.bibliotheque.tabs.search')}
-        </button>
-        <button onClick={() => setTab("competences")} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm ${tab === "competences" ? "bg-navy text-white" : "bg-gray/10 text-gray"}`}>
+        </Button>
+        <Button
+          variant={tab === "competences" ? "secondary" : "ghost"}
+          size="sm"
+          onClick={() => setTab("competences")}
+          className="flex items-center gap-2"
+        >
           <Award size={16} /> {t('teacher.bibliotheque.tabs.skills')}
-        </button>
+        </Button>
       </div>
 
       {/* Search Tab */}
@@ -91,16 +102,16 @@ export default function TeacherBibliothequePage() {
               <input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && doSearch()}
                 placeholder={t('teacher.bibliotheque.searchPlaceholder')} className="w-full ps-9 pe-4 py-2.5 border rounded-xl text-sm" />
             </div>
-            <button onClick={doSearch} className="px-4 py-2 bg-orange text-white rounded-xl text-sm hover:bg-orange/90">{t('teacher.bibliotheque.searchButton')}</button>
+            <Button variant="primary" size="sm" onClick={doSearch}>{t('teacher.bibliotheque.searchButton')}</Button>
           </div>
 
           {loading ? (
             <div className="text-center py-10 text-gray">{t('teacher.bibliotheque.searching')}</div>
           ) : results.length === 0 ? (
-            <div className="text-center py-10 text-gray">
-              <Library size={40} className="mx-auto mb-3 opacity-30" />
-              <p>{query ? t('teacher.bibliotheque.noResults') : t('teacher.bibliotheque.noResultsHint')}</p>
-            </div>
+            <EmptyState
+              icon={<Library size={40} />}
+              title={query ? t('teacher.bibliotheque.noResults') : t('teacher.bibliotheque.noResultsHint')}
+            />
           ) : (
             <div className="grid gap-2">
               {results.map((el) => (
@@ -125,10 +136,10 @@ export default function TeacherBibliothequePage() {
       {tab === "competences" && (
         <div>
           {competences.length === 0 ? (
-            <div className="text-center py-10 text-gray">
-              <Award size={40} className="mx-auto mb-3 opacity-30" />
-              <p>{t('teacher.bibliotheque.noSkills')}</p>
-            </div>
+            <EmptyState
+              icon={<Award size={40} />}
+              title={t('teacher.bibliotheque.noSkills')}
+            />
           ) : (
             <div className="grid gap-2">
               {competences.map((c) => (

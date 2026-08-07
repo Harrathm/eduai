@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuthStore } from "../../../store/authStore";
 import { Check, X, Eye, User, Clock, Trash2 } from "lucide-react";
 import { adminCourseModeration } from "../../../api";
+import { Button, Modal, EmptyState } from "../../../components/ui";
 
 interface Course {
   id: number;
@@ -86,14 +87,12 @@ export default function UGCModeration() {
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-black/5">
         <div className="flex gap-2 flex-wrap">
           {(["all", "pending", "published", "rejected"] as const).map((f) => (
-            <button
+            <Button
               key={f}
+              variant={filter === f ? "primary" : "ghost"}
+              size="sm"
               onClick={() => setFilter(f)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium capitalize ${
-                filter === f
-                  ? "bg-orange text-white"
-                  : "bg-cream-m text-gray hover:bg-cream"
-              }`}
+              className="capitalize"
             >
               {f}
               {f === "pending" && courses.filter((c) => c.status === "pending").length > 0 && (
@@ -101,7 +100,7 @@ export default function UGCModeration() {
                   {courses.filter((c) => c.status === "pending").length}
                 </span>
               )}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -113,8 +112,8 @@ export default function UGCModeration() {
             Chargement...
           </div>
         ) : courses.length === 0 ? (
-          <div className="bg-white rounded-3xl p-12 text-center text-gray">
-            Aucun cours trouvé
+          <div className="bg-white rounded-3xl">
+            <EmptyState title="Aucun cours trouvé" />
           </div>
         ) : (
           courses.map((course) => (
@@ -161,39 +160,23 @@ export default function UGCModeration() {
                     {course.price_dt} DT
                   </div>
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => setSelectedCourse(course)}
-                      className="p-2 bg-cream-m rounded-lg hover:bg-cream"
-                      title="Voir"
-                    >
+                    <Button variant="ghost" size="sm" onClick={() => setSelectedCourse(course)} title="Voir">
                       <Eye className="w-4 h-4 text-gray" />
-                    </button>
+                    </Button>
                     {course.status === "pending" && (
                       <>
-                        <button
-                          onClick={() => approveCourse(course.id)}
-                          className="p-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200"
-                          title="Approuver"
-                        >
-                          <Check className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => rejectCourse(course.id)}
-                          className="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200"
-                          title="Rejeter"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
+                        <Button variant="ghost" size="sm" onClick={() => approveCourse(course.id)} title="Approuver">
+                          <Check className="w-4 h-4 text-green-700" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => rejectCourse(course.id)} title="Rejeter">
+                          <X className="w-4 h-4 text-red-700" />
+                        </Button>
                       </>
                     )}
                     {(course.status === "published" || course.status === "rejected") && (
-                      <button
-                        onClick={() => deleteCourse(course.id)}
-                        className="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200"
-                        title="Supprimer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <Button variant="ghost" size="sm" onClick={() => deleteCourse(course.id)} title="Supprimer">
+                        <Trash2 className="w-4 h-4 text-red-700" />
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -204,76 +187,58 @@ export default function UGCModeration() {
       </div>
 
       {/* Course Detail Modal */}
-      {selectedCourse && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-            <div className="p-8">
-              <div className="flex justify-between items-start mb-6">
-                <h2 className="text-2xl font-semibold text-navy">
-                  {selectedCourse.title}
-                </h2>
-                <button
-                  onClick={() => setSelectedCourse(null)}
-                  className="p-2 hover:bg-cream rounded-lg"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="prose max-w-none mb-6">
-                <p className="text-gray">{selectedCourse.description}</p>
-              </div>
-              <div className="grid grid-cols-4 gap-4 mb-6">
-                <div className="bg-cream-m rounded-xl p-4 text-center">
-                  <div className="text-2xl font-semibold text-navy">
-                    {selectedCourse.modules_count}
-                  </div>
-                  <div className="text-xs text-gray">Modules</div>
-                </div>
-                <div className="bg-cream-m rounded-xl p-4 text-center">
-                  <div className="text-2xl font-semibold text-navy">
-                    {selectedCourse.lessons_count}
-                  </div>
-                  <div className="text-xs text-gray">Leçons</div>
-                </div>
-                <div className="bg-cream-m rounded-xl p-4 text-center">
-                  <div className="text-2xl font-semibold text-navy">
-                    {selectedCourse.students_enrolled}
-                  </div>
-                  <div className="text-xs text-gray">Étudiants</div>
-                </div>
-                <div className="bg-cream-m rounded-xl p-4 text-center">
-                  <div className="text-2xl font-semibold text-orange">
-                    {selectedCourse.price_tokens}
-                  </div>
-                  <div className="text-xs text-gray">Tokens</div>
-                </div>
-              </div>
-              {selectedCourse.status === "pending" && (
-                <div className="flex gap-4">
-                  <button
-                    onClick={() => {
-                      approveCourse(selectedCourse.id);
-                      setSelectedCourse(null);
-                    }}
-                    className="flex-1 py-3 bg-green-600 text-white rounded-xl font-medium"
-                  >
-                    Approuver
-                  </button>
-                  <button
-                    onClick={() => {
-                      rejectCourse(selectedCourse.id);
-                      setSelectedCourse(null);
-                    }}
-                    className="flex-1 py-3 bg-red-600 text-white rounded-xl font-medium"
-                  >
-                    Rejeter
-                  </button>
-                </div>
-              )}
+      <Modal open={!!selectedCourse} onClose={() => setSelectedCourse(null)}
+        title={selectedCourse?.title} maxWidth="max-w-2xl">
+        {selectedCourse && (
+          <div className="max-h-[80vh] overflow-y-auto">
+            <div className="prose max-w-none mb-6">
+              <p className="text-gray">{selectedCourse.description}</p>
             </div>
+            <div className="grid grid-cols-4 gap-4 mb-6">
+              <div className="bg-cream-m rounded-xl p-4 text-center">
+                <div className="text-2xl font-semibold text-navy">
+                  {selectedCourse.modules_count}
+                </div>
+                <div className="text-xs text-gray">Modules</div>
+              </div>
+              <div className="bg-cream-m rounded-xl p-4 text-center">
+                <div className="text-2xl font-semibold text-navy">
+                  {selectedCourse.lessons_count}
+                </div>
+                <div className="text-xs text-gray">Leçons</div>
+              </div>
+              <div className="bg-cream-m rounded-xl p-4 text-center">
+                <div className="text-2xl font-semibold text-navy">
+                  {selectedCourse.students_enrolled}
+                </div>
+                <div className="text-xs text-gray">Étudiants</div>
+              </div>
+              <div className="bg-cream-m rounded-xl p-4 text-center">
+                <div className="text-2xl font-semibold text-orange">
+                  {selectedCourse.price_tokens}
+                </div>
+                <div className="text-xs text-gray">Tokens</div>
+              </div>
+            </div>
+            {selectedCourse.status === "pending" && (
+              <div className="flex gap-4">
+                <Button variant="success" className="flex-1" onClick={() => {
+                  approveCourse(selectedCourse.id);
+                  setSelectedCourse(null);
+                }}>
+                  Approuver
+                </Button>
+                <Button variant="danger" className="flex-1" onClick={() => {
+                  rejectCourse(selectedCourse.id);
+                  setSelectedCourse(null);
+                }}>
+                  Rejeter
+                </Button>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { UserPlus, Check, X, Clock, RefreshCw, FileText, GraduationCap, Mail } from "lucide-react";
 import { AdminTable, KPICard, StatusBadge, Modal, ConfirmModal } from "../components";
+import { Button, EmptyState, PageSpinner } from "../../../components/ui";
 import { adminTeacherRegistrations } from "../../../api";
 import type { TeacherRegistration } from "../../../api";
 
@@ -78,14 +79,14 @@ export default function AdminTeacherQueuePage() {
     )},
     { key: "actions", header: "Actions", render: (r: TeacherRegistration) => r.status === "pending" ? (
       <div className="flex items-center gap-1">
-        <button onClick={() => { setReviewModal(r); setReviewAction("approved"); setRejectionReason(""); }}
-          className="p-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100" title="Approve">
+        <Button variant="success" size="sm" onClick={() => { setReviewModal(r); setReviewAction("approved"); setRejectionReason(""); }}
+          className="p-1.5" title="Approve">
           <Check className="w-4 h-4" />
-        </button>
-        <button onClick={() => { setReviewModal(r); setReviewAction("rejected"); setRejectionReason(""); }}
-          className="p-1.5 bg-red-50 text-red-400 rounded-lg hover:bg-red-100" title="Reject">
+        </Button>
+        <Button variant="danger" size="sm" onClick={() => { setReviewModal(r); setReviewAction("rejected"); setRejectionReason(""); }}
+          className="p-1.5" title="Reject">
           <X className="w-4 h-4" />
-        </button>
+        </Button>
       </div>
     ) : <span className="text-xs text-gray">—</span> },
   ];
@@ -98,9 +99,9 @@ export default function AdminTeacherQueuePage() {
           <p className="text-gray text-sm mt-1">Review and approve teacher registrations</p>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={fetchRegistrations} className="p-2 hover:bg-white rounded-xl shadow-sm border border-black/5">
-            <RefreshCw className={`w-5 h-5 text-gray ${loading ? "animate-spin" : ""}`} />
-          </button>
+          <Button variant="ghost" size="md" onClick={fetchRegistrations} className="p-2 rounded-xl shadow-sm border border-black/5" loading={loading}>
+            <RefreshCw className="w-5 h-5 text-gray" />
+          </Button>
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
             className="px-4 py-2 bg-white rounded-xl border border-black/5 text-sm focus:outline-none">
             <option value="">All</option>
@@ -125,11 +126,11 @@ export default function AdminTeacherQueuePage() {
         <Modal open onClose={() => setReviewModal(null)} title={reviewAction === "approved" ? "Approve Registration" : "Reject Registration"}
           footer={
             <>
-              <button onClick={() => setReviewModal(null)} className="flex-1 py-3 bg-cream-m rounded-xl font-medium">Cancel</button>
-              <button onClick={handleReview} disabled={processing}
-                className={`flex-1 py-3 rounded-xl font-medium text-white ${reviewAction === "approved" ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"} disabled:opacity-50`}>
-                {processing ? "..." : reviewAction === "approved" ? "Approve" : "Reject"}
-              </button>
+              <Button variant="secondary" size="md" onClick={() => setReviewModal(null)} className="flex-1 py-3 font-medium">Cancel</Button>
+              <Button variant={reviewAction === "approved" ? "success" : "danger"} size="md" onClick={handleReview} disabled={processing}
+                loading={processing} className="flex-1 py-3 font-medium">
+                {reviewAction === "approved" ? "Approve" : "Reject"}
+              </Button>
             </>
           }>
           <div className="space-y-4">

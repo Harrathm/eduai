@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Search, Building2, Plus, RefreshCw, Trash2, Pencil, Download, Globe, Users as UsersIcon, Calendar } from "lucide-react";
 import { AdminTable, KPICard, StatusBadge, Modal, ConfirmModal } from "../components";
+import { Button } from "../../../components/ui";
 import { adminSchools } from "../../../api";
 import type { AdminSchool, PaginatedResponse } from "../../../api";
 
@@ -140,12 +141,12 @@ export default function AdminSchoolsPage() {
     )},
     { key: "actions", header: t("admin.schools.table.colActions"), render: (s: AdminSchool) => (
       <div className="flex items-center gap-1">
-        <button onClick={() => setEditModal(s)} className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100" title={t("admin.schools.btn.edit")}>
+        <Button variant="ghost" size="sm" onClick={() => setEditModal(s)} title={t("admin.schools.btn.edit")}>
           <Pencil className="w-4 h-4" />
-        </button>
-        <button onClick={() => setDeleteTarget(s)} className="p-1.5 bg-red-50 text-red-400 rounded-lg hover:bg-red-100" title={t("admin.schools.btn.delete")}>
+        </Button>
+        <Button variant="danger" size="sm" onClick={() => setDeleteTarget(s)} title={t("admin.schools.btn.delete")}>
           <Trash2 className="w-4 h-4" />
-        </button>
+        </Button>
       </div>
     )},
   ];
@@ -158,15 +159,15 @@ export default function AdminSchoolsPage() {
           <p className="text-gray text-sm mt-1">{result ? t("admin.schools.subtitle", { count: result.total }) : t("admin.schools.loading")}</p>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={() => fetchSchools(true)} className="p-2.5 bg-white rounded-xl shadow-sm border border-black/5 hover:bg-cream">
+          <Button variant="ghost" size="md" onClick={() => fetchSchools(true)}>
             <RefreshCw className={`w-5 h-5 text-gray ${refreshing ? "animate-spin" : ""}`} />
-          </button>
-          <button onClick={exportCSV} disabled={!schools.length} className="flex items-center gap-2 px-4 py-2.5 bg-navy text-white rounded-xl font-medium text-sm hover:bg-navy-m disabled:opacity-50 shadow-sm">
+          </Button>
+          <Button variant="secondary" size="md" onClick={exportCSV} disabled={!schools.length} className="flex items-center gap-2">
             <Download className="w-4 h-4" /> {t("admin.schools.btnExport")}
-          </button>
-          <button onClick={() => setCreateModal(true)} className="flex items-center gap-2 px-4 py-2.5 bg-orange text-white rounded-xl font-medium text-sm hover:bg-orange-w shadow-sm">
+          </Button>
+          <Button variant="primary" size="md" onClick={() => setCreateModal(true)} className="flex items-center gap-2">
             <Plus className="w-4 h-4" /> {t("admin.schools.btnNew")}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -235,10 +236,10 @@ function SchoolFormModal({ open, school, onClose, onSubmit, loading }: {
     <Modal open onClose={onClose} title={school ? t("admin.schools.modal.editTitle") : t("admin.schools.modal.createTitle")}
       footer={
         <>
-          <button onClick={onClose} className="flex-1 py-3 bg-cream-m rounded-xl font-medium">{t("admin.schools.modal.btnCancel")}</button>
-          <button onClick={handleSubmit} disabled={loading || !name} className="flex-1 py-3 bg-orange text-white rounded-xl font-medium disabled:opacity-50">
-            {loading ? "..." : school ? t("admin.schools.modal.btnSave") : t("admin.schools.modal.btnCreate")}
-          </button>
+          <Button variant="ghost" size="md" onClick={onClose} className="flex-1">{t("admin.schools.modal.btnCancel")}</Button>
+          <Button variant="primary" size="md" onClick={handleSubmit} disabled={loading || !name} loading={loading} className="flex-1">
+            {school ? t("admin.schools.modal.btnSave") : t("admin.schools.modal.btnCreate")}
+          </Button>
         </>
       }>
       <div className="space-y-4">

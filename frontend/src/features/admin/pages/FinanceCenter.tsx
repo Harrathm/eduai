@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Search, Plus, Minus, DollarSign, Coins, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import { adminUsers, adminAnalytics, adminTransactions } from "../../../api";
 import type { WalletEntry, GlobalStats } from "../../../api";
+import { Button, Modal, EmptyState } from "../../../components/ui";
 
 export default function FinanceCenter() {
   const [wallets, setWallets] = useState<WalletEntry[]>([]);
@@ -87,9 +88,9 @@ export default function FinanceCenter() {
           <h1 className="text-3xl font-display font-light text-navy">Finance <span className="italic text-orange">Center</span></h1>
           <p className="text-gray text-sm mt-1">{total} users</p>
         </div>
-        <button onClick={fetchWallets} className="p-2.5 bg-white rounded-xl shadow-sm border border-black/5 hover:bg-cream">
+        <Button variant="ghost" size="sm" onClick={fetchWallets}>
           <RefreshCw className={`w-5 h-5 text-gray ${loading ? "animate-spin" : ""}`} />
-        </button>
+        </Button>
       </div>
 
       {/* KPI Cards */}
@@ -144,7 +145,7 @@ export default function FinanceCenter() {
                   </tr>
                 ))
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={7} className="text-center py-12 text-gray text-sm">No wallets found</td></tr>
+                <tr><td colSpan={7}><EmptyState title="No wallets found" /></td></tr>
               ) : filtered.map(w => (
                 <tr key={w.id} className="hover:bg-cream/30 transition-colors">
                   <td className="px-5 py-4">
@@ -162,14 +163,12 @@ export default function FinanceCenter() {
                   <td className="px-5 py-4 text-end text-gray text-sm">{formatNum(w.total_tokens_spent)} TKN</td>
                   <td className="px-5 py-4 text-end">
                     <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => openModal(w, "add")}
-                        className="p-2 rounded-lg text-green-600 hover:bg-green-50 transition-colors" title="Add funds">
-                        <Plus className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => openModal(w, "deduct")}
-                        className="p-2 rounded-lg text-red-500 hover:bg-red-50 transition-colors" title="Deduct funds">
-                        <Minus className="w-4 h-4" />
-                      </button>
+                      <Button variant="ghost" size="sm" onClick={() => openModal(w, "add")} title="Add funds">
+                        <Plus className="w-4 h-4 text-green-600" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => openModal(w, "deduct")} title="Deduct funds">
+                        <Minus className="w-4 h-4 text-red-500" />
+                      </Button>
                     </div>
                   </td>
                 </tr>
@@ -182,22 +181,22 @@ export default function FinanceCenter() {
         <div className="flex items-center justify-between px-5 py-4 border-t border-black/5">
           <span className="text-sm text-gray">{total} total</span>
           <div className="flex items-center gap-2">
-            <button disabled={skip <= 0} onClick={() => setSkip(Math.max(0, skip - limit))}
-              className="p-2 rounded-lg hover:bg-cream disabled:opacity-30"><ChevronLeft className="w-5 h-5" /></button>
+            <Button variant="ghost" size="sm" disabled={skip <= 0} onClick={() => setSkip(Math.max(0, skip - limit))}>
+              <ChevronLeft className="w-5 h-5" />
+            </Button>
             <span className="text-sm text-navy font-medium">{Math.floor(skip / limit) + 1} / {Math.max(1, Math.ceil(total / limit))}</span>
-            <button disabled={skip + limit >= total} onClick={() => setSkip(skip + limit)}
-              className="p-2 rounded-lg hover:bg-cream disabled:opacity-30"><ChevronRight className="w-5 h-5" /></button>
+            <Button variant="ghost" size="sm" disabled={skip + limit >= total} onClick={() => setSkip(skip + limit)}>
+              <ChevronRight className="w-5 h-5" />
+            </Button>
           </div>
         </div>
       </div>
 
       {/* Modal */}
-      {modal && selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setModal(null)}>
-          <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h2 className="text-xl font-display font-semibold text-navy mb-1">
-              {modal === "add" ? "Add Funds" : "Deduct Funds"}
-            </h2>
+      <Modal open={!!modal && !!selected} onClose={() => setModal(null)}
+        title={modal === "add" ? "Add Funds" : "Deduct Funds"} maxWidth="max-w-md">
+        {selected && (
+          <>
             <p className="text-sm text-gray mb-6">{selected.email} ({selected.full_name || "—"})</p>
 
             <div className="space-y-4">
@@ -219,20 +218,17 @@ export default function FinanceCenter() {
             </div>
 
             <div className="flex items-center gap-3 mt-8">
-              <button onClick={() => setModal(null)} disabled={actionLoading}
-                className="flex-1 px-5 py-3 bg-cream-m rounded-xl text-navy font-medium text-sm hover:bg-cream disabled:opacity-50">
+              <Button variant="secondary" onClick={() => setModal(null)} disabled={actionLoading} className="flex-1">
                 Cancel
-              </button>
-              <button onClick={handleAdjust} disabled={actionLoading}
-                className={`flex-1 px-5 py-3 rounded-xl text-white font-medium text-sm disabled:opacity-50 ${
-                  modal === "add" ? "bg-green-600 hover:bg-green-700" : "bg-red-500 hover:bg-red-600"
-                }`}>
-                {actionLoading ? "Processing..." : modal === "add" ? "Add Funds" : "Deduct Funds"}
-              </button>
+              </Button>
+              <Button variant={modal === "add" ? "success" : "danger"} onClick={handleAdjust} disabled={actionLoading}
+                loading={actionLoading} className="flex-1">
+                {modal === "add" ? "Add Funds" : "Deduct Funds"}
+              </Button>
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
 
       {/* Toast */}
       {toast.show && (

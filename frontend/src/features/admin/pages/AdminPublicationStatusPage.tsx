@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { CheckCircle, AlertCircle, BookOpen, FileText, Eye } from "lucide-react";
+import { Button } from "../../../components/ui";
 import {
   getNiveauxEtude, getMatieres, getChapters, getNotions, getContenus, getStatutPublication,
 } from "../../../api";
@@ -75,12 +76,9 @@ export default function AdminPublicationStatusPage() {
 
       <div className="flex gap-2">
         {(["all", "publiable", "brouillon"] as const).map(f => (
-          <button key={f} onClick={() => setFilter(f)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-              filter === f ? "bg-orange text-white" : "bg-white text-gray border hover:bg-gray-50"
-            }`}>
+          <Button key={f} variant={filter === f ? "primary" : "ghost"} size="md" onClick={() => setFilter(f)}>
             {f === "all" ? "Toutes" : f === "publiable" ? "Publiables" : "Brouillons"}
-          </button>
+          </Button>
         ))}
       </div>
 

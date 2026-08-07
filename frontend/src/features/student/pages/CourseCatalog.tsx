@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../../../store/authStore";
 import { courseAcademy, courseLearner } from "../../../api";
-import { Search, BookOpen, Clock, User, ShoppingCart, AlertCircle, CheckCircle, X } from "lucide-react";
-import { PageWrapper } from "../../../components/ui";
+import { Search, BookOpen, Clock, User, ShoppingCart, AlertCircle, CheckCircle } from "lucide-react";
+import { Button, Modal, EmptyState, PageWrapper } from "../../../components/ui";
 
 interface Course {
   id: number;
@@ -146,9 +146,10 @@ export default function StudentCourseCatalog() {
             {t('courseCatalog.loading')}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="bg-white rounded-3xl p-12 text-center text-gray">
-            {t('courseCatalog.noResults')}
-          </div>
+          <EmptyState
+            icon={<BookOpen className="w-12 h-12" />}
+            title={t('courseCatalog.noResults')}
+          />
         ) : (
           filtered.map((course) => {
             const isEnrolled = myEnrollments.includes(course.id);
@@ -201,35 +202,40 @@ export default function StudentCourseCatalog() {
                           {t('courseCatalog.enrolled')}
                         </span>
                         {isEnrolled && !isFree && (
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => setRefundModal({ courseId: course.id, courseTitle: course.title })}
                             className="text-xs text-red-500 hover:text-red-700 underline"
                           >
                             {t('courseCatalog.requestRefund')}
-                          </button>
+                          </Button>
                         )}
                       </div>
                     ) : canPurchase ? (
-                      <button
+                      <Button
+                        variant="primary"
+                        size="sm"
                         onClick={() => purchaseCourse(course.id)}
                         disabled={purchasing === course.id}
-                        className="mt-2 flex items-center gap-2 px-4 py-2 bg-orange text-white rounded-xl text-sm font-medium disabled:opacity-50"
+                        loading={purchasing === course.id}
                       >
                         <ShoppingCart className="w-4 h-4" />
                         {purchasing === course.id ? t('courseCatalog.purchasing') : t('courseCatalog.buy')}
-                      </button>
+                      </Button>
                     ) : (
-                      <button
+                      <Button
+                        variant="primary"
+                        size="sm"
                         onClick={() => {
                           courseLearner.enroll(course.id).then(() => {
                             fetchEnrollments();
                             fetchCourses();
                           });
                         }}
-                        className="mt-2 px-4 py-2 bg-orange text-white rounded-xl text-sm font-medium"
                       >
                         {t('courseCatalog.enrollFree')}
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -240,60 +246,56 @@ export default function StudentCourseCatalog() {
       </div>
 
       {/* Modal de remboursement */}
-      {refundModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md">
-            <div className="p-6 border-b flex justify-between items-center">
-              <h3 className="text-lg font-semibold">{t('courseCatalog.refundTitle')}</h3>
-              <button onClick={() => setRefundModal(null)} className="p-1 hover:bg-gray-100 rounded">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              <p className="text-sm text-gray">
-                {t('courseCatalog.refundDescription', { title: refundModal.courseTitle })}
-              </p>
-              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-                <div className="flex items-start gap-2">
-                  <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
-                  <div className="text-sm text-yellow-800">
-                    <p className="font-medium">{t('courseCatalog.refundConditions')}</p>
-                    <ul className="mt-1 list-disc list-inside text-yellow-700">
-                      <li>{t('courseCatalog.refundConditionProgress')}</li>
-                      <li>{t('courseCatalog.refundConditionPaid')}</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray mb-2">{t('courseCatalog.refundReasonLabel')}</label>
-                <textarea
-                  value={refundReason}
-                  onChange={(e) => setRefundReason(e.target.value)}
-                  className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5 focus:outline-none"
-                  rows={3}
-                  placeholder={t('courseCatalog.refundReasonPlaceholder')}
-                />
-              </div>
-            </div>
-            <div className="p-6 border-t flex gap-3">
-              <button
-                onClick={() => setRefundModal(null)}
-                className="flex-1 py-3 bg-cream-m rounded-xl font-medium"
-              >
-                {t('courseCatalog.cancel')}
-              </button>
-              <button
-                onClick={requestRefund}
-                disabled={!refundReason.trim() || refundLoading}
-                className="flex-1 py-3 bg-red-500 text-white rounded-xl font-medium disabled:opacity-50"
-              >
-                {refundLoading ? t('courseCatalog.sending') : t('courseCatalog.sendRequest')}
-              </button>
+      <Modal
+        open={!!refundModal}
+        onClose={() => setRefundModal(null)}
+        title={t('courseCatalog.refundTitle')}
+        maxWidth="max-w-md"
+      >
+        <p className="text-sm text-gray">
+          {t('courseCatalog.refundDescription', { title: refundModal?.courseTitle })}
+        </p>
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mt-4">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
+            <div className="text-sm text-yellow-800">
+              <p className="font-medium">{t('courseCatalog.refundConditions')}</p>
+              <ul className="mt-1 list-disc list-inside text-yellow-700">
+                <li>{t('courseCatalog.refundConditionProgress')}</li>
+                <li>{t('courseCatalog.refundConditionPaid')}</li>
+              </ul>
             </div>
           </div>
         </div>
-      )}
+        <div className="mt-4">
+          <label className="block text-sm font-medium text-gray mb-2">{t('courseCatalog.refundReasonLabel')}</label>
+          <textarea
+            value={refundReason}
+            onChange={(e) => setRefundReason(e.target.value)}
+            className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5 focus:outline-none"
+            rows={3}
+            placeholder={t('courseCatalog.refundReasonPlaceholder')}
+          />
+        </div>
+        <div className="mt-6 flex gap-3">
+          <Button
+            variant="ghost"
+            onClick={() => setRefundModal(null)}
+            className="flex-1"
+          >
+            {t('courseCatalog.cancel')}
+          </Button>
+          <Button
+            variant="danger"
+            onClick={requestRefund}
+            disabled={!refundReason.trim() || refundLoading}
+            loading={refundLoading}
+            className="flex-1"
+          >
+            {refundLoading ? t('courseCatalog.sending') : t('courseCatalog.sendRequest')}
+          </Button>
+        </div>
+      </Modal>
 
       {/* Toast */}
       {toast.show && (

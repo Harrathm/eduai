@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Send, Users, Megaphone, MessageSquare, History, Trash2, RefreshCw } from "lucide-react";
+import { Button } from "../../../components/ui";
 import { adminBroadcast } from "../../../api";
 import type { BroadcastMessage } from "../../../api";
 
@@ -76,9 +77,9 @@ export default function BroadcastCenter() {
           <h1 className="text-3xl font-display font-light text-navy">Broadcast <span className="italic text-orange">Center</span></h1>
           <p className="text-gray text-sm mt-1">Send messages to user segments</p>
         </div>
-        <button onClick={fetchHistory} className="p-2.5 bg-white rounded-xl shadow-sm border border-black/5 hover:bg-cream">
+        <Button variant="ghost" size="md" onClick={fetchHistory}>
           <RefreshCw className={`w-5 h-5 text-gray ${loadingHistory ? "animate-spin" : ""}`} />
-        </button>
+        </Button>
       </div>
 
       {/* Compose */}
@@ -89,8 +90,9 @@ export default function BroadcastCenter() {
             <Users className="w-4 h-4 text-orange" /> Target Audience
           </h3>
           {TARGET_OPTIONS.map((opt) => (
-            <button
+            <Button
               key={opt.value}
+              variant={target === opt.value ? "primary" : "ghost"}
               onClick={() => setTarget(opt.value)}
               className={`w-full text-start p-4 rounded-2xl border-2 transition-all ${
                 target === opt.value
@@ -105,7 +107,7 @@ export default function BroadcastCenter() {
                   <div className="text-xs text-gray">{opt.desc}</div>
                 </div>
               </div>
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -143,18 +145,17 @@ export default function BroadcastCenter() {
             </div>
           )}
 
-          <button
+          <Button
+            variant="primary"
+            size="md"
             onClick={handleSend}
             disabled={sending || !subject.trim() || !body.trim()}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange to-orange-l text-white rounded-xl font-medium text-sm hover:opacity-90 disabled:opacity-50 shadow-sm"
+            loading={sending}
+            className="flex items-center gap-2 px-6 py-3"
           >
-            {sending ? (
-              <RefreshCw className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
+            <Send className="w-4 h-4" />
             {sending ? "Sending..." : `Send to ${TARGET_OPTIONS.find((o) => o.value === target)?.label || "All"}`}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -190,13 +191,15 @@ export default function BroadcastCenter() {
                     <span>{new Date(msg.created_at).toLocaleString("fr-TN")}</span>
                   </div>
                 </div>
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => handleDelete(msg.id)}
                   className="p-2 rounded-lg text-gray hover:bg-red-50 hover:text-red-500 transition-colors flex-shrink-0 ms-4"
                   title="Delete"
                 >
                   <Trash2 className="w-4 h-4" />
-                </button>
+                </Button>
               </div>
             ))}
           </div>

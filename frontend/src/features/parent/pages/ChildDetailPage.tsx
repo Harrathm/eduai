@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useTranslation } from 'react-i18next';
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { parentAPI, ProgressionData, SuiviData } from "../../../api";
+import { Button, Spinner } from "../../../components/ui";
 import { Wallet, ExternalLink } from "lucide-react";
 
 const RECHARGE_AMOUNTS = [5, 10, 20, 50];
@@ -59,7 +60,7 @@ export default function ChildDetailPage() {
     }
   };
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange"></div></div>;
+  if (loading) return <div className="flex items-center justify-center h-64"><Spinner size="lg" /></div>;
   if (error) return <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">{error}</div>;
   if (!suivi || !progression) return null;
 
@@ -80,9 +81,9 @@ export default function ChildDetailPage() {
           <Link to={`/dashboard/parent/enfant/${id}/pack`} className="px-3 py-1.5 text-xs font-medium text-navy bg-gray-100 rounded-xl hover:bg-gray-200 flex items-center gap-1">
             <ExternalLink className="w-3.5 h-3.5" /> {t('parent.childDetail.tabs.pack')}
           </Link>
-          <button onClick={handleUnlink} className="text-sm text-red-500 hover:text-red-700 transition-colors">
+          <Button variant="danger" size="sm" onClick={handleUnlink} className="transition-colors">
             {t('parent.childDetail.detachButton')}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -93,13 +94,15 @@ export default function ChildDetailPage() {
               <div className="text-2xl font-[300] text-orange">{suivi.dt_balance} DT</div>
               <div className="text-xs text-gray-500 mt-1">{t('parent.childDetail.walletBalance')}</div>
             </div>
-            <button
+            <Button
+              variant="primary"
+              size="sm"
               onClick={() => setRechargeOpen(!rechargeOpen)}
-              className="flex items-center gap-1 px-3 py-2 bg-orange text-white rounded-xl text-sm font-medium hover:bg-orange-l transition-colors"
+              className="flex items-center gap-1"
             >
               <Wallet className="w-4 h-4" />
               {t('parent.childDetail.rechargeButton')}
-            </button>
+            </Button>
           </div>
         </div>
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-black/5">
@@ -127,17 +130,15 @@ export default function ChildDetailPage() {
           </p>
           <div className="grid grid-cols-4 gap-3 mb-4">
             {RECHARGE_AMOUNTS.map((amt) => (
-              <button
+              <Button
                 key={amt}
+                variant={rechargeAmount === amt && !customAmount ? "primary" : "secondary"}
+                size="md"
                 onClick={() => { setRechargeAmount(amt); setCustomAmount(""); }}
-                className={`py-3 rounded-xl font-medium transition-colors ${
-                  rechargeAmount === amt && !customAmount
-                    ? "bg-orange text-white"
-                    : "bg-cream-m text-navy hover:bg-cream"
-                }`}
+                className="py-3 rounded-xl font-medium transition-colors"
               >
                 {amt} DT
-              </button>
+              </Button>
             ))}
           </div>
           <div className="mb-4">
@@ -154,24 +155,23 @@ export default function ChildDetailPage() {
           </div>
           {rechargeError && <p className="text-red-500 text-sm mb-3">{rechargeError}</p>}
           <div className="flex gap-3">
-            <button
+            <Button
+              variant="primary"
+              size="md"
               onClick={handleRecharge}
-              disabled={rechargeLoading}
-              className="flex items-center gap-2 px-6 py-3 bg-orange text-white rounded-xl font-medium hover:bg-orange-l transition-colors disabled:opacity-50"
+              loading={rechargeLoading}
+              className="flex items-center gap-2"
             >
-              {rechargeLoading ? (
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <ExternalLink className="w-4 h-4" />
-              )}
+              <ExternalLink className="w-4 h-4" />
               {t('parent.childDetail.payButton')}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="secondary"
+              size="md"
               onClick={() => setRechargeOpen(false)}
-              className="px-6 py-3 bg-cream-m rounded-xl font-medium"
             >
               {t('parent.childDetail.cancelButton')}
-            </button>
+            </Button>
           </div>
         </div>
       )}

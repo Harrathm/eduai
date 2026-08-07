@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { ChevronDown, ChevronRight, Plus, Pencil, Trash2, Check, X, Layers, BookOpen, FileText, Lightbulb } from "lucide-react";
+import { Button } from "../../../components/ui";
 import {
   getNiveauxEtude, createNiveauEtude, updateNiveauEtude, deleteNiveauEtude,
   getMatieres, createMatiere, updateMatiere, deleteMatiere,
@@ -89,9 +90,8 @@ export default function AdminArborescencePage() {
         <input autoFocus className="px-3 py-1.5 border rounded-lg text-sm flex-1" placeholder={`Nom du ${type}...`}
           value={val} onChange={e => setVal(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter" && val.trim()) { save(type, { nom: val.trim() }, parentId); onClose(); } if (e.key === "Escape") onClose(); }} />
-        <button onClick={() => { if (val.trim()) { save(type, { nom: val.trim() }, parentId); onClose(); } }}
-          className="p-1.5 bg-green-100 rounded-lg hover:bg-green-200"><Check className="w-4 h-4 text-green-600" /></button>
-        <button onClick={onClose} className="p-1.5 bg-gray-100 rounded-lg hover:bg-gray-200"><X className="w-4 h-4 text-gray-500" /></button>
+        <Button variant="success" size="sm" onClick={() => { if (val.trim()) { save(type, { nom: val.trim() }, parentId); onClose(); } }}><Check className="w-4 h-4" /></Button>
+        <Button variant="ghost" size="sm" onClick={onClose}><X className="w-4 h-4" /></Button>
       </div>
     );
   };
@@ -117,10 +117,8 @@ export default function AdminArborescencePage() {
               <Layers className="w-5 h-5 text-purple-600" />
               {expanded.niveaux?.includes(niv.id) ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
               <span className="font-semibold text-navy flex-1">{niv.nom}</span>
-              <button onClick={e => { e.stopPropagation(); setEditing(`niv-${niv.id}`); setEditValue({ nom: niv.nom, ordre: niv.ordre }); }}
-                className="p-1 hover:bg-gray-100 rounded"><Pencil className="w-4 h-4 text-gray-400" /></button>
-              <button onClick={e => { e.stopPropagation(); remove("niveau", niv.id); }}
-                className="p-1 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4 text-red-400" /></button>
+              <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); setEditing(`niv-${niv.id}`); setEditValue({ nom: niv.nom, ordre: niv.ordre }); }}><Pencil className="w-4 h-4" /></Button>
+              <Button variant="danger" size="sm" onClick={e => { e.stopPropagation(); remove("niveau", niv.id); }}><Trash2 className="w-4 h-4" /></Button>
             </div>
 
             {editing === `niv-${niv.id}` && (
@@ -128,10 +126,8 @@ export default function AdminArborescencePage() {
                 <input autoFocus className="px-3 py-1.5 border rounded-lg text-sm flex-1" value={editValue.nom}
                   onChange={e => setEditValue({ ...editValue, nom: e.target.value })}
                   onKeyDown={e => { if (e.key === "Enter") { save("niveau", editValue, niv.id); } }} />
-                <button onClick={() => save("niveau", { ...editValue, id: niv.id }, niv.id)}
-                  className="p-1.5 bg-green-100 rounded-lg"><Check className="w-4 h-4 text-green-600" /></button>
-                <button onClick={() => setEditing(null)}
-                  className="p-1.5 bg-gray-100 rounded-lg"><X className="w-4 h-4 text-gray-500" /></button>
+                <Button variant="success" size="sm" onClick={() => save("niveau", { ...editValue, id: niv.id }, niv.id)}><Check className="w-4 h-4" /></Button>
+                <Button variant="ghost" size="sm" onClick={() => setEditing(null)}><X className="w-4 h-4" /></Button>
               </div>
             )}
 
@@ -144,8 +140,7 @@ export default function AdminArborescencePage() {
                       <BookOpen className="w-4 h-4 text-blue-600" />
                       {expanded.matieres?.includes(mat.id) ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
                       <span className="text-sm font-medium text-navy flex-1">{mat.nom}</span>
-                      <button onClick={e => { e.stopPropagation(); remove("matiere", mat.id); }}
-                        className="p-1 hover:bg-red-50 rounded"><Trash2 className="w-3 h-3 text-red-400" /></button>
+                      <Button variant="danger" size="sm" onClick={e => { e.stopPropagation(); remove("matiere", mat.id); }}><Trash2 className="w-3 h-3" /></Button>
                     </div>
 
                     {expanded.matieres?.includes(mat.id) && (
@@ -157,8 +152,7 @@ export default function AdminArborescencePage() {
                               <FileText className="w-4 h-4 text-orange" />
                               {expanded.chapters?.includes(ch.id) ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
                               <span className="text-sm text-navy flex-1">{ch.nom}</span>
-                              <button onClick={e => { e.stopPropagation(); remove("chapitre", ch.id); }}
-                                className="p-1 hover:bg-red-50 rounded"><Trash2 className="w-3 h-3 text-red-400" /></button>
+                              <Button variant="danger" size="sm" onClick={e => { e.stopPropagation(); remove("chapitre", ch.id); }}><Trash2 className="w-3 h-3" /></Button>
                             </div>
 
                             {expanded.chapters?.includes(ch.id) && (
@@ -167,8 +161,7 @@ export default function AdminArborescencePage() {
                                   <div key={notion.id} className="flex items-center gap-2 py-1 px-3">
                                     <Lightbulb className="w-3 h-3 text-yellow-500" />
                                     <span className="text-xs text-gray-700 flex-1">{notion.nom}</span>
-                                    <button onClick={() => remove("notion", notion.id)}
-                                      className="p-0.5 hover:bg-red-50 rounded"><Trash2 className="w-3 h-3 text-red-400" /></button>
+                                    <Button variant="danger" size="sm" onClick={() => remove("notion", notion.id)}><Trash2 className="w-3 h-3" /></Button>
                                   </div>
                                 ))}
                                 <AddForm type="notion" parentId={ch.id} onClose={() => {}} />
@@ -186,10 +179,9 @@ export default function AdminArborescencePage() {
             )}
           </div>
         ))}
-        <button onClick={() => save("niveau", { nom: "Nouveau niveau" })}
-          className="flex items-center gap-2 px-4 py-2 text-sm text-orange hover:bg-orange/5 rounded-xl transition-colors">
+        <Button variant="ghost" onClick={() => save("niveau", { nom: "Nouveau niveau" })} className="flex items-center gap-2 text-orange hover:bg-orange/5">
           <Plus className="w-4 h-4" /> Ajouter un niveau d'étude
-        </button>
+        </Button>
       </div>
     </div>
   );

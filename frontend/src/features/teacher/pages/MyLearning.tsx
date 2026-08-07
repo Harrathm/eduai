@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../../store/authStore";
 import { Search, BookOpen, Clock, User } from "lucide-react";
 import { teacherMyCoursesApi } from "../../../api";
+import { Button } from "../../../components/ui";
 
 interface Training {
   id: number;
@@ -177,12 +178,13 @@ export default function MyLearning() {
                       {training.price_dt} {t('teacher.learning.dt')}
                     </div>
                   )}
-                  <button
+                  <Button
                     onClick={() => navigate(`/dashboard/courses/${training.id}`)}
-                    className="px-4 py-2 bg-orange text-white rounded-xl text-sm font-medium"
+                    variant="primary"
+                    size="sm"
                   >
                     {t('teacher.learning.viewCourse')}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>

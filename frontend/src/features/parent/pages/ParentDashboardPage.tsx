@@ -5,6 +5,7 @@ import { parentAPI, DashboardData } from "../../../api";
 import ParentMessaging from "./ParentMessaging";
 import { Wallet, Package, Users } from "lucide-react";
 import { tokenStorage } from "../../../utils/tokenStorage";
+import { Button } from "../../../components/ui";
 
 export default function ParentDashboardPage() {
   const { t } = useTranslation();
@@ -113,13 +114,14 @@ export default function ParentDashboardPage() {
             className="flex-1 px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-orange"
             required
           />
-          <button
+          <Button
             type="submit"
             disabled={lierLoading}
-            className="px-6 py-2 bg-orange text-white rounded-xl font-medium hover:bg-orange-l transition-colors disabled:opacity-50"
+            variant="primary"
+            loading={lierLoading}
           >
-            {lierLoading ? "..." : t('parent.link')}
-          </button>
+            {t('parent.link')}
+          </Button>
         </form>
         {lierMsg && <p className="text-sm mt-2 text-gray-600">{lierMsg}</p>}
       </div>

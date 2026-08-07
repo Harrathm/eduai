@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { BookOpen, Plus, RefreshCw, Eye, EyeOff, Pencil, Trash2, Search, Copy, Archive, X, FileText, Clock, Users, Tag, Send, LayoutGrid } from "lucide-react";
-import { AdminTable, KPICard, StatusBadge, Modal, ConfirmModal } from "../components";
+import { AdminTable, KPICard, StatusBadge, Modal as AdminModal, ConfirmModal } from "../components";
+import { Button, EmptyState, Modal } from "../../../components/ui";
 import { adminCourses, pathwayApi } from "../../../api";
 import type { AdminCourse } from "../../../api";
 import { useAuthStore } from "../../../store/authStore";
@@ -219,49 +220,49 @@ export default function AdminCoursesPage() {
     )},
     { key: "actions", header: t("admin.courses.table.colActions"), render: (c: AdminCourse) => (
       <div className="flex items-center gap-1 flex-wrap">
-        <button onClick={() => window.location.href = `/dashboard/admin/courses/${c.id}`}
-          className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100" title={t("admin.courses.btn.edit")}>
+        <Button variant="ghost" size="sm" onClick={() => window.location.href = `/dashboard/admin/courses/${c.id}`}
+          title={t("admin.courses.btn.edit")}>
           <Pencil className="w-4 h-4" />
-        </button>
-        <button onClick={() => window.location.href = `/dashboard/admin/courses/${c.id}/builder`}
-          className="p-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100" title="Builder DnD">
+        </Button>
+        <Button variant="success" size="sm" onClick={() => window.location.href = `/dashboard/admin/courses/${c.id}/builder`}
+          title="Builder DnD">
           <LayoutGrid className="w-4 h-4" />
-        </button>
-        <button onClick={() => handlePreview(c.id)} disabled={previewLoading}
-          className="p-1.5 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100" title={t("admin.courses.btn.preview")}>
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => handlePreview(c.id)} disabled={previewLoading}
+          title={t("admin.courses.btn.preview")}>
           <Eye className="w-4 h-4" />
-        </button>
-        <button onClick={() => handleDuplicate(c.id)} disabled={processing}
-          className="p-1.5 bg-navy-50 text-navy-600 rounded-lg hover:bg-navy-100" title={t("admin.courses.btn.duplicate")}>
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => handleDuplicate(c.id)} disabled={processing}
+          title={t("admin.courses.btn.duplicate")}>
           <Copy className="w-4 h-4" />
-        </button>
+        </Button>
         {c.is_published ? (
-          <button onClick={() => handlePublish(c.id, false)} disabled={processing}
-            className="p-1.5 bg-orange-50 text-orange-500 rounded-lg hover:bg-orange-100" title={t("admin.courses.btn.unpublish")}>
+          <Button variant="danger" size="sm" onClick={() => handlePublish(c.id, false)} disabled={processing}
+            title={t("admin.courses.btn.unpublish")}>
             <EyeOff className="w-4 h-4" />
-          </button>
+          </Button>
         ) : (
-          <button onClick={() => handlePublish(c.id, true)} disabled={processing}
-            className="p-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100" title={t("admin.courses.btn.publish")}>
+          <Button variant="success" size="sm" onClick={() => handlePublish(c.id, true)} disabled={processing}
+            title={t("admin.courses.btn.publish")}>
             <Eye className="w-4 h-4" />
-          </button>
+          </Button>
         )}
         {c.status?.toLowerCase() !== "archived" && (
-          <button onClick={() => handleArchive(c.id)} disabled={processing}
-            className="p-1.5 bg-gray-100 text-gray-500 rounded-lg hover:bg-gray-200" title={t("admin.courses.btn.archive")}>
+          <Button variant="ghost" size="sm" onClick={() => handleArchive(c.id)} disabled={processing}
+            title={t("admin.courses.btn.archive")}>
             <Archive className="w-4 h-4" />
-          </button>
+          </Button>
         )}
         {c.status?.toLowerCase() === "draft" && (c as any).pedagogical_status !== "pending_review" && (c as any).pedagogical_status !== "approved_for_b2b" && (
-          <button onClick={() => handleSubmitForReview(c.id)} disabled={processing}
-            className="p-1.5 bg-teal-50 text-teal-600 rounded-lg hover:bg-teal-100" title={t("admin.courses.btn.submitReview")}>
+          <Button variant="secondary" size="sm" onClick={() => handleSubmitForReview(c.id)} disabled={processing}
+            title={t("admin.courses.btn.submitReview")}>
             <Send className="w-4 h-4" />
-          </button>
+          </Button>
         )}
-        <button onClick={() => setDeleteTarget(c)}
-          className="p-1.5 bg-red-50 text-red-400 rounded-lg hover:bg-red-100" title={t("admin.courses.btn.delete")}>
+        <Button variant="danger" size="sm" onClick={() => setDeleteTarget(c)}
+          title={t("admin.courses.btn.delete")}>
           <Trash2 className="w-4 h-4" />
-        </button>
+        </Button>
       </div>
     )},
   ];
@@ -274,12 +275,12 @@ export default function AdminCoursesPage() {
           <p className="text-gray text-sm mt-1">{t("admin.courses.subtitle", { count: total })}</p>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={fetchCourses} className="p-2 hover:bg-white rounded-xl shadow-sm border border-black/5">
+          <Button variant="ghost" size="md" onClick={fetchCourses}>
             <RefreshCw className={`w-5 h-5 text-gray ${loading ? "animate-spin" : ""}`} />
-          </button>
-          <button onClick={() => setCreateModal(true)} className="flex items-center gap-2 px-4 py-2 bg-orange text-white rounded-xl font-medium text-sm hover:bg-orange-w">
+          </Button>
+          <Button size="md" onClick={() => setCreateModal(true)}>
             <Plus className="w-4 h-4" /> {t("admin.courses.btnNew")}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -331,27 +332,25 @@ export default function AdminCoursesPage() {
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-2xl p-6 flex flex-col items-center justify-center text-center">
           <p className="text-red-600 mb-4">{error}</p>
-          <button onClick={fetchCourses} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium">
+          <Button variant="danger" size="md" onClick={fetchCourses}>
             {t("admin.courses.btn.retry")}
-          </button>
+          </Button>
         </div>
       )}
 
       {!loading && filtered.length === 0 && !error && (
-        <div className="bg-white rounded-2xl p-12 shadow-sm border border-black/5 flex flex-col items-center justify-center text-center">
-          <BookOpen className="w-16 h-16 text-gray-300 mb-4" />
-          <h3 className="text-lg font-medium text-gray-700 mb-2">{t("admin.courses.empty.noResults")}</h3>
-          <p className="text-gray-500 mb-6">
-            {search || statusFilter || categoryFilter || levelFilter
-              ? t("admin.courses.empty.noResultsDesc")
-              : t("admin.courses.empty.startCreate")}
-          </p>
-          {!search && !statusFilter && !categoryFilter && !levelFilter && (
-            <button onClick={() => setCreateModal(true)} className="flex items-center gap-2 px-4 py-2 bg-orange text-white rounded-xl font-medium text-sm hover:bg-orange-w">
+        <EmptyState
+          icon={<BookOpen className="w-16 h-16" />}
+          title={t("admin.courses.empty.noResults")}
+          description={search || statusFilter || categoryFilter || levelFilter
+            ? t("admin.courses.empty.noResultsDesc")
+            : t("admin.courses.empty.startCreate")}
+          action={!search && !statusFilter && !categoryFilter && !levelFilter ? (
+            <Button size="md" onClick={() => setCreateModal(true)}>
               <Plus className="w-4 h-4" /> {t("admin.courses.btn.createNew")}
-            </button>
-          )}
-        </div>
+            </Button>
+          ) : undefined}
+        />
       )}
 
       <AdminTable columns={columns} data={filtered} loading={loading} emptyMessage="" rowKey="id" />
@@ -372,90 +371,82 @@ export default function AdminCoursesPage() {
         confirmLabel={t("admin.courses.modal.confirmDelete.confirm")} danger loading={processing} />
 
       {/* Preview Modal */}
-      {previewCourse && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setPreviewCourse(null)}>
-          <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="p-4 border-b sticky top-0 bg-white flex justify-between items-center z-10">
-              <h3 className="font-semibold text-lg">{t("admin.courses.modal.preview.title")}</h3>
-              <button onClick={() => setPreviewCourse(null)} className="p-1 hover:bg-gray-100 rounded">
-                <X className="w-5 h-5" />
-              </button>
+      <Modal open={!!previewCourse} onClose={() => setPreviewCourse(null)} title={t("admin.courses.modal.preview.title")} maxWidth="max-w-3xl">
+        {previewCourse && (
+          <div>
+            {previewCourse.cover_url && (
+              <img src={previewCourse.cover_url} alt="" className="w-full h-48 object-cover rounded-xl mb-4" />
+            )}
+            <div className="flex items-center gap-2 mb-2">
+              <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${statusColors[previewCourse.status] || "bg-gray-100 text-gray-600"}`}>
+                {t(`admin.courses.status.${previewCourse.status}`) || previewCourse.status}
+              </span>
+              <span className="text-xs text-gray-500">{t(`admin.courses.level.${previewCourse.level}`) || previewCourse.level}</span>
+              {previewCourse.category && <span className="text-xs text-gray-500">/ {previewCourse.category}</span>}
             </div>
-            <div className="p-6">
-              {previewCourse.cover_url && (
-                <img src={previewCourse.cover_url} alt="" className="w-full h-48 object-cover rounded-xl mb-4" />
-              )}
-              <div className="flex items-center gap-2 mb-2">
-                <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${statusColors[previewCourse.status] || "bg-gray-100 text-gray-600"}`}>
-                  {t(`admin.courses.status.${previewCourse.status}`) || previewCourse.status}
-                </span>
-                <span className="text-xs text-gray-500">{t(`admin.courses.level.${previewCourse.level}`) || previewCourse.level}</span>
-                {previewCourse.category && <span className="text-xs text-gray-500">/ {previewCourse.category}</span>}
+            <h2 className="text-2xl font-bold text-navy mb-2">{previewCourse.title}</h2>
+            {previewCourse.short_description && (
+              <p className="text-gray-600 mb-4">{previewCourse.short_description}</p>
+            )}
+            {previewCourse.description && (
+              <div className="prose prose-sm max-w-none mb-4" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewCourse.description) }} />
+            )}
+            <div className="grid grid-cols-3 gap-4 mb-6 text-sm">
+              <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <div className="font-bold text-navy">{previewCourse.total_modules}</div>
+                <div className="text-gray-500">{t("admin.courses.modal.preview.chapters")}</div>
               </div>
-              <h2 className="text-2xl font-bold text-navy mb-2">{previewCourse.title}</h2>
-              {previewCourse.short_description && (
-                <p className="text-gray-600 mb-4">{previewCourse.short_description}</p>
-              )}
-              {previewCourse.description && (
-                <div className="prose prose-sm max-w-none mb-4" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewCourse.description) }} />
-              )}
-              <div className="grid grid-cols-3 gap-4 mb-6 text-sm">
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
-                  <div className="font-bold text-navy">{previewCourse.total_modules}</div>
-                  <div className="text-gray-500">{t("admin.courses.modal.preview.chapters")}</div>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
-                  <div className="font-bold text-navy">{previewCourse.total_lessons}</div>
-                  <div className="text-gray-500">{t("admin.courses.modal.preview.lessons")}</div>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
-                  <div className="font-bold text-navy">{previewCourse.total_duration_minutes || 0} min</div>
-                  <div className="text-gray-500">{t("admin.courses.modal.preview.duration")}</div>
-                </div>
+              <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <div className="font-bold text-navy">{previewCourse.total_lessons}</div>
+                <div className="text-gray-500">{t("admin.courses.modal.preview.lessons")}</div>
               </div>
-              {previewCourse.prerequisites && (
-                <div className="mb-4">
-                  <h4 className="font-medium text-sm mb-1">{t("admin.courses.modal.preview.prerequisites")}</h4>
-                  <p className="text-sm text-gray-600">{previewCourse.prerequisites}</p>
-                </div>
-              )}
-              {previewCourse.learning_objectives && (
-                <div className="mb-4">
-                  <h4 className="font-medium text-sm mb-1">{t("admin.courses.modal.preview.objectives")}</h4>
-                  <p className="text-sm text-gray-600">{previewCourse.learning_objectives}</p>
-                </div>
-              )}
-              {previewCourse.modules?.length > 0 && (
-                <div>
-                  <h4 className="font-medium text-sm mb-2">{t("admin.courses.modal.preview.program")}</h4>
-                  <div className="space-y-3">
-                    {previewCourse.modules.map((mod: any, idx: number) => (
-                      <div key={mod.id} className="border rounded-lg p-3">
-                        <div className="font-medium text-sm flex items-center gap-2">
-                          <span className="bg-navy text-white text-xs w-6 h-6 rounded-full flex items-center justify-center">{idx + 1}</span>
-                          {mod.title}
-                        </div>
-                        {mod.lessons?.length > 0 && (
-                          <div className="ml-8 mt-2 space-y-1">
-                            {mod.lessons.map((les: any) => (
-                              <div key={les.id} className="flex items-center gap-2 text-xs text-gray-600">
-                                <FileText className="w-3 h-3" />
-                                {les.title}
-                                {les.is_free && <span className="text-green-600">({t("admin.courses.free")})</span>}
-                                <span className="text-gray-400">{les.duration_minutes} min</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+              <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <div className="font-bold text-navy">{previewCourse.total_duration_minutes || 0} min</div>
+                <div className="text-gray-500">{t("admin.courses.modal.preview.duration")}</div>
+              </div>
+            </div>
+            {previewCourse.prerequisites && (
+              <div className="mb-4">
+                <h4 className="font-medium text-sm mb-1">{t("admin.courses.modal.preview.prerequisites")}</h4>
+                <p className="text-sm text-gray-600">{previewCourse.prerequisites}</p>
+              </div>
+            )}
+            {previewCourse.learning_objectives && (
+              <div className="mb-4">
+                <h4 className="font-medium text-sm mb-1">{t("admin.courses.modal.preview.objectives")}</h4>
+                <p className="text-sm text-gray-600">{previewCourse.learning_objectives}</p>
+              </div>
+            )}
+            {previewCourse.modules?.length > 0 && (
+              <div>
+                <h4 className="font-medium text-sm mb-2">{t("admin.courses.modal.preview.program")}</h4>
+                <div className="space-y-3">
+                  {previewCourse.modules.map((mod: any, idx: number) => (
+                    <div key={mod.id} className="border rounded-lg p-3">
+                      <div className="font-medium text-sm flex items-center gap-2">
+                        <span className="bg-navy text-white text-xs w-6 h-6 rounded-full flex items-center justify-center">{idx + 1}</span>
+                        {mod.title}
                       </div>
-                    ))}
-                  </div>
+                      {mod.lessons?.length > 0 && (
+                        <div className="ml-8 mt-2 space-y-1">
+                          {mod.lessons.map((les: any) => (
+                            <div key={les.id} className="flex items-center gap-2 text-xs text-gray-600">
+                              <FileText className="w-3 h-3" />
+                              {les.title}
+                              {les.is_free && <span className="text-green-600">({t("admin.courses.free")})</span>}
+                              <span className="text-gray-400">{les.duration_minutes} min</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {toast.show && (
         <div className={`fixed top-6 right-6 z-50 px-6 py-4 rounded-xl shadow-lg text-white ${toast.type === "success" ? "bg-green-500" : "bg-red-500"}`}>
@@ -524,14 +515,13 @@ function CourseFormModal({ open, onClose, onSubmit, loading }: {
   };
 
   return (
-    <Modal open onClose={onClose} title={t("admin.courses.modal.create.title")}
+    <AdminModal open onClose={onClose} title={t("admin.courses.modal.create.title")}
       footer={
         <>
-          <button onClick={onClose} className="flex-1 py-3 bg-cream-m rounded-xl font-medium">{t("admin.courses.modal.create.btnCancel")}</button>
-          <button onClick={handleSubmit} disabled={loading || !title.trim()}
-            className="flex-1 py-3 bg-orange text-white rounded-xl font-medium disabled:opacity-50">
+          <Button variant="ghost" size="md" onClick={onClose}>{t("admin.courses.modal.create.btnCancel")}</Button>
+          <Button size="md" loading={loading} onClick={handleSubmit} disabled={!title.trim()}>
             {loading ? "..." : t("admin.courses.modal.create.btnCreate")}
-          </button>
+          </Button>
         </>
       }>
       <div className="space-y-4">
@@ -639,6 +629,6 @@ function CourseFormModal({ open, onClose, onSubmit, loading }: {
             placeholder={t("admin.courses.modal.create.objectivesPlaceholder")} />
         </div>
       </div>
-    </Modal>
-  );
-}
+      </AdminModal>
+    );
+  }
