@@ -1,5 +1,6 @@
 import os
 import secrets
+import warnings
 from typing import Any, Optional
 from functools import lru_cache
 from pydantic_settings import BaseSettings
@@ -67,6 +68,21 @@ class Settings(BaseSettings):
     
     model_config = ConfigDict(env_file=".env", case_sensitive=False, extra="ignore")
     
+    @field_validator("environment", mode="before")
+    @classmethod
+    def validate_environment_field(cls, v: str) -> str:
+        """Validate environment value and warn if not explicitly set."""
+        valid_envs = {"development", "staging", "production"}
+        env_raw = os.getenv("ENVIRONMENT")
+        if not env_raw:
+            warnings.warn("ENVIRONMENT not set, defaulting to 'development'")
+            return v if v else "development"
+        if v not in valid_envs:
+            raise ValueError(
+                f"ENVIRONMENT must be one of {valid_envs}, got '{v}'"
+            )
+        return v
+
     @field_validator("jwt_secret", mode="before")
     @classmethod
     def validate_jwt_secret(cls, v: str) -> str:
@@ -75,7 +91,10 @@ class Settings(BaseSettings):
         if not v:
             if env == "production":
                 raise ValueError("JWT_SECRET must be set in production")
-            # Use a stable dev secret to avoid invalidating tokens on restart
+            warnings.warn(
+                "JWT_SECRET not set - using dev fallback. "
+                "Set JWT_SECRET for production use."
+            )
             return "dev-only-jwt-secret-not-for-production-use-32+chars"
         if env == "production" and len(v) < 32:
             raise ValueError("JWT_SECRET must be at least 32 characters in production")
@@ -87,6 +106,68 @@ class Settings(BaseSettings):
         """Fail if database URL is not set."""
         if not v:
             raise ValueError("DATABASE_URL must be set")
+        return v
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def validate_cors_origins(cls, v: str) -> str:
+        """Validate CORS origins: require explicit config in production."""
+        env = os.getenv("ENVIRONMENT", "development")
+        allowed_origins_env = os.getenv("ALLOWED_ORIGINS")
+        if env == "production" and not allowed_origins_env:
+            raise ValueError(
+                "ALLOWED_ORIGINS env var must be set in production"
+            )
+        if not v or v == "http://localhost:5173":
+            if not allowed_origins_env and env != "production":
+                return "*"
+        return v
+
+    @field_validator("frontend_reset_url", mode="before")
+    @classmethod
+    def validate_frontend_reset_url(cls, v: str) -> str:
+        """Ensure frontend_reset_url does not use localhost in production."""
+        env = os.getenv("ENVIRONMENT", "development")
+        if env == "production" and "localhost" in v:
+            raise ValueError(
+                "FRONTEND_RESET_URL must not contain 'localhost' in production"
+            )
+        return v
+
+    @field_validator("stripe_price_pro", mode="before")
+    @classmethod
+    def validate_stripe_price_pro(cls, v: str) -> str:
+        """Warn if stripe price is a placeholder in production."""
+        env = os.getenv("ENVIRONMENT", "development")
+        if env == "production" and v.startswith("price_"):
+            warnings.warn(
+                "STRIPE_PRICE_PRO appears to be a placeholder "
+                f"('{v}') - update it for production"
+            )
+        return v
+
+    @field_validator("stripe_price_school", mode="before")
+    @classmethod
+    def validate_stripe_price_school(cls, v: str) -> str:
+        """Warn if stripe price is a placeholder in production."""
+        env = os.getenv("ENVIRONMENT", "development")
+        if env == "production" and v.startswith("price_"):
+            warnings.warn(
+                "STRIPE_PRICE_SCHOOL appears to be a placeholder "
+                f"('{v}') - update it for production"
+            )
+        return v
+
+    @field_validator("stripe_price_institution", mode="before")
+    @classmethod
+    def validate_stripe_price_institution(cls, v: str) -> str:
+        """Warn if stripe price is a placeholder in production."""
+        env = os.getenv("ENVIRONMENT", "development")
+        if env == "production" and v.startswith("price_"):
+            warnings.warn(
+                "STRIPE_PRICE_INSTITUTION appears to be a placeholder "
+                f"('{v}') - update it for production"
+            )
         return v
     
     @property
@@ -130,12 +211,15 @@ def validate_environment() -> None:
         if not settings.database_url:
             raise ValueError("CRITICAL: DATABASE_URL must be set in production")
         
+        if "localhost" in settings.frontend_reset_url:
+            raise ValueError(
+                "CRITICAL: FRONTEND_RESET_URL must not contain 'localhost' in production"
+            )
+        
         # Warn about missing Stripe in production
         if not settings.stripe_secret_key:
-            import warnings
             warnings.warn("WARNING: STRIPE_SECRET_KEY not set - payments will not work")
         
         # Warn about missing OpenAI in production
         if not settings.openai_api_key:
-            import warnings
             warnings.warn("WARNING: OPENAI_API_KEY not set - AI features will not work")

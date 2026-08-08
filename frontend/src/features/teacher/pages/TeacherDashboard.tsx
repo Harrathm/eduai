@@ -6,7 +6,7 @@ import { BookOpen, Users, Wallet, ArrowRight } from "lucide-react";
 import { Button } from "../../../components/ui";
 import { TeacherStateBadge } from "../../../components/TeacherStateGuard";
 
-const API_URL = "";
+const API_URL = import.meta.env.VITE_API_URL || "";
 
 interface DashboardStats {
   coursesCount: number;

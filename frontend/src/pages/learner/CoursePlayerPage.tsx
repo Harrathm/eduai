@@ -21,7 +21,7 @@ import { jsPDF } from "jspdf";
 import DOMPurify from "dompurify";
 import { tokenStorage } from "../../utils/tokenStorage";
 
-const BASE_URL = "";
+const BASE_URL = import.meta.env.VITE_API_URL || "";
 
 function getToken() { return tokenStorage.getToken(); }
 

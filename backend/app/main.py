@@ -204,12 +204,7 @@ RATE_LIMITS = {
 }
 
 
-_default_origins = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000"
-ALLOWED_ORIGINS = [
-    o.strip()
-    for o in os.environ.get("ALLOWED_ORIGINS", _default_origins).split(",")
-    if o.strip()
-]
+ALLOWED_ORIGINS = settings.cors_origins_list
 
 
 # ---------------------------------------------------------------------------
@@ -449,4 +444,6 @@ async def health_check():
             conn.execute(text("SELECT 1"))
         return {"status": "healthy", "version": "1.0.0"}
     except Exception as e:
+        if settings.is_production:
+            return JSONResponse(status_code=503, content={"status": "error", "message": "Service unavailable"})
         return JSONResponse(status_code=503, content={"status": "error", "detail": str(e)})

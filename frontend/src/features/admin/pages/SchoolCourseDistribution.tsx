@@ -3,7 +3,7 @@ import { School, BookOpen, Users, CheckCircle, XCircle, Plus, Loader2, AlertCirc
 import { Button } from "../../../components/ui";
 import { tokenStorage } from "../../../utils/tokenStorage";
 
-const API_URL = "";
+const API_URL = import.meta.env.VITE_API_URL || "";
 
 function getToken(): string | null {
   return tokenStorage.getToken();

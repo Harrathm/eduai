@@ -1,15 +1,45 @@
-node_modules/
+# Environment files
+.env
+.env.*
+!.env.example
+!.env.production
+
+# Secrets
+API_Keys.txt
+*.pem
+*.key
+
+# Backend
+backend/.env
+backend/.env.*
+backend/data/
+backend/logs/
+backend/*.db
+
+# Python
 __pycache__/
 *.pyc
-.env
-.env.local
-*.db
-*.log
+*.pyo
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Node
+node_modules/
 dist/
 build/
 .vite/
-.pytest_cache/
-*.egg-info/
-API_Keys.txt
-backend/data/
-mobile/.dart_tool/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml

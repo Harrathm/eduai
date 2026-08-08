@@ -23,7 +23,7 @@ import {
   Sparkles
 } from "lucide-react";
 
-const API_URL = "";
+const API_URL = import.meta.env.VITE_API_URL || "";
 
 interface PlatformSettings {
   ai_generation_cost_lesson: number;

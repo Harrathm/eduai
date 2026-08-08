@@ -10,7 +10,7 @@ export interface Message {
   detected_language?: string | null;
 }
 
-const BASE_URL = "";
+const BASE_URL = import.meta.env.VITE_API_URL || "";
 
 export function detectInputDirection(text: string): "ltr" | "rtl" {
   if (!text) return "ltr";

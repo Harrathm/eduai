@@ -3,7 +3,7 @@ import { Button } from "@/components/ui";
 import { useAuthStore } from "../../../store/authStore";
 import { Plus, Trash2, GripVertical, Image, Video, FileText, Save, X, DollarSign, AlertCircle } from "lucide-react";
 
-const API_URL = "";
+const API_URL = import.meta.env.VITE_API_URL || "";
 
 interface Chapter {
   id: number;

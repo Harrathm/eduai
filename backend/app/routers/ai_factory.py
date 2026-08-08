@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
+from app.core.config import get_settings
 from app.db import get_db
 from app.models import User
 from app.routers.admin import require_admin, require_platform_admin
@@ -322,6 +323,8 @@ def rag_debug(
     db: Session = Depends(get_db),
 ):
     """Debug: check RAG index status for current user's school."""
+    if get_settings().is_production:
+        raise HTTPException(status_code=404, detail="Not found")
     from app.ai.embeddings_service import EmbeddingsService
     es = EmbeddingsService()
     effective_school_id = current_user.school_id or 0

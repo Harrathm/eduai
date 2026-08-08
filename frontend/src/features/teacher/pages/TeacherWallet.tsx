@@ -4,7 +4,7 @@ import { useAuthStore } from "../../../store/authStore";
 import { Wallet, Coins, Clock } from "lucide-react";
 import { EmptyState } from "../../../components/ui";
 
-const API_URL = "";
+const API_URL = import.meta.env.VITE_API_URL || "";
 
 interface PoolEntry {
   pool: string;
