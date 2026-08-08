@@ -1,4 +1,5 @@
 import { AlertCircle } from "lucide-react";
+import { Button } from "../../../../components/ui";
 
 interface MaintenanceFormProps {
   maintenanceMode: boolean;
@@ -15,10 +16,10 @@ export function MaintenanceForm({ maintenanceMode, maintenanceMessage, onToggle,
           <h3 className="text-lg font-display font-semibold text-navy">Maintenance Mode</h3>
           <p className="text-xs text-gray mt-1">When enabled, non-admin users will see a maintenance message instead of the platform</p>
         </div>
-        <button onClick={() => onToggle(!maintenanceMode)}
+        <Button onClick={() => onToggle(!maintenanceMode)}
           className={`relative w-14 h-8 rounded-full transition-colors ${maintenanceMode ? "bg-red-500" : "bg-gray-300"}`}>
           <span className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform ${maintenanceMode ? "right-1" : "left-1"}`} />
-        </button>
+        </Button>
       </div>
       {maintenanceMode && (
         <>

@@ -152,11 +152,6 @@ export default function PlacementTestPage() {
                   onClick={() => handleAnswer(currentQ, opt)}
                   variant="ghost"
                   size="md"
-                  className={`w-full text-start border-2 transition-all ${
-                    answers[currentQ] === opt
-                      ? "border-navy-600 bg-navy-50 text-navy-700"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
                 >
                   {opt}
                 </Button>

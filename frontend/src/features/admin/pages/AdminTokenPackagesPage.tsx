@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Coins, Plus, RefreshCw, Pencil, Trash2, Save } from "lucide-react";
 import { KPICard, AdminTable, Modal, ConfirmModal } from "../components";
 import { adminTokenPackages } from "../../../api";
+import { Button } from "@/components/ui";
 
 interface TokenPackage {
   id: number;
@@ -99,12 +100,12 @@ export default function AdminTokenPackagesPage() {
     )},
     { key: "actions", header: "Actions", render: (p: TokenPackage) => (
       <div className="flex items-center gap-1">
-        <button onClick={() => setEditModal(p)} className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100">
+        <Button variant="ghost" size="sm" onClick={() => setEditModal(p)}>
           <Pencil className="w-4 h-4" />
-        </button>
-        <button onClick={() => setDeleteTarget(p)} className="p-1.5 bg-red-50 text-red-400 rounded-lg hover:bg-red-100">
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(p)}>
           <Trash2 className="w-4 h-4" />
-        </button>
+        </Button>
       </div>
     )},
   ];
@@ -117,12 +118,12 @@ export default function AdminTokenPackagesPage() {
           <p className="text-gray text-sm mt-1">Configure token pricing and bundles</p>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={fetchPackages} className="p-2 hover:bg-white rounded-xl shadow-sm border border-black/5">
+          <Button variant="ghost" size="sm" onClick={fetchPackages}>
             <RefreshCw className={`w-5 h-5 text-gray ${loading ? "animate-spin" : ""}`} />
-          </button>
-          <button onClick={() => setCreateModal(true)} className="flex items-center gap-2 px-4 py-2 bg-orange text-white rounded-xl font-medium text-sm hover:bg-orange-w">
+          </Button>
+          <Button variant="primary" size="sm" onClick={() => setCreateModal(true)}>
             <Plus className="w-4 h-4" /> New Package
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -164,11 +165,15 @@ function PackageFormModal({ open, package: pkg, onClose, onSubmit, loading }: {
     <Modal open onClose={onClose} title={pkg ? "Edit Package" : "New Package"}
       footer={
         <>
-          <button onClick={onClose} className="flex-1 py-3 bg-cream-m rounded-xl font-medium">Cancel</button>
-          <button onClick={() => onSubmit({ name, tokens: Number(tokens), bonus_tokens: Number(bonus), price_dt: Number(price), is_active: active })}
-            disabled={loading || !name || !tokens || !price} className="flex-1 py-3 bg-orange text-white rounded-xl font-medium disabled:opacity-50">
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button
+            variant="primary"
+            loading={loading}
+            disabled={loading || !name || !tokens || !price}
+            onClick={() => onSubmit({ name, tokens: Number(tokens), bonus_tokens: Number(bonus), price_dt: Number(price), is_active: active })}
+          >
             {loading ? "..." : pkg ? "Save" : "Create"}
-          </button>
+          </Button>
         </>
       }>
       <div className="space-y-4">

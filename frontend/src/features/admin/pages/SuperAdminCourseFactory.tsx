@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { Button, Spinner } from "@/components/ui";
 import { adminTeacherClasses, TeacherCourseCatalogEntry, TeacherClassInfo, ClassCourseAccessInfo, StudentEnrollmentInfo } from "../../../api";
 
 export default function SuperAdminCourseFactory() {
@@ -97,7 +98,7 @@ export default function SuperAdminCourseFactory() {
       {/* Loading */}
       {loading && (
         <div className="text-center py-12">
-          <div className="animate-spin w-8 h-8 border-4 border-orange border-t-transparent rounded-full mx-auto"></div>
+          <div className="flex justify-center"><Spinner size="lg" /></div>
           <p className="text-gray mt-3">Loading catalog...</p>
         </div>
       )}
@@ -119,7 +120,8 @@ export default function SuperAdminCourseFactory() {
           {catalog.map((entry) => (
             <div key={entry.class_id} className="bg-white rounded-2xl shadow-sm border border-black/5 overflow-hidden">
               {/* Class Header */}
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => toggleExpand(entry.class_id)}
                 className="w-full flex items-center justify-between p-5 hover:bg-cream/50 transition-colors text-start"
               >
@@ -165,7 +167,7 @@ export default function SuperAdminCourseFactory() {
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                 </svg>
-              </button>
+              </Button>
 
               {/* Expanded Details */}
               {expandedClass === entry.class_id && (

@@ -79,7 +79,6 @@ export default function TeacherBibliothequePage() {
           variant={tab === "search" ? "secondary" : "ghost"}
           size="sm"
           onClick={() => setTab("search")}
-          className="flex items-center gap-2"
         >
           <Search size={16} /> {t('teacher.bibliotheque.tabs.search')}
         </Button>
@@ -87,7 +86,6 @@ export default function TeacherBibliothequePage() {
           variant={tab === "competences" ? "secondary" : "ghost"}
           size="sm"
           onClick={() => setTab("competences")}
-          className="flex items-center gap-2"
         >
           <Award size={16} /> {t('teacher.bibliotheque.tabs.skills')}
         </Button>

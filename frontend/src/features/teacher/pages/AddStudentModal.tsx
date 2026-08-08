@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from 'react-i18next';
-import { Search, X, UserPlus, Users } from "lucide-react";
+import { Search, UserPlus, Users } from "lucide-react";
+import { Button, Modal } from "../../../components/ui";
 import { studentSearchApi } from "../../../api";
 
 interface SearchResult {
@@ -66,18 +67,9 @@ export default function AddStudentModal({ token, classId, open, onClose, onEnrol
     setEnrolling(null);
   };
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-3xl max-w-md w-full p-8 max-h-[80vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold text-navy">{t('teacher.addStudent.title')}</h2>
-          <button onClick={onClose} className="p-2 hover:bg-cream-m rounded-lg">
-            <X className="w-5 h-5 text-gray" />
-          </button>
-        </div>
-
+    <Modal open={open} onClose={onClose} title={t('teacher.addStudent.title')} maxWidth="max-w-md">
+      <div className="max-h-[80vh] overflow-y-auto">
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray" />
           <input
@@ -118,28 +110,26 @@ export default function AddStudentModal({ token, classId, open, onClose, onEnrol
                   <div className="text-xs text-gray/70">{student.niveau_scolaire}</div>
                 )}
               </div>
-              <button
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={() => enrollStudent(student.id)}
                 disabled={enrolling === student.id}
-                className="ml-3 flex items-center gap-1 px-3 py-2 bg-orange text-white rounded-lg text-sm font-medium hover:bg-orange/90 disabled:opacity-50 shrink-0"
+                loading={enrolling === student.id}
               >
-                {enrolling === student.id ? (
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <UserPlus className="w-4 h-4" />
-                )}
+                <UserPlus className="w-4 h-4" />
                 {t('teacher.addStudent.addButton')}
-              </button>
+              </Button>
             </div>
           ))}
         </div>
 
         <div className="mt-6">
-          <button onClick={onClose} className="w-full py-3 bg-cream-m rounded-xl font-medium">
+          <Button variant="ghost" onClick={onClose}>
             {t('teacher.addStudent.closeButton')}
-          </button>
+          </Button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

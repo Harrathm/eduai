@@ -1,6 +1,6 @@
 import { Fragment, useState, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Modal, Button } from "../../../../components/ui";
+import { Modal, Button, Spinner } from "../../../../components/ui";
 import { CheckCircle, ArrowLeft, Loader2 } from "lucide-react";
 import { api } from "../../../../utils/apiClient";
 
@@ -175,7 +175,7 @@ export function PackConfiguratorModal({ isOpen, onClose, pack, userNiveau }: Pac
         {step === "matieres" && !isGolden && (
           <div className="space-y-5">
             {loading ? (
-              <div className="text-center py-8 text-gray text-sm">Chargement des matieres...</div>
+              <div className="flex justify-center py-8"><Spinner /></div>
             ) : (
               <>
                 {/* Langues */}

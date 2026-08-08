@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../../../store/authStore";
 import apiClient from "../../../utils/apiClient";
+import { Button } from "@/components/ui";
 
 const NIVEAUX = [
   "1ère année", "2ème année", "3ème année", "4ème année", "5ème année", "6ème année",
@@ -61,27 +62,25 @@ export default function OnboardingPage() {
                 { code: "en", label: "English", flag: "🇬🇧" },
                 { code: "ar", label: "العربية", flag: "🇹🇳" },
               ].map((l) => (
-                <button
+                <Button
                   key={l.code}
+                  variant="ghost"
+                  size="md"
                   onClick={() => handleLanguageSelect(l.code)}
-                  className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${
-                    language === l.code
-                      ? "border-navy-600 bg-navy-50"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
                 >
                   <span className="text-2xl">{l.flag}</span>
                   <span className="text-sm font-medium">{l.label}</span>
-                </button>
+                </Button>
               ))}
             </div>
             
-            <button
+            <Button
+              variant="secondary"
+              size="md"
               onClick={() => setStep(1)}
-              className="w-full py-3 bg-navy-600 text-white rounded-xl font-medium hover:bg-navy-700 transition-colors"
             >
               {t("onboarding.next")}
-            </button>
+            </Button>
           </div>
         )}
 
@@ -92,34 +91,34 @@ export default function OnboardingPage() {
             
             <div className="grid grid-cols-2 gap-2 mb-8 max-h-80 overflow-y-auto">
               {NIVEAUX.map((n) => (
-                <button
+                <Button
                   key={n}
+                  variant={niveau === n ? "primary" : "ghost"}
+                  size="md"
                   onClick={() => setNiveau(n)}
-                  className={`p-3 rounded-xl border-2 text-start text-sm transition-all ${
-                    niveau === n
-                      ? "border-navy-600 bg-navy-50 text-navy-700 font-medium"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
                 >
                   {n}
-                </button>
+                </Button>
               ))}
             </div>
             
             <div className="flex gap-3">
-              <button
+              <Button
+                variant="ghost"
+                size="md"
                 onClick={() => setStep(0)}
-                className="flex-1 py-3 border border-gray-300 text-gray-600 rounded-xl font-medium hover:bg-gray-50"
               >
                 {t("common.back")}
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
+                size="lg"
+                loading={saving}
                 onClick={handleFinish}
                 disabled={saving}
-                className="flex-1 py-3 bg-navy-600 text-white rounded-xl font-medium hover:bg-navy-700 disabled:opacity-50"
               >
                 {saving ? t("common.loading") : t("onboarding.finish")}
-              </button>
+              </Button>
             </div>
           </div>
         )}

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../../store/authStore";
 import { BookOpen, Users, Wallet, ArrowRight } from "lucide-react";
+import { Button } from "../../../components/ui";
 import { TeacherStateBadge } from "../../../components/TeacherStateGuard";
 
 const API_URL = "";
@@ -178,14 +179,14 @@ export default function TeacherDashboard() {
         <h2 className="text-2xl font-[300] text-navy mb-6">{t('teacher.dashboard.quickAccess')}</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {quickActions.map((action) => (
-            <button
+            <Button
               key={action.to}
+              variant="ghost"
               onClick={() => navigate(action.to)}
-              className={`block p-6 bg-gradient-to-br ${action.gradient} rounded-2xl text-center hover:shadow-md transition-shadow cursor-pointer`}
             >
               <div className="text-3xl mb-2">{action.icon}</div>
               <div className="font-medium text-navy">{action.label}</div>
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -195,12 +196,12 @@ export default function TeacherDashboard() {
         <div className="bg-white rounded-3xl p-8 shadow-sm border border-black/5">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-[300] text-navy">{t('teacher.dashboard.myClasses')}</h2>
-            <button
+            <Button
+              variant="ghost"
               onClick={() => navigate("/dashboard/teacher/classroom")}
-              className="flex items-center gap-1 text-sm text-orange font-medium hover:underline"
             >
               {t('teacher.dashboard.viewAll')} <ArrowRight className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
           <div className="grid gap-4 md:grid-cols-3">
             {recentClasses.map((cls) => (

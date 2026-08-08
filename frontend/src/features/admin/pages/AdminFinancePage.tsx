@@ -3,6 +3,7 @@ import { DollarSign, Coins, TrendingUp, ArrowUpRight, ArrowDownRight, RefreshCw,
 import { KPICard, AdminTable, StatusBadge } from "../components";
 import { adminTransactions, adminAnalytics } from "../../../api";
 import type { Transaction, DashboardStats, PaginatedResponse } from "../../../api";
+import { Button, Spinner } from "@/components/ui";
 
 const typeColors: Record<string, string> = {
   token_recharge: "bg-blue-50 text-blue-600",
@@ -115,16 +116,15 @@ export default function AdminFinancePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-display font-light text-navy">Finance <span className="italic text-orange">& Transactions</span></h1>
-          <p className="text-gray text-sm mt-1">{result ? `${result.total.toLocaleString("fr-TN")} transactions total` : "Loading..."}</p>
+          <p className="text-gray text-sm mt-1">{result ? `${result.total.toLocaleString("fr-TN")} transactions total` : <Spinner />}</p>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={() => fetchData(true)} className="p-2.5 bg-white rounded-xl shadow-sm border border-black/5 hover:bg-cream">
+          <Button variant="ghost" size="sm" onClick={() => fetchData(true)}>
             <RefreshCw className={`w-5 h-5 text-gray ${refreshing ? "animate-spin" : ""}`} />
-          </button>
-          <button onClick={exportCSV} disabled={!transactions.length}
-            className="flex items-center gap-2 px-4 py-2.5 bg-navy text-white rounded-xl font-medium text-sm hover:bg-navy-m disabled:opacity-50 shadow-sm">
+          </Button>
+          <Button variant="secondary" size="sm" onClick={exportCSV} disabled={!transactions.length}>
             <Download className="w-4 h-4" /> Export CSV
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -168,8 +168,9 @@ export default function AdminFinancePage() {
             className="px-3 py-3 bg-cream-m rounded-xl border border-black/5 text-sm focus:outline-none" placeholder="To" />
         </div>
         {(debouncedSearch || typeFilter || statusFilter || dateFrom || dateTo) && (
-          <button onClick={() => { setSearch(""); setDebouncedSearch(""); setTypeFilter(""); setStatusFilter(""); setDateFrom(""); setDateTo(""); setSkip(0); }}
-            className="px-3 py-2 text-sm text-orange hover:bg-orange/5 rounded-lg">Clear filters</button>
+          <Button variant="ghost" size="sm" onClick={() => { setSearch(""); setDebouncedSearch(""); setTypeFilter(""); setStatusFilter(""); setDateFrom(""); setDateTo(""); setSkip(0); }}>
+            Clear filters
+          </Button>
         )}
       </div>
 

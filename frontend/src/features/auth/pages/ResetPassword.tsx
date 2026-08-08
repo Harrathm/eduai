@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Lock, ArrowLeft, CheckCircle, Eye, EyeOff } from "lucide-react";
+import { Button } from "@/components/ui";
 
 export default function ResetPasswordPage() {
   const [searchParams] = useSearchParams();
@@ -117,13 +118,15 @@ export default function ResetPasswordPage() {
               required
               minLength={8}
             />
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray hover:text-navy"
+              className="absolute right-3 top-1/2 -translate-y-1/2"
             >
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-            </button>
+            </Button>
           </div>
 
           <input
@@ -136,13 +139,14 @@ export default function ResetPasswordPage() {
             minLength={8}
           />
 
-          <button
+          <Button
             type="submit"
+            variant="primary"
+            loading={loading}
             disabled={loading || !token || !newPassword || !confirmPassword}
-            className="w-full py-3 bg-orange text-white rounded-xl font-medium disabled:opacity-50"
           >
             {loading ? "Réinitialisation..." : "Réinitialiser le mot de passe"}
-          </button>
+          </Button>
         </form>
       </div>
     </div>

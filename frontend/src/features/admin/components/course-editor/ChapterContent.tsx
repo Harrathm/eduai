@@ -48,7 +48,7 @@ export function ChapterContent({
           <ChevronDown className="w-12 h-12 mx-auto mb-4 text-gray-300" />
           <p>Sélectionnez un chapitre</p>
           {chapters.length === 0 && (
-            <Button className="mt-4" onClick={onAddFirstChapter}>
+            <Button onClick={onAddFirstChapter}>
               Créer le premier chapitre
             </Button>
           )}
@@ -96,10 +96,9 @@ export function ChapterContent({
                 <h4 className="font-medium text-sm line-clamp-1">{lesson.title}</h4>
                 <div className="flex justify-between items-center mt-2">
                   <span className="text-xs opacity-70">{lesson.duration_minutes} min</span>
-                  <button onClick={e => { e.stopPropagation(); onDeleteLesson(activeChapter.id, lesson.id); }}
-                    className="p-1 rounded hover:bg-white/50">
+                  <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); onDeleteLesson(activeChapter.id, lesson.id); }}>
                     <Trash2 className="w-3 h-3" />
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))}

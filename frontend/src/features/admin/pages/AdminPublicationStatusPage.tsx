@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { CheckCircle, AlertCircle, BookOpen, FileText, Eye } from "lucide-react";
-import { Button } from "../../../components/ui";
+import { Button, Spinner } from "../../../components/ui";
 import {
   getNiveauxEtude, getMatieres, getChapters, getNotions, getContenus, getStatutPublication,
 } from "../../../api";
@@ -83,7 +83,7 @@ export default function AdminPublicationStatusPage() {
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-gray">Chargement...</div>
+        <div className="text-center py-12"><Spinner size="lg" /></div>
       ) : (
         <div className="bg-white rounded-2xl shadow-sm border border-black/5 overflow-hidden">
           <table className="w-full">

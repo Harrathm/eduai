@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../../../store/authStore";
 import { BookOpen, CheckCircle, XCircle, Clock, AlertTriangle, Eye, RefreshCw, Filter } from "lucide-react";
+import { Button, Spinner } from "@/components/ui";
 import { pedagogicalAdmin } from "../../../api";
 
 interface Course {
@@ -110,10 +111,9 @@ export default function PedagogicalAdminPage() {
             </h1>
             <p className="text-gray mt-2">Validez ou rejetez les cours soumis</p>
           </div>
-          <button onClick={fetchCourses} disabled={loading}
-            className="p-2 hover:bg-white rounded-xl shadow-sm border border-black/5">
-            <RefreshCw className={`w-5 h-5 text-gray ${loading ? "animate-spin" : ""}`} />
-          </button>
+          <Button variant="ghost" size="sm" onClick={fetchCourses} disabled={loading} loading={loading}>
+            <RefreshCw className="w-5 h-5 text-gray" />
+          </Button>
         </div>
       </div>
 
@@ -134,7 +134,7 @@ export default function PedagogicalAdminPage() {
       {/* Course List */}
       <div className="space-y-4">
         {loading ? (
-          <div className="bg-white rounded-3xl p-12 text-center text-gray">Chargement...</div>
+          <div className="bg-white rounded-3xl p-12 text-center"><Spinner size="lg" /></div>
         ) : filteredCourses.length === 0 ? (
           <div className="bg-white rounded-3xl p-12 text-center text-gray">
             <BookOpen className="w-16 h-16 mx-auto mb-4 opacity-30" />
@@ -167,22 +167,24 @@ export default function PedagogicalAdminPage() {
                 
                 {course.pedagogical_status === "pending_review" && (
                   <div className="flex items-center gap-2">
-                    <button
+                    <Button
+                      variant="success"
+                      size="sm"
                       onClick={() => reviewCourse(course.id, "approved_for_b2b")}
                       disabled={processing === course.id}
-                      className="flex items-center gap-1 px-3 py-2 bg-green-500 text-white rounded-lg text-sm font-medium disabled:opacity-50"
                     >
                       <CheckCircle className="w-4 h-4" />
                       Approuver B2B
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
                       onClick={() => reviewCourse(course.id, "needs_revision")}
                       disabled={processing === course.id}
-                      className="flex items-center gap-1 px-3 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium disabled:opacity-50"
                     >
                       <Clock className="w-4 h-4" />
                       Demander révision
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>

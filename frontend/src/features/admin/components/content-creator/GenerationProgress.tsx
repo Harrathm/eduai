@@ -1,4 +1,5 @@
 import { Loader2, Check, Eye, ChevronLeft, FileText, Puzzle, Image, Video } from "lucide-react";
+import { Button } from "../../../../components/ui";
 import type { AIFactoryBundle } from "../../../../api";
 
 type Progress = {
@@ -78,10 +79,10 @@ export function GenerationProgress({ generating, genProgress, bundle, onBack, on
       <div className="flex justify-end gap-3">
         {bundle && !generating && (
           <>
-            <button onClick={onBack} className="px-6 py-3 bg-cream-m rounded-xl font-medium text-navy">Back to Plan</button>
-            <button onClick={onPreview} disabled={loading} className="px-6 py-3 bg-gradient-to-r from-orange to-orange-l text-white rounded-xl font-semibold flex items-center gap-2 shadow-lg shadow-orange/20 disabled:opacity-50">
+            <Button variant="ghost" size="lg" onClick={onBack}>Back to Plan</Button>
+            <Button variant="primary" size="lg" onClick={onPreview} disabled={loading}>
               <Eye className="w-5 h-5" /> Preview & Publish
-            </button>
+            </Button>
           </>
         )}
       </div>

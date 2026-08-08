@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Mail, ArrowLeft, CheckCircle } from "lucide-react";
+import { Button } from "@/components/ui";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -93,13 +94,14 @@ export default function ForgotPasswordPage() {
             required
             autoFocus
           />
-          <button
+          <Button
             type="submit"
+            variant="primary"
+            loading={loading}
             disabled={loading || !email}
-            className="w-full py-3 bg-orange text-white rounded-xl font-medium disabled:opacity-50"
           >
             {loading ? "Envoi en cours..." : "Envoyer le lien"}
-          </button>
+          </Button>
         </form>
       </div>
     </div>

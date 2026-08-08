@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuthStore } from "../../../store/authStore";
 import { Check, X, Eye, User, Clock, Trash2 } from "lucide-react";
 import { adminCourseModeration } from "../../../api";
-import { Button, Modal, EmptyState } from "../../../components/ui";
+import { Button, Modal, EmptyState, Spinner } from "../../../components/ui";
 
 interface Course {
   id: number;
@@ -92,7 +92,6 @@ export default function UGCModeration() {
               variant={filter === f ? "primary" : "ghost"}
               size="sm"
               onClick={() => setFilter(f)}
-              className="capitalize"
             >
               {f}
               {f === "pending" && courses.filter((c) => c.status === "pending").length > 0 && (
@@ -108,8 +107,8 @@ export default function UGCModeration() {
       {/* Course List */}
       <div className="grid gap-4">
         {loading ? (
-          <div className="bg-white rounded-3xl p-12 text-center text-gray">
-            Chargement...
+          <div className="bg-white rounded-3xl p-12 text-center">
+            <Spinner size="lg" />
           </div>
         ) : courses.length === 0 ? (
           <div className="bg-white rounded-3xl">

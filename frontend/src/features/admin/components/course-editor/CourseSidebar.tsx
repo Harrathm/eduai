@@ -53,9 +53,9 @@ export function CourseSidebar({
     <div className="w-80 bg-white border-r flex flex-col">
       {/* Header */}
       <div className="p-4 border-b space-y-2">
-        <button onClick={onBack} className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900">
+        <Button variant="ghost" size="sm" onClick={onBack}>
           <ArrowLeft className="w-4 h-4" /> Retour
-        </button>
+        </Button>
         <h2 className="font-semibold text-lg line-clamp-1">{course.title}</h2>
         <div className="flex gap-2 flex-wrap">
           <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${

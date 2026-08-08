@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Check, Loader2, Save, BookOpen, FileText, Puzzle, Image, Sparkles } from "lucide-react";
+import { Button } from "../../../../components/ui";
 import type { AIFactoryBundle, AIPreviewInfo } from "../../../../api";
 
 type Props = {
@@ -35,14 +36,16 @@ export function PreviewPublish({ bundle, previewInfo, publishing, publishResult,
                 <Check className="w-4 h-4" /> Published as Draft
               </div>
             ) : (
-              <button
+              <Button
+                variant="primary"
+                size="md"
+                loading={publishing}
                 onClick={onPublish}
                 disabled={publishing}
-                className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-orange to-orange-l text-white rounded-xl font-semibold shadow-lg shadow-orange/20 disabled:opacity-50"
               >
                 {publishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 {publishing ? "Publishing..." : "Save as Draft"}
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -53,12 +56,13 @@ export function PreviewPublish({ bundle, previewInfo, publishing, publishResult,
               <Check className="w-5 h-5 text-green-600" />
               <span className="text-sm text-green-800">Course saved as draft</span>
             </div>
-            <button
+            <Button
+              variant="success"
+              size="md"
               onClick={() => navigate(`/dashboard/admin/courses/${publishResult.course_id}`)}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700"
             >
               Open Course Editor
-            </button>
+            </Button>
           </div>
         )}
 
@@ -95,11 +99,11 @@ export function PreviewPublish({ bundle, previewInfo, publishing, publishResult,
       </div>
 
       <div className="flex justify-end gap-3">
-        <button onClick={onBack} className="px-6 py-3 bg-cream-m rounded-xl font-medium text-navy">Back</button>
+        <Button variant="ghost" size="lg" onClick={onBack}>Back</Button>
         {publishResult && (
-          <button onClick={onReset} className="px-6 py-3 bg-navy text-white rounded-xl font-medium flex items-center gap-2">
+          <Button variant="secondary" size="lg" onClick={onReset}>
             <Sparkles className="w-4 h-4" /> Create Another Course
-          </button>
+          </Button>
         )}
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../../../store/authStore";
+import { Button } from "@/components/ui";
 import { 
   Settings, 
   Save, 
@@ -263,14 +264,15 @@ export default function PlatformSettings() {
             </h1>
             <p className="text-gray mt-2">Configurez votre plateforme</p>
           </div>
-          <button
+          <Button
+            variant="primary"
+            size="md"
             onClick={saveSettings}
             disabled={saving}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange to-orange-l text-white rounded-xl font-medium disabled:opacity-50"
           >
             {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
             {saving ? "Saving..." : "Save Changes"}
-          </button>
+          </Button>
         </div>
         {saved && (
           <div className="mt-4 p-3 bg-green-100 text-green-700 rounded-xl flex items-center gap-2">
@@ -283,30 +285,27 @@ export default function PlatformSettings() {
       {/* Tabs */}
       <div className="bg-white rounded-2xl shadow-sm border border-black/5 overflow-hidden">
         <div className="flex border-b">
-          <button
+          <Button
+            variant={activeTab === "economy" ? "secondary" : "ghost"}
+            size="sm"
             onClick={() => setActiveTab("economy")}
-            className={`flex-1 px-6 py-4 text-sm font-medium ${
-              activeTab === "economy" ? "text-orange border-b-2 border-orange" : "text-gray"
-            }`}
           >
             Economy & Pricing
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={activeTab === "system" ? "secondary" : "ghost"}
+            size="sm"
             onClick={() => setActiveTab("system")}
-            className={`flex-1 px-6 py-4 text-sm font-medium ${
-              activeTab === "system" ? "text-orange border-b-2 border-orange" : "text-gray"
-            }`}
           >
             System Config
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={activeTab === "api" ? "secondary" : "ghost"}
+            size="sm"
             onClick={() => setActiveTab("api")}
-            className={`flex-1 px-6 py-4 text-sm font-medium ${
-              activeTab === "api" ? "text-orange border-b-2 border-orange" : "text-gray"
-            }`}
           >
             API Keys
-          </button>
+          </Button>
         </div>
 
         <div className="p-8">
@@ -547,10 +546,11 @@ export default function PlatformSettings() {
                               </div>
                             </div>
                             
-                            <button
+                            <Button
+                              variant="primary"
+                              size="sm"
                               onClick={() => testApiConnection(provider.id)}
                               disabled={testConnection !== null || !config.key}
-                              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
                             >
                               {testConnection === provider.id ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -558,7 +558,7 @@ export default function PlatformSettings() {
                                 <TestTube className="w-4 h-4" />
                               )}
                               Test Connection
-                            </button>
+                            </Button>
                           </div>
                         )}
                       </div>

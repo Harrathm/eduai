@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Plus, Trash2, Users, BookOpen } from "lucide-react";
-import { Button, Modal, EmptyState } from "../../../components/ui";
+import { Button, Modal, EmptyState, Spinner } from "../../../components/ui";
 import { pathwayMatieres, pathwaySpecialites, pathwayResponsables } from "../../../api";
 
 interface Specialite {
@@ -103,14 +103,13 @@ export default function AdminSpecialitesPedagogiquesPage() {
         <Button
           variant="primary"
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2"
         >
           <Plus className="w-4 h-4" /> Nouvelle Spécialité
         </Button>
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-gray">Chargement...</div>
+        <div className="text-center py-12"><Spinner size="lg" /></div>
       ) : specialites.length === 0 ? (
         <EmptyState icon={<BookOpen className="w-12 h-12" />} title="Aucune spécialité pédagogique créée" description="Créez une spécialité pour grouper les matières par domaine" />
       ) : (
@@ -134,7 +133,6 @@ export default function AdminSpecialitesPedagogiquesPage() {
                   variant="secondary"
                   size="sm"
                   onClick={() => setAssignModal({ specId: spec.id, specNom: spec.nom })}
-                  className="flex items-center gap-1.5"
                 >
                   <Users className="w-4 h-4" /> Assigner
                 </Button>

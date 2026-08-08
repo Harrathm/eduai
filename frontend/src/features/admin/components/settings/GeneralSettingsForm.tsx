@@ -1,4 +1,4 @@
-import { Input } from "../../../../components/ui";
+import { Input, Button } from "../../../../components/ui";
 
 interface GeneralSettingsFormProps {
   platformName: string;
@@ -25,10 +25,10 @@ export function GeneralSettingsForm({
           <div className="font-medium text-navy text-sm">Allow New Registrations</div>
           <div className="text-xs text-gray mt-0.5">Enable or disable new user signups across the platform</div>
         </div>
-        <button onClick={() => onAllowSignupsChange(!allowSignups)}
+        <Button onClick={() => onAllowSignupsChange(!allowSignups)}
           className={`relative w-12 h-7 rounded-full transition-colors ${allowSignups ? "bg-green-500" : "bg-gray-300"}`}>
           <span className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${allowSignups ? "right-1" : "left-1"}`} />
-        </button>
+        </Button>
       </div>
     </div>
   );

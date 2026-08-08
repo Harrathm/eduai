@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { GraduationCap, ChevronDown, ChevronRight, Star, BookOpen, Clock, CheckCircle, AlertCircle, TrendingUp } from "lucide-react";
 import { getMonParcours } from "../../../api";
 import type { MonParcoursNiveau } from "../../../api";
-import { PageWrapper } from "../../../components/ui";
+import { PageWrapper, Button } from "../../../components/ui";
 
 const niveauColors: Record<string, string> = {
   decouverte: "bg-blue-500",
@@ -118,9 +118,11 @@ export default function MonParcoursPage() {
             <div className="divide-y divide-gray-100">
               {niveau.matieres.map(matiere => (
                 <div key={matiere.id}>
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="md"
                     onClick={() => toggle(matiere.id)}
-                    className="w-full flex items-center gap-3 px-6 py-4 hover:bg-gray-50 transition-colors text-start"
+                    className="w-full justify-start"
                   >
                     {expandedMatieres.has(matiere.id) ? (
                       <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
@@ -151,7 +153,7 @@ export default function MonParcoursPage() {
                         );
                       })()}
                     </div>
-                  </button>
+                  </Button>
 
                   {/* Chapters list */}
                   {expandedMatieres.has(matiere.id) && (

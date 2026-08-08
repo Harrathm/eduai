@@ -161,7 +161,6 @@ export default function TeacherAIStudio() {
                   onClick={() => setSelectedType(type.id)}
                   variant={selectedType === type.id ? "primary" : "ghost"}
                   size="md"
-                  className="p-4 rounded-xl text-center transition-all"
                 >
                   <div className="text-2xl mb-1">{type.icon}</div>
                   <div className="text-sm font-medium">{type.label}</div>
@@ -245,7 +244,6 @@ export default function TeacherAIStudio() {
                 variant="primary"
                 size="md"
                 loading={generating}
-                className="flex items-center gap-2 px-6 py-3 rounded-xl font-medium"
               >
                 <Zap className="w-5 h-5" />
                 {generating ? t('teacher.aiStudio.generating') : t('teacher.aiStudio.generate')}
@@ -265,7 +263,6 @@ export default function TeacherAIStudio() {
                     variant="ghost"
                     size="sm"
                     loading={exporting === "pdf"}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-white rounded-lg text-sm transition-colors"
                   >
                     {exporting === "pdf" ? (
                       <Spinner className="w-3.5 h-3.5" />
@@ -280,7 +277,6 @@ export default function TeacherAIStudio() {
                     variant="ghost"
                     size="sm"
                     loading={exporting === "docx"}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-white rounded-lg text-sm transition-colors"
                   >
                     {exporting === "docx" ? (
                       <Spinner className="w-3.5 h-3.5" />
@@ -295,7 +291,6 @@ export default function TeacherAIStudio() {
                     }}
                     variant="ghost"
                     size="sm"
-                    className="text-white/70 hover:text-white text-sm ms-2"
                   >
                     {t('teacher.aiStudio.copy')}
                   </Button>
@@ -348,7 +343,6 @@ export default function TeacherAIStudio() {
                   onClick={() => setPrompt(q)}
                   variant="ghost"
                   size="sm"
-                  className="w-full p-3 text-white text-start rounded-xl text-sm transition-colors"
                 >
                   {q}
                 </Button>

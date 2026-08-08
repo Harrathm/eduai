@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { Sparkles, Loader2, Upload, File, X } from "lucide-react";
+import { Button } from "../../../../components/ui";
 
 type Props = {
   topic: string;
@@ -80,9 +81,9 @@ export function PromptInputForm({
                     <File className="w-4 h-4 text-green-600 flex-shrink-0" />
                     <span className="flex-1 text-sm text-navy truncate">{f.name}</span>
                     <span className="text-xs text-green-600 font-medium">{f.chunks} chunks</span>
-                    <button onClick={() => onRemoveFile(i)} className="text-gray hover:text-red-500 transition-colors">
+                    <Button variant="ghost" size="sm" onClick={() => onRemoveFile(i)}>
                       <X className="w-4 h-4" />
-                    </button>
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -90,14 +91,16 @@ export function PromptInputForm({
           </div>
         )}
 
-        <button
+        <Button
+          variant="primary"
+          size="lg"
+          loading={loading}
           onClick={onGenerate}
           disabled={loading || !topic.trim()}
-          className="w-full py-4 bg-gradient-to-r from-orange to-orange-l text-white rounded-2xl font-semibold text-lg disabled:opacity-50 flex items-center justify-center gap-3 shadow-lg shadow-orange/20"
         >
           {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
           {loading ? "Generating Course Plan..." : "Generate Course Plan"}
-        </button>
+        </Button>
       </div>
     </div>
   );

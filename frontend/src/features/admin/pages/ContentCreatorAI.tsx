@@ -1,5 +1,6 @@
 import { RotateCcw, AlertCircle } from "lucide-react";
 import { useContentCreator } from "../hooks/useContentCreator";
+import { Button } from "../../../components/ui";
 import { PromptInputForm, PlanEditor, GenerationProgress, PreviewPublish, LessonPreviewModal } from "../components/content-creator";
 
 const STEPS = ["Topic", "Plan", "Generate", "Preview"];
@@ -17,9 +18,9 @@ export default function ContentCreatorAI() {
           <p className="text-gray text-sm mt-1">Generate full courses with AI in 4 steps</p>
         </div>
         {cc.step > 0 && (
-          <button onClick={cc.resetAll} className="flex items-center gap-2 px-4 py-2 bg-cream-m rounded-xl text-sm font-medium text-navy hover:bg-cream">
+          <Button variant="ghost" size="md" onClick={cc.resetAll}>
             <RotateCcw className="w-4 h-4" /> Start Over
-          </button>
+          </Button>
         )}
       </div>
 
@@ -38,7 +39,7 @@ export default function ContentCreatorAI() {
         <div className="flex items-center gap-3 px-4 py-3 bg-red-50 text-red-600 rounded-xl text-sm">
           <AlertCircle className="w-5 h-5 flex-shrink-0" />
           {cc.error}
-          <button onClick={cc.dismissError} className="ml-auto text-red-400 hover:text-red-600">&times;</button>
+          <Button variant="ghost" size="sm" onClick={cc.dismissError}>&times;</Button>
         </div>
       )}
 

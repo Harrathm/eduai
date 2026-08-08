@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Settings, Save, RotateCcw } from "lucide-react";
 import { pathwayMatieres } from "../../../api";
+import { Button } from "@/components/ui";
 
 interface MatiereThreshold {
   matiere_id: number;
@@ -84,12 +85,12 @@ export default function AdminSeuilsConfigPage() {
           <p className="text-gray text-sm mt-1">Seuils de bascule entre niveaux d'assimilation par matière</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={handleReset} className="px-4 py-2 text-gray hover:text-navy border border-black/10 rounded-xl text-sm flex items-center gap-2">
+          <Button variant="ghost" onClick={handleReset}>
             <RotateCcw className="w-4 h-4" /> Réinitialiser
-          </button>
-          <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-gradient-to-r from-orange to-orange-l text-white rounded-xl text-sm font-medium flex items-center gap-2 disabled:opacity-50">
+          </Button>
+          <Button variant="primary" loading={saving} disabled={saving} onClick={handleSave}>
             <Save className="w-4 h-4" /> {saving ? "Enregistrement..." : "Enregistrer"}
-          </button>
+          </Button>
         </div>
       </div>
 

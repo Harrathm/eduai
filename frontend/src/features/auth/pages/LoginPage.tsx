@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuthStore } from "../../../store/authStore";
+import { Button } from "@/components/ui";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -140,13 +141,14 @@ export default function LoginPage() {
                 </Link>
               </div>
               
-              <button
+              <Button
                 type="submit"
+                variant="primary"
+                loading={isLoading}
                 disabled={isLoading}
-                className="w-full bg-gradient-to-r from-orange to-orange-l text-white font-semibold py-4 rounded-xl hover:opacity-90 hover:translate-y-[-2px] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? "Connexion..." : "Se connecter"}
-              </button>
+              </Button>
             </form>
           </div>
           

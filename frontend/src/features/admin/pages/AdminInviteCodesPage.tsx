@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Search, Copy, RefreshCw, Check, Key, Building2 } from "lucide-react";
-import { Button, EmptyState, PageSpinner } from "../../../components/ui";
+import { Button, EmptyState, PageSpinner, Spinner } from "../../../components/ui";
 import { adminSchools } from "../../../api";
 import type { AdminSchool, PaginatedResponse } from "../../../api";
 
@@ -114,7 +114,7 @@ export default function AdminInviteCodesPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={4} className="px-6 py-12 text-center text-gray">Chargement...</td></tr>
+              <tr><td colSpan={4} className="px-6 py-12 text-center"><Spinner /></td></tr>
             ) : schools.length === 0 ? (
               <tr><td colSpan={4} className="px-6 py-12 text-center text-gray">Aucune école trouvée</td></tr>
             ) : schools.map((school) => (

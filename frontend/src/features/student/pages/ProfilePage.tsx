@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../../../store/authStore";
 import apiClient from "../../../utils/apiClient";
 import { User, Save, Check } from "lucide-react";
-import { PageWrapper } from "../../../components/ui";
+import { PageWrapper, Button } from "../../../components/ui";
 
 const NIVEAUX = [
   "1ère année", "2ème année", "3ème année", "4ème année", "5ème année", "6ème année",
@@ -102,18 +102,15 @@ export default function ProfilePage() {
         <h2 className="text-lg font-semibold text-navy mb-4">{t("profile.language", "Langue")}</h2>
         <div className="grid grid-cols-3 gap-3">
           {LANGUAGES.map((l) => (
-            <button
+            <Button
               key={l.code}
+              variant="ghost"
+              size="md"
               onClick={() => handleLanguageChange(l.code)}
-              className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${
-                language === l.code
-                  ? "border-orange bg-orange/5 shadow-sm"
-                  : "border-gray-200 hover:border-gray-300"
-              }`}
             >
               <span className="text-2xl">{l.flag}</span>
               <span className="text-sm font-medium">{l.label}</span>
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -122,29 +119,32 @@ export default function ProfilePage() {
       {user?.role === "student" && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
           <h2 className="text-lg font-semibold text-navy mb-4">{t("profile.niveau", "Niveau scolaire")}</h2>
+          {niveau && (
+            <p className="text-sm text-gray mb-3">
+              {t("profile.currentNiveau", "Niveau actuel")} : <span className="font-semibold text-navy">{niveau}</span>
+            </p>
+          )}
           <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto">
             {NIVEAUX.map((n) => (
-              <button
+              <Button
                 key={n}
+                variant={niveau === n ? "primary" : "ghost"}
+                size="md"
                 onClick={() => setNiveau(n)}
-                className={`p-3 rounded-xl border-2 text-start text-sm transition-all ${
-                  niveau === n
-                    ? "border-orange bg-orange/5 text-orange font-medium"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
               >
                 {n}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
       )}
 
       {/* Save Button */}
-      <button
+      <Button
+        variant="primary"
+        size="lg"
         onClick={handleSave}
         disabled={saving}
-        className="flex items-center gap-2 px-6 py-3 bg-orange text-white rounded-xl font-medium hover:bg-orange-w transition-colors disabled:opacity-50"
       >
         {saved ? (
           <><Check className="w-5 h-5" /> {t("profile.saved", "Sauvegardé !")}</>
@@ -153,7 +153,7 @@ export default function ProfilePage() {
         ) : (
           <><Save className="w-5 h-5" /> {t("profile.save", "Sauvegarder")}</>
         )}
-      </button>
+      </Button>
     </PageWrapper>
   );
 }

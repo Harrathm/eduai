@@ -4,6 +4,7 @@ import { useParams, Link } from "react-router-dom";
 import { useAuthStore } from "../../../store/authStore";
 import { ArrowLeft, Wallet, Coins, Clock, AlertCircle, CreditCard } from "lucide-react";
 import { parentEnfants, parentWallet } from "../../../api";
+import { Button } from "@/components/ui";
 
 interface WalletBalance {
   user_id: number;
@@ -146,15 +147,15 @@ export default function ParentWalletPage() {
 
         <div className="flex flex-wrap gap-2 mb-4">
           {PRESETS.map((amt) => (
-            <button
+            <Button
               key={amt}
+              variant="ghost"
+              size="sm"
               onClick={() => setRechargeAmount(amt)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                rechargeAmount === amt ? "bg-navy text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
+              className={rechargeAmount === amt ? "!bg-navy !text-white" : ""}
             >
               {amt} TND
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -168,13 +169,15 @@ export default function ParentWalletPage() {
             className="w-32 px-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange/30"
           />
           <span className="text-sm text-gray-500">TND</span>
-          <button
+          <Button
+            variant="primary"
+            size="md"
             onClick={handleRecharge}
             disabled={rechargeLoading || rechargeAmount <= 0}
-            className="px-6 py-2 bg-orange text-white text-sm font-medium rounded-xl hover:bg-orange/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            loading={rechargeLoading}
           >
             {rechargeLoading ? t('parent.wallet.redirecting') : t('parent.wallet.rechargeViaKonnect')}
-          </button>
+          </Button>
         </div>
 
         {message && (

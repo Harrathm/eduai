@@ -1,4 +1,5 @@
 import { Sparkles } from "lucide-react";
+import { Button } from "../../../../components/ui";
 import type { AIFactoryPlan } from "../../../../api";
 
 type Props = {
@@ -78,10 +79,10 @@ export function PlanEditor({ plan, onPlanEdit, setPlan, onBack, onStart, countLe
       ))}
 
       <div className="flex justify-end gap-3">
-        <button onClick={onBack} className="px-6 py-3 bg-cream-m rounded-xl font-medium text-navy">Back</button>
-        <button onClick={onStart} className="px-6 py-3 bg-gradient-to-r from-orange to-orange-l text-white rounded-xl font-semibold flex items-center gap-2 shadow-lg shadow-orange/20">
+        <Button variant="ghost" size="lg" onClick={onBack}>Back</Button>
+        <Button variant="primary" size="lg" onClick={onStart}>
           <Sparkles className="w-5 h-5" /> Generate All Content ({countLessons(plan)} lessons)
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -202,12 +202,11 @@ export default function StudentCourseCatalog() {
                           {t('courseCatalog.enrolled')}
                         </span>
                         {isEnrolled && !isFree && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setRefundModal({ courseId: course.id, courseTitle: course.title })}
-                            className="text-xs text-red-500 hover:text-red-700 underline"
-                          >
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setRefundModal({ courseId: course.id, courseTitle: course.title })}
+                        >
                             {t('courseCatalog.requestRefund')}
                           </Button>
                         )}
@@ -281,7 +280,6 @@ export default function StudentCourseCatalog() {
           <Button
             variant="ghost"
             onClick={() => setRefundModal(null)}
-            className="flex-1"
           >
             {t('courseCatalog.cancel')}
           </Button>
@@ -290,7 +288,6 @@ export default function StudentCourseCatalog() {
             onClick={requestRefund}
             disabled={!refundReason.trim() || refundLoading}
             loading={refundLoading}
-            className="flex-1"
           >
             {refundLoading ? t('courseCatalog.sending') : t('courseCatalog.sendRequest')}
           </Button>

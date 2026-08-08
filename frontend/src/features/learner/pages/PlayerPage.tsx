@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { lessonLearner, quizLearner, courseLearner } from "../../../api";
-import { Button } from "../../../components/ui";
+import { Button, Spinner } from "../../../components/ui";
 const learnerAPI = {
   syllabus: courseLearner.syllabus,
   lesson: lessonLearner.get,
@@ -244,7 +244,7 @@ export default function LearnerPlayerPage() {
   };
 
   if (loading) {
-    return <div className="p-6">Loading...</div>;
+    return <div className="p-6"><Spinner /></div>;
   }
 
   if (!course) {

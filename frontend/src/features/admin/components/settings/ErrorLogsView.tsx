@@ -21,7 +21,7 @@ export function ErrorLogsView({
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-display font-semibold text-navy">Backend Error Logs</h3>
-          <p className="text-xs text-gray mt-1">{errorLogs ? `${errorLogs.total_lines} log entries` : "Loading..."}</p>
+          <p className="text-xs text-gray mt-1">{errorLogs ? `${errorLogs.total_lines} log entries` : <Spinner />}</p>
         </div>
         <Button variant="ghost" size="sm" onClick={onRefresh} loading={logsLoading}>
           <RefreshCw className={`w-4 h-4 ${logsLoading ? "animate-spin" : ""}`} /> Refresh

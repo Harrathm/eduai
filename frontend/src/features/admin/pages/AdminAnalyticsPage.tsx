@@ -3,6 +3,7 @@ import { DollarSign, TrendingUp, Users, BookOpen, Activity } from "lucide-react"
 import { KPICard } from "../components";
 import { adminAnalytics } from "../../../api";
 import type { RevenueData, DashboardStats } from "../../../api";
+import { Button } from "@/components/ui";
 
 export default function AdminAnalyticsPage() {
   const [revenue, setRevenue] = useState<RevenueData | null>(null);
@@ -33,10 +34,9 @@ export default function AdminAnalyticsPage() {
         </div>
         <div className="flex gap-2">
           {(["7d", "30d", "90d", "12m"] as const).map(p => (
-            <button key={p} onClick={() => setPeriod(p)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${period === p ? "bg-orange text-white" : "bg-white border border-black/5 text-gray hover:bg-cream"}`}>
+            <Button key={p} variant={period === p ? "primary" : "ghost"} size="sm" onClick={() => setPeriod(p)}>
               {p === "7d" ? "7D" : p === "30d" ? "30D" : p === "90d" ? "90D" : "12M"}
-            </button>
+            </Button>
           ))}
         </div>
       </div>

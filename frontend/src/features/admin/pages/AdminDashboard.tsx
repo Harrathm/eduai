@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../../../store/authStore";
 import { adminDashboard, userApi, courseAdmin } from "../../../api";
+import { Button, Spinner } from "@/components/ui";
 
 interface Stats {
   total_users: number;
@@ -137,14 +138,11 @@ export default function AdminDashboard() {
       <div className="bg-white rounded-3xl shadow-sm border border-black/5 overflow-hidden">
         <div className="flex overflow-x-auto border-b border-black/5">
           {tabs.map((tab) => (
-            <button
+            <Button
               key={tab.id}
+              variant="ghost"
+              className={activeTab === tab.id ? "text-orange border-b-2 border-orange -mb-[2px]" : ""}
               onClick={() => setActiveTab(tab.id as Tab)}
-              className={`px-8 py-5 text-sm font-semibold whitespace-nowrap transition-colors ${
-                activeTab === tab.id
-                  ? "text-orange border-b-2 border-orange"
-                  : "text-gray hover:text-navy"
-              }`}
             >
               {tab.label}
               {tab.id === "overview" && stats?.pending_courses ? (
@@ -152,7 +150,7 @@ export default function AdminDashboard() {
                   {stats.pending_courses}
                 </span>
               ) : null}
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -161,7 +159,7 @@ export default function AdminDashboard() {
           {activeTab === "overview" && (
             <div className="space-y-6">
               {loading ? (
-                <div className="text-center py-12 text-gray">Chargement...</div>
+                <div className="text-center py-12"><Spinner size="lg" /></div>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {statCards.map((stat, i) => (
@@ -180,7 +178,7 @@ export default function AdminDashboard() {
             <div className="space-y-4">
               <h3 className="text-xl font-[300] text-navy mb-6">Tous les utilisateurs</h3>
               {loading ? (
-                <div className="text-center py-12 text-gray">Chargement...</div>
+                <div className="text-center py-12"><Spinner size="lg" /></div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">
@@ -218,12 +216,13 @@ export default function AdminDashboard() {
                           </td>
                           <td className="px-5 py-4">
                             {u.role === "teacher" && !u.is_approved && (
-                              <button
+                              <Button
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => approveUser(u.id)}
-                                className="text-orange hover:underline text-sm font-medium"
                               >
                                 Approuver
-                              </button>
+                              </Button>
                             )}
                           </td>
                         </tr>
@@ -240,7 +239,7 @@ export default function AdminDashboard() {
             <div className="space-y-4">
               <h3 className="text-xl font-[300] text-navy mb-6">Tous les cours</h3>
               {loading ? (
-                <div className="text-center py-12 text-gray">Chargement...</div>
+                <div className="text-center py-12"><Spinner size="lg" /></div>
               ) : (
                 <div className="grid gap-4">
                   {courses.map((c) => (
@@ -264,18 +263,20 @@ export default function AdminDashboard() {
                       </div>
                       {c.status === "pending" && (
                         <div className="mt-4 flex gap-3">
-                          <button
+                          <Button
+                            variant="success"
+                            size="sm"
                             onClick={() => updateCourseStatus(c.id, "published")}
-                            className="px-5 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl text-sm font-medium hover:opacity-90"
                           >
                             Approuver
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            variant="danger"
+                            size="sm"
                             onClick={() => updateCourseStatus(c.id, "rejected")}
-                            className="px-5 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl text-sm font-medium hover:opacity-90"
                           >
                             Rejeter
-                          </button>
+                          </Button>
                         </div>
                       )}
                     </div>

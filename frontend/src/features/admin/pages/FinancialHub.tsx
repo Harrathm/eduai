@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../../../store/authStore";
 import { Search, Download, Edit2, Save, X, Wallet, Coins, TrendingUp } from "lucide-react";
+import { Button, Spinner } from "@/components/ui";
 import { adminUsersAll } from "../../../api";
 
 interface UserAccount {
@@ -134,30 +135,26 @@ export default function FinancialHub() {
           </div>
           <div className="flex gap-2">
             {(["all", "admin", "teacher", "student"] as const).map((f) => (
-              <button
+              <Button
                 key={f}
+                variant={filter === f ? "primary" : "ghost"}
                 onClick={() => setFilter(f)}
-                className={`px-4 py-2 rounded-xl text-sm font-medium capitalize ${
-                  filter === f
-                    ? "bg-orange text-white"
-                    : "bg-cream-m text-gray hover:bg-cream"
-                }`}
               >
                 {f}
-              </button>
+              </Button>
             ))}
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-navy text-white rounded-xl text-sm font-medium">
+          <Button variant="secondary">
             <Download className="w-4 h-4" />
             Exporter
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Table */}
       <div className="bg-white rounded-3xl shadow-sm border border-black/5 overflow-hidden">
         {loading ? (
-          <div className="text-center py-12 text-gray">Chargement...</div>
+          <div className="text-center py-12"><Spinner size="lg" /></div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -273,21 +270,25 @@ export default function FinancialHub() {
                     <td className="px-6 py-4">
                       {editingId === u.id ? (
                         <div className="flex gap-1">
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => updateBalance(u.id)}
-                            className="p-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200"
                           >
                             <Save className="w-4 h-4" />
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => setEditingId(null)}
-                            className="p-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
                           >
                             <X className="w-4 h-4" />
-                          </button>
+                          </Button>
                         </div>
                       ) : (
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => {
                             setEditingId(u.id);
                             setEditValues({
@@ -295,10 +296,9 @@ export default function FinancialHub() {
                               dt_balance: u.dt_balance,
                             });
                           }}
-                          className="p-2 bg-cream-m rounded-lg hover:bg-cream"
                         >
                           <Edit2 className="w-4 h-4 text-gray" />
-                        </button>
+                        </Button>
                       )}
                     </td>
                   </tr>

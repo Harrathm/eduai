@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { ShoppingCart, CheckCircle, BookOpen, ChevronRight, Clock, GraduationCap, Lock, Unlock } from "lucide-react";
 import { getPathwayCatalog, enrollPathway } from "../../../api";
 import type { PathwayCatalogItem } from "../../../api";
+import { Button } from "@/components/ui";
 
 export default function PathwayCatalogPage() {
   const { t } = useTranslation();
@@ -136,20 +137,20 @@ export default function PathwayCatalogPage() {
                     </span>
                   </div>
                 ) : item.pack ? (
-                  <button
-                    onClick={() => handlePurchase(item)}
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    loading={purchasing === item.niveau.id}
                     disabled={purchasing === item.niveau.id}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-orange to-orange-l text-white rounded-xl font-medium hover:shadow-lg transition-all disabled:opacity-50"
+                    onClick={() => handlePurchase(item)}
                   >
-                    {purchasing === item.niveau.id ? (
-                      <span className="animate-pulse">{t("student.pathway.buying")}</span>
-                    ) : (
+                    {purchasing !== item.niveau.id && (
                       <>
                         <ShoppingCart className="w-4 h-4" />
                         {t("student.pathway.buyButton", { price: item.pack.price, currency: item.pack.currency })}
                       </>
                     )}
-                  </button>
+                  </Button>
                 ) : (
                   <p className="text-sm text-gray text-center">{t("student.pathway.noPackAvailable")}</p>
                 )}

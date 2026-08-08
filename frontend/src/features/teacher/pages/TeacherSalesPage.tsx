@@ -83,7 +83,6 @@ export default function TeacherSalesPage() {
             size="sm"
             onClick={fetchSales}
             loading={loading}
-            className="p-2"
           >
             {!loading && <RefreshCw className="w-5 h-5 text-gray" />}
           </Button>

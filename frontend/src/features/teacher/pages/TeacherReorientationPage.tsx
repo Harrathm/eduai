@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from 'react-i18next';
 import { Bell, CheckCircle, XCircle, Clock, AlertTriangle } from "lucide-react";
+import { Button } from "../../../components/ui";
 import { useAuthStore } from "../../../store/authStore";
 import { getNotificationsReorientation, validerReorientation } from "../../../api";
 import type { NotificationReorientation } from "../../../api";
@@ -111,14 +112,12 @@ export default function TeacherReorientationPage() {
 
                 {n.action_prise === "aucune" && !isExpired(n.date_limite_action) && (
                   <div className="flex gap-2">
-                    <button onClick={() => handleValidate(n.profil_assimilation_id, "confirme")}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-green-100 text-green-700 rounded-xl text-sm font-medium hover:bg-green-200 transition-colors">
+                    <Button variant="success" size="sm" onClick={() => handleValidate(n.profil_assimilation_id, "confirme")}>
                       <CheckCircle className="w-4 h-4" /> {t('teacher.reorientation.btn.confirm')}
-                    </button>
-                    <button onClick={() => handleValidate(n.profil_assimilation_id, "annule")}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-red-100 text-red-700 rounded-xl text-sm font-medium hover:bg-red-200 transition-colors">
+                    </Button>
+                    <Button variant="danger" size="sm" onClick={() => handleValidate(n.profil_assimilation_id, "annule")}>
                       <XCircle className="w-4 h-4" /> {t('teacher.reorientation.btn.cancel')}
-                    </button>
+                    </Button>
                   </div>
                 )}
 

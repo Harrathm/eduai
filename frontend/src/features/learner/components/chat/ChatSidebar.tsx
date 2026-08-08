@@ -1,6 +1,7 @@
 import { Plus, MessageSquare, Trash2, Search, Clock } from "lucide-react";
 import type { ConversationSummary } from "../../../../api";
 import { formatTime } from "../../hooks/useAIChat";
+import { Button } from "@/components/ui";
 
 type Props = {
   conversations: ConversationSummary[];
@@ -32,13 +33,14 @@ export function ChatSidebar({
             <p className="text-xs text-gray-400">Tuteur personnel</p>
           </div>
         </div>
-        <button
+        <Button
+          variant="primary"
+          size="md"
           onClick={onStartNew}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange to-orange-l text-white rounded-xl text-sm font-medium hover:shadow-or transition-all duration-200"
         >
           <Plus className="w-4 h-4" />
           Nouvelle conversation
-        </button>
+        </Button>
       </div>
 
       <div className="px-4 py-3">
@@ -66,13 +68,10 @@ export function ChatSidebar({
           )}
           {conversations.slice(0, 20).map((conv) => (
             <div key={conv.id} className="group relative">
-              <button
+              <Button
+                variant="ghost"
+                size="md"
                 onClick={() => onOpenConversation(conv.id)}
-                className={`w-full text-start px-3 py-2.5 rounded-lg transition-all duration-150 pe-9 ${
-                  activeConvId === conv.id
-                    ? "bg-orange-p border border-orange/10"
-                    : "hover:bg-gray-50 border border-transparent"
-                }`}
               >
                 <p className={`text-sm truncate ${activeConvId === conv.id ? "text-orange font-medium" : "text-gray-700"}`}>
                   {conv.title}
@@ -91,30 +90,33 @@ export function ChatSidebar({
                     </>
                   )}
                 </div>
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={(e) => {
                   e.stopPropagation();
                   onDeleteConfirmToggle(conv.id);
                 }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md opacity-0 group-hover:opacity-100 hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-              </button>
+              </Button>
               {deleteConfirmId === conv.id && (
                 <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-dp p-2 z-10 flex gap-1.5">
-                  <button
+                  <Button
+                    variant="danger"
+                    size="sm"
                     onClick={() => onDelete(conv.id)}
-                    className="px-3 py-1.5 text-xs bg-red-500 text-white rounded-lg hover:bg-red-600 font-medium"
                   >
                     Supprimer
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={onDeleteCancel}
-                    className="px-3 py-1.5 text-xs bg-gray-100 rounded-lg hover:bg-gray-200 text-gray-600"
                   >
                     Annuler
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>

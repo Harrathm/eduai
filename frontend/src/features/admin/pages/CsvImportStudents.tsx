@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { Button } from "@/components/ui";
 import { useAuthStore } from "../../../store/authStore";
 
 const API_URL = "";
@@ -74,12 +75,9 @@ export default function CsvImportStudents() {
           onChange={handleFileChange}
           className="hidden"
         />
-        <button
-          onClick={() => fileRef.current?.click()}
-          className="px-5 py-2.5 bg-cream-m border border-black/5 rounded-xl text-sm font-semibold text-navy hover:bg-cream transition-colors"
-        >
+        <Button variant="ghost" onClick={() => fileRef.current?.click()}>
           Sélectionner un fichier CSV
-        </button>
+        </Button>
         {csvText && (
           <span className="text-sm text-gray self-center">
             Fichier chargé ({csvText.split("\n").length} lignes)
@@ -108,13 +106,9 @@ eleve2@ecole.tn,Sara Trabelsi,password123,1ère année secondaire"
         </div>
       )}
 
-      <button
-        onClick={handleImport}
-        disabled={loading || !csvText.trim()}
-        className="px-6 py-3 bg-gradient-to-r from-orange to-orange-l text-white font-semibold rounded-xl hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-      >
+      <Button variant="primary" onClick={handleImport} disabled={!csvText.trim()} loading={loading}>
         {loading ? "Import en cours..." : "Importer les élèves"}
-      </button>
+      </Button>
 
       {result && (
         <div className="bg-white rounded-2xl border border-black/5 p-6 space-y-4">

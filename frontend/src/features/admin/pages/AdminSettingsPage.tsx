@@ -42,17 +42,17 @@ export default function AdminSettingsPage() {
       {s.error && (
         <div className="flex items-center gap-3 px-4 py-3 bg-red-50 text-red-600 rounded-xl text-sm">
           {s.error}
-          <button onClick={() => {}} className="ml-auto text-red-400 hover:text-red-600">&times;</button>
+          <Button variant="ghost" size="sm" onClick={() => {}}>&times;</Button>
         </div>
       )}
 
       {/* Tabs */}
       <div className="flex gap-1 bg-white p-1.5 rounded-2xl shadow-sm border border-black/5 overflow-x-auto">
         {TABS.filter(t => s.isSuperAdmin || !["api-keys", "maintenance"].includes(t.id)).map(t => (
-          <button key={t.id} onClick={() => s.setTab(t.id)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${s.tab === t.id ? "bg-navy text-white shadow-sm" : "text-gray hover:bg-cream-m"}`}>
+          <Button key={t.id} variant={s.tab === t.id ? "secondary" : "ghost"} onClick={() => s.setTab(t.id)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap">
             {t.icon} {t.label}
-          </button>
+          </Button>
         ))}
       </div>
 

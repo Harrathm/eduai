@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Users, BookOpen, DollarSign, Coins, TrendingUp, GraduationCap, Building2, Activity } from "lucide-react";
 import { KPICard } from "../components/KPICard";
+import { Button } from "@/components/ui";
 import { adminDashboard, adminAnalytics } from "../../../api";
 import type { AdminDashboardStats, EnrollmentTrend, ApiCostTrend } from "../../../api";
 import {
@@ -63,15 +64,14 @@ export default function AdminDashboardPage() {
           </div>
           <div className="flex items-center gap-2">
             {(["7d", "30d", "90d", "12m"] as const).map((p) => (
-              <button
+              <Button
                 key={p}
+                variant={period === p ? "primary" : "ghost"}
+                size="sm"
                 onClick={() => setPeriod(p)}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                  period === p ? "bg-orange text-white" : "bg-white/10 text-white/70 hover:bg-white/20"
-                }`}
               >
                 {t(`admin.dashboard.period.${p}`)}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -80,9 +80,9 @@ export default function AdminDashboardPage() {
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-2xl p-6 flex flex-col items-center justify-center text-center">
           <p className="text-red-600 mb-4">{error}</p>
-          <button onClick={fetchData} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium">
+          <Button variant="danger" size="sm" onClick={fetchData}>
             {t("admin.dashboard.btn.retry")}
-          </button>
+          </Button>
         </div>
       )}
 

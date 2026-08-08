@@ -1,6 +1,6 @@
 import { CheckCircle, AlertCircle, LayoutGrid } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
-import { PageSpinner } from "../../../components/ui";
+import { PageSpinner, Button } from "../../../components/ui";
 import { useCourseEditor } from "../hooks/useCourseEditor";
 import { CourseSidebar, ChapterContent, LessonEditor, CoursePreviewModal } from "../components/course-editor";
 
@@ -28,12 +28,12 @@ export default function CourseEditorPage() {
         <div className="bg-white rounded-2xl p-8 shadow-sm border text-center max-w-md">
           <p className="text-red-600 mb-4">{error}</p>
           <div className="flex gap-3 justify-center">
-            <button onClick={() => navigate("/dashboard/admin/courses")} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium">
+            <Button variant="ghost" size="md" onClick={() => navigate("/dashboard/admin/courses")}>
               Retour aux cours
-            </button>
-            <button onClick={loadCourse} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium">
+            </Button>
+            <Button variant="danger" size="md" onClick={loadCourse}>
               Réessayer
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -45,9 +45,9 @@ export default function CourseEditorPage() {
       <div className="flex h-screen items-center justify-center bg-gray-50">
         <div className="bg-white rounded-2xl p-8 shadow-sm border text-center">
           <p className="text-gray-600 mb-4">Cours introuvable</p>
-          <button onClick={() => navigate("/dashboard/admin/courses")} className="px-4 py-2 bg-navy text-white rounded-lg hover:bg-navy-m font-medium">
+          <Button variant="secondary" size="md" onClick={() => navigate("/dashboard/admin/courses")}>
             Retour aux cours
-          </button>
+          </Button>
         </div>
       </div>
     );

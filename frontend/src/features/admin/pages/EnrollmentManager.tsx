@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../../../store/authStore";
 import { Check, X, Search, Download } from "lucide-react";
+import { Button, Spinner } from "@/components/ui";
 import { adminTeacherRegistrations } from "../../../api";
 
 interface TeacherRegistration {
@@ -75,10 +76,10 @@ export default function EnrollmentManager() {
               Gérez les inscriptions des enseignants
             </p>
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-navy text-white rounded-xl text-sm font-medium">
+          <Button variant="secondary">
             <Download className="w-4 h-4" />
             Exporter CSV
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -99,14 +100,10 @@ export default function EnrollmentManager() {
           </div>
           <div className="flex gap-2">
             {(["all", "pending", "approved", "rejected"] as const).map((f) => (
-              <button
+              <Button
                 key={f}
+                variant={filter === f ? "primary" : "ghost"}
                 onClick={() => setFilter(f)}
-                className={`px-4 py-2 rounded-xl text-sm font-medium capitalize ${
-                  filter === f
-                    ? "bg-orange text-white"
-                    : "bg-cream-m text-gray hover:bg-cream"
-                }`}
               >
                 {f}
                 {f === "pending" &&
@@ -115,7 +112,7 @@ export default function EnrollmentManager() {
                       {registrations.filter((r) => r.status === "pending").length}
                     </span>
                   )}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -124,7 +121,7 @@ export default function EnrollmentManager() {
       {/* Table */}
       <div className="bg-white rounded-3xl shadow-sm border border-black/5 overflow-hidden">
         {loading ? (
-          <div className="text-center py-12 text-gray">Chargement...</div>
+          <div className="text-center py-12"><Spinner size="lg" /></div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-12 text-gray">
             Aucune inscription trouvée
@@ -179,18 +176,20 @@ export default function EnrollmentManager() {
                   <td className="px-6 py-4">
                     {r.status === "pending" && (
                       <div className="flex gap-2">
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => approveRegistration(r.id)}
-                          className="p-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200"
                         >
                           <Check className="w-4 h-4" />
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => rejectRegistration(r.id)}
-                          className="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200"
                         >
                           <X className="w-4 h-4" />
-                        </button>
+                        </Button>
                       </div>
                     )}
                   </td>

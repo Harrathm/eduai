@@ -30,14 +30,13 @@ export function LessonEditor({ open, form, onFormChange, onClose, onSave }: Less
             {LESSON_TYPES.map(t => {
               const Icon = t.icon;
               return (
-                <button key={t.value}
-                  onClick={() => onFormChange({ ...form, lesson_type: t.value })}
-                  className={`p-3 rounded-lg border-2 flex flex-col items-center gap-2 ${
-                    form.lesson_type === t.value ? "border-navy-600 bg-navy-50" : "border-gray-200 hover:border-gray-300"
-                  }`}>
+                <Button key={t.value}
+                  variant="ghost"
+                  size="md"
+                  onClick={() => onFormChange({ ...form, lesson_type: t.value })}>
                   <Icon className="w-5 h-5" />
                   <span className="text-sm">{t.label}</span>
-                </button>
+                </Button>
               );
             })}
           </div>

@@ -1,5 +1,6 @@
 import { Sparkles } from "lucide-react";
 import { CONTEXT_HINTS } from "../../hooks/useAIChat";
+import { Button } from "@/components/ui";
 
 type Props = {
   onHintClick: (hint: string) => void;
@@ -20,13 +21,14 @@ export function WelcomeMessage({ onHintClick }: Props) {
       </p>
       <div className="grid grid-cols-2 gap-3 max-w-lg">
         {CONTEXT_HINTS.map((hint, i) => (
-          <button
+          <Button
             key={i}
+            variant="ghost"
+            size="sm"
             onClick={() => onHintClick(hint)}
-            className="text-start px-4 py-3 text-sm bg-white border border-gray-100 rounded-xl hover:border-orange/30 hover:bg-orange-p text-gray-600 hover:text-navy transition-all duration-200 shadow-sm"
           >
             {hint}
-          </button>
+          </Button>
         ))}
       </div>
     </div>

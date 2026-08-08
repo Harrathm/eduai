@@ -1,4 +1,5 @@
 import { Send } from "lucide-react";
+import { Button } from "@/components/ui";
 
 type Props = {
   input: string;
@@ -24,13 +25,14 @@ export function ChatInputBar({ input, inputDirection, loading, inputRef, onInput
             disabled={loading}
             className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 focus:outline-none disabled:opacity-50 py-1"
           />
-          <button
+          <Button
             type="submit"
+            variant="primary"
+            size="sm"
             disabled={!input.trim() || loading}
-            className="w-9 h-9 flex items-center justify-center bg-gradient-to-r from-orange to-orange-l text-white rounded-xl hover:shadow-or disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 flex-shrink-0"
           >
             <Send className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
         <p className="text-[10px] text-gray-400 text-center mt-2">
           L'IA peut faire des erreurs. Vérifiez les informations importantes.

@@ -98,7 +98,6 @@ export default function ChildDetailPage() {
               variant="primary"
               size="sm"
               onClick={() => setRechargeOpen(!rechargeOpen)}
-              className="flex items-center gap-1"
             >
               <Wallet className="w-4 h-4" />
               {t('parent.childDetail.rechargeButton')}
@@ -135,7 +134,6 @@ export default function ChildDetailPage() {
                 variant={rechargeAmount === amt && !customAmount ? "primary" : "secondary"}
                 size="md"
                 onClick={() => { setRechargeAmount(amt); setCustomAmount(""); }}
-                className="py-3 rounded-xl font-medium transition-colors"
               >
                 {amt} DT
               </Button>
@@ -160,7 +158,6 @@ export default function ChildDetailPage() {
               size="md"
               onClick={handleRecharge}
               loading={rechargeLoading}
-              className="flex items-center gap-2"
             >
               <ExternalLink className="w-4 h-4" />
               {t('parent.childDetail.payButton')}

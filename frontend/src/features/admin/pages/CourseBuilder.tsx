@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Button } from "@/components/ui";
 import { useAuthStore } from "../../../store/authStore";
 import { Plus, Trash2, GripVertical, Image, Video, FileText, Save, X, DollarSign, AlertCircle } from "lucide-react";
 
@@ -298,13 +299,10 @@ export default function CourseBuilder() {
       <div className="bg-white rounded-3xl p-8 shadow-sm border border-black/5">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold text-navy">Chapitres</h2>
-          <button
-            onClick={addChapter}
-            className="flex items-center gap-2 px-4 py-2 bg-orange text-white rounded-xl text-sm font-medium"
-          >
+          <Button variant="primary" onClick={addChapter}>
             <Plus className="w-4 h-4" />
             Ajouter Chapitre
-          </button>
+          </Button>
         </div>
 
         {chapters.length === 0 ? (
@@ -405,12 +403,9 @@ export default function CourseBuilder() {
 
                         {/* Quiz */}
                         <div className="mt-4 pt-4 border-t border-black/5">
-                          <button
-                            onClick={() => addQuestion(chapter.id, sub.id)}
-                            className="text-sm text-orange font-medium"
-                          >
+                          <Button variant="ghost" onClick={() => addQuestion(chapter.id, sub.id)}>
                             + Ajouter un quiz
-                          </button>
+                          </Button>
                           {sub.quiz?.questions.map((q, qIdx) => (
                             <div key={q.id} className="mt-3 p-3 bg-cream rounded-lg">
                               <input
@@ -478,12 +473,9 @@ export default function CourseBuilder() {
                       </div>
                     ))}
 
-                    <button
-                      onClick={() => addSubchapter(chapter.id)}
-                      className="w-full py-3 border-2 border-dashed border-gray/30 rounded-xl text-gray hover:border-orange hover:text-orange transition-colors"
-                    >
+                    <Button variant="ghost" onClick={() => addSubchapter(chapter.id)} className="w-full">
                       + Ajouter une leçon
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>
@@ -494,14 +486,10 @@ export default function CourseBuilder() {
 
       {/* Save Button */}
       <div className="flex justify-end">
-        <button
-          onClick={saveCourse}
-          disabled={saving || !courseTitle}
-          className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-orange to-orange-l text-white rounded-xl font-semibold disabled:opacity-50"
-        >
+        <Button variant="primary" onClick={saveCourse} disabled={saving || !courseTitle}>
           <Save className="w-5 h-5" />
           {saving ? "Enregistrement..." : "Enregistrer le cours"}
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -1,3 +1,5 @@
+import { Button } from "@/components/ui";
+
 interface PaginationControlsProps {
   page: number;
   limit: number;
@@ -15,32 +17,29 @@ export function PaginationControls({ page, limit, total, onPageChange }: Paginat
         {((page - 1) * limit) + 1}-{Math.min(page * limit, total)} sur {total}
       </p>
       <div className="flex items-center gap-1">
-        <button
+        <Button variant="ghost" size="sm"
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
-          className="px-3 py-1.5 text-sm rounded-lg hover:bg-cream disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Prec.
-        </button>
+        </Button>
         {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
           const p = i + 1;
           return (
-            <button
+            <Button variant="ghost" size="sm"
               key={p}
               onClick={() => onPageChange(p)}
-              className={`w-8 h-8 text-sm rounded-lg ${p === page ? "bg-orange text-white" : "hover:bg-cream"}`}
             >
               {p}
-            </button>
+            </Button>
           );
         })}
-        <button
+        <Button variant="ghost" size="sm"
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages}
-          className="px-3 py-1.5 text-sm rounded-lg hover:bg-cream disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Suiv.
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { Loader2, Bot, User, FileText, File } from "lucide-react";
 import type { Message } from "../../hooks/useAIChat";
+import { Button } from "@/components/ui";
 
 type Props = {
   msg: Message;
@@ -51,10 +52,11 @@ export function ChatMessage({ msg, exportingId, onExport }: Props) {
         </div>
         {msg.role === "assistant" && !msg.id.startsWith("welcome") && (
           <div className="flex gap-1.5 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => onExport(msg.id, msg.content, msg.role, "pdf")}
               disabled={exportingId === `${msg.id}-pdf`}
-              className="flex items-center gap-1 px-2 py-1 text-[11px] bg-white border border-gray-200 rounded-md hover:border-orange/30 hover:bg-orange-p text-gray-400 hover:text-orange transition-all disabled:opacity-50"
             >
               {exportingId === `${msg.id}-pdf` ? (
                 <Loader2 className="w-3 h-3 animate-spin" />
@@ -62,11 +64,12 @@ export function ChatMessage({ msg, exportingId, onExport }: Props) {
                 <FileText className="w-3 h-3" />
               )}
               PDF
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => onExport(msg.id, msg.content, msg.role, "docx")}
               disabled={exportingId === `${msg.id}-docx`}
-              className="flex items-center gap-1 px-2 py-1 text-[11px] bg-white border border-gray-200 rounded-md hover:border-orange/30 hover:bg-orange-p text-gray-400 hover:text-orange transition-all disabled:opacity-50"
             >
               {exportingId === `${msg.id}-docx` ? (
                 <Loader2 className="w-3 h-3 animate-spin" />
@@ -74,7 +77,7 @@ export function ChatMessage({ msg, exportingId, onExport }: Props) {
                 <File className="w-3 h-3" />
               )}
               DOCX
-            </button>
+            </Button>
           </div>
         )}
       </div>

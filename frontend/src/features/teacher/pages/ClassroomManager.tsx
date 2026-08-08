@@ -165,7 +165,6 @@ export default function ClassroomManager() {
                           e.stopPropagation();
                           deleteClass(cls.id);
                         }}
-                        className={selectedClass === cls.id ? "hover:bg-white/20 text-white" : ""}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>

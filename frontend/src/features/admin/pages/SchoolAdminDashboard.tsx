@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui";
 import { useAuthStore } from "../../../store/authStore";
 import { 
   Building2,
@@ -48,18 +49,18 @@ function SchoolAdminDashboard() {
           ))}
         </nav>
         <div className="absolute bottom-0 w-72 p-4 border-t border-white/10">
-          <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 w-full">
+          <Button variant="ghost" onClick={handleLogout} className="w-full">
             <LogOut className="w-5 h-5" />
             Déconnexion
-          </button>
+          </Button>
         </div>
       </aside>
       <main className="flex-1 p-8 lg:ml-0">
-        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-lg">
+        <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden fixed top-4 left-4 z-50">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>
-        </button>
+        </Button>
         <Outlet />
       </main>
     </div>

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Shield, UserX, Pencil, Trash2, Check, Coins, BookOpen, Building2 } from "lucide-react";
 import { AdminTable, KPICard, StatusBadge } from "../components";
 import { adminLogs } from "../../../api";
+import { Button } from "@/components/ui";
 
 interface AuditLog {
   id: number;
@@ -106,9 +107,9 @@ export default function AdminAuditLogPage() {
           <h1 className="text-3xl font-display font-light text-navy">Audit <span className="italic text-orange">Log</span></h1>
           <p className="text-gray text-sm mt-1">{total.toLocaleString("fr-TN")} actions recorded</p>
         </div>
-        <button onClick={() => fetchLogs(true)} className="p-2.5 bg-white rounded-xl shadow-sm border border-black/5 hover:bg-cream">
+        <Button variant="ghost" size="sm" onClick={() => fetchLogs(true)}>
           <Shield className={`w-5 h-5 text-gray ${refreshing ? "animate-spin" : ""}`} />
-        </button>
+        </Button>
       </div>
 
       <div className="grid grid-cols-3 gap-4">
@@ -140,8 +141,9 @@ export default function AdminAuditLogPage() {
             className="px-3 py-3 bg-cream-m rounded-xl border border-black/5 text-sm focus:outline-none" />
         </div>
         {(actionFilter || dateFrom || dateTo) && (
-          <button onClick={() => { setActionFilter(""); setDateFrom(""); setDateTo(""); setPage(1); }}
-            className="px-3 py-2 text-sm text-orange hover:bg-orange/5 rounded-lg">Clear</button>
+          <Button variant="ghost" size="sm" onClick={() => { setActionFilter(""); setDateFrom(""); setDateTo(""); setPage(1); }}>
+            Clear
+          </Button>
         )}
       </div>
 

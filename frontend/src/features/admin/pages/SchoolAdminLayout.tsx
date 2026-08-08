@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui";
 import { useAuthStore } from "../../../store/authStore";
 
 const NAV_ITEMS = [
@@ -51,12 +52,12 @@ export default function SchoolAdminLayout() {
         </nav>
 
         <div className="p-4 border-t border-white/10 space-y-1">
-          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-white/40 hover:bg-white/5 hover:text-white/70 transition-all">
+          <Button variant="ghost" onClick={handleLogout} className="w-full">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
             Deconnexion
-          </button>
+          </Button>
           <div className="mt-2 pt-2 border-t border-white/5 px-4">
             <div className="text-xs text-white/30">v1.0.0</div>
           </div>
@@ -68,11 +69,11 @@ export default function SchoolAdminLayout() {
       <div className="flex-1 flex flex-col min-h-screen">
         <header className="bg-white/90 backdrop-blur-sm border-b border-black/5 px-6 py-4 flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-4">
-            <button className="lg:hidden p-2 text-navy hover:bg-cream rounded-lg" onClick={() => setSidebarOpen(true)}>
+            <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(true)} className="lg:hidden">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
               </svg>
-            </button>
+            </Button>
             <div>
               <h2 className="text-sm font-semibold text-navy font-display">
                 {visibleNav.find(item => location.pathname === item.to || (item.to !== "/dashboard/school" && location.pathname.startsWith(item.to)))?.label || "School Admin"}

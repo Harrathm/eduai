@@ -104,9 +104,10 @@ export default function InboxPage() {
         ) : (
           <div className="divide-y divide-black/5">
             {messages.map((msg) => (
-              <button
+              <Button
                 key={msg.id}
                 onClick={() => openMessage(msg)}
+                variant="ghost"
                 className={`w-full text-start px-6 py-4 hover:bg-cream-m/50 transition-colors ${
                   !msg.is_read ? "bg-orange/5" : ""
                 }`}
@@ -135,7 +136,7 @@ export default function InboxPage() {
                     </p>
                   </div>
                 </div>
-              </button>
+              </Button>
             ))}
           </div>
         )}

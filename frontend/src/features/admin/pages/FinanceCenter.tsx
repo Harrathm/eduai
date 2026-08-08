@@ -218,11 +218,11 @@ export default function FinanceCenter() {
             </div>
 
             <div className="flex items-center gap-3 mt-8">
-              <Button variant="secondary" onClick={() => setModal(null)} disabled={actionLoading} className="flex-1">
+              <Button variant="secondary" onClick={() => setModal(null)} disabled={actionLoading}>
                 Cancel
               </Button>
               <Button variant={modal === "add" ? "success" : "danger"} onClick={handleAdjust} disabled={actionLoading}
-                loading={actionLoading} className="flex-1">
+                loading={actionLoading}>
                 {modal === "add" ? "Add Funds" : "Deduct Funds"}
               </Button>
             </div>

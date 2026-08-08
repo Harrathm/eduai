@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Check } from "lucide-react";
+import { Button } from "@/components/ui";
 
 interface Matiere {
   id: number;
@@ -35,13 +36,13 @@ export function MatiereSelector({ matieres, selectedIds, onToggle, maxLangues, m
           const isSel = selectedIds.includes(m.id);
           const isDis = !isSel && ((cat === "langue" && selLangues >= maxLangues) || (cat === "specialite" && selSpec >= maxSpecialites));
           return (
-            <button key={m.id} onClick={() => onToggle(m.id)} disabled={isDis}
-              className={`flex items-center gap-2 p-3 rounded-xl border-2 text-left text-sm transition-all ${isSel ? "border-navy bg-navy/5 text-navy font-medium" : isDis ? "border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed" : "border-gray-200 hover:border-navy/30 text-gray-700"}`}>
+            <Button key={m.id} variant="ghost" size="md" onClick={() => onToggle(m.id)} disabled={isDis}
+              className={`justify-start ${isSel ? "border-navy bg-navy/5 text-navy font-medium" : isDis ? "border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed" : "border-gray-200 hover:border-navy/30 text-gray-700"}`}>
               <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${isSel ? "border-navy bg-navy" : "border-gray-300"}`}>
                 {isSel && <Check className="w-3 h-3 text-white" />}
               </div>
               <span className="truncate">{m.name}</span>
-            </button>
+            </Button>
           );
         })}
       </div>

@@ -4,6 +4,7 @@ import { Brain, TrendingUp, TrendingDown, Minus, BookOpen, Layers } from "lucide
 import { useAuthStore } from "../../../store/authStore";
 import { getMatieres, getChapters, getNotions, getNiveauEffectif } from "../../../api";
 import type { Matiere, ChapterPathway, Notion, NiveauEffectif } from "../../../api";
+import { Button } from "@/components/ui";
 
 const LEVEL_COLORS: Record<string, { bg: string; text: string; label: string; icon: any }> = {
   remediation: { bg: "bg-red-100", text: "text-red-700", label: "Remédiation", icon: TrendingDown },
@@ -97,15 +98,11 @@ export default function StudentAssimilationProfilePage() {
       </div>
 
       <div className="flex gap-2 flex-wrap">
-        <button onClick={() => setSelectedMatiere(null)}
-          className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-            !selectedMatiere ? "bg-orange text-white" : "bg-white text-gray border hover:bg-gray-50"
-          }`}>{t("student.profile.all")}</button>
+        <Button variant="ghost" size="md" onClick={() => setSelectedMatiere(null)}
+        >{t("student.profile.all")}</Button>
         {matieres.map(m => (
-          <button key={m.id} onClick={() => setSelectedMatiere(m.id)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-              selectedMatiere === m.id ? "bg-orange text-white" : "bg-white text-gray border hover:bg-gray-50"
-            }`}>{m.nom}</button>
+          <Button key={m.id} variant="ghost" size="md" onClick={() => setSelectedMatiere(m.id)}
+          >{m.nom}</Button>
         ))}
       </div>
 

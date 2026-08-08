@@ -1,5 +1,6 @@
 import { Loader2, FileText, Puzzle, Image as ImageIcon } from "lucide-react";
 import { Modal } from "../../components";
+import { Button } from "../../../../components/ui";
 import type { AIFactoryBundle } from "../../../../api";
 
 type Props = {
@@ -20,7 +21,7 @@ export function LessonPreviewModal({ lesson, bundle, generatedImages, generating
 
   return (
     <Modal open onClose={onClose} title={`${lesson.module_title} › ${lesson.lesson_title}`} size="lg"
-      footer={<button onClick={onClose} className="px-6 py-2.5 bg-cream-m rounded-xl font-medium">Close</button>}
+      footer={<Button variant="ghost" size="md" onClick={onClose}>Close</Button>}
     >
       <div className="space-y-6 max-h-[70vh] overflow-y-auto">
         {content && (
@@ -65,10 +66,12 @@ export function LessonPreviewModal({ lesson, bundle, generatedImages, generating
                 <div className="bg-blue-50 rounded-xl p-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-semibold text-blue-600">DALL-E Prompt</span>
-                    <button
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      loading={generatingImage === key}
                       onClick={() => onGenerateImage(key, media.image_prompt)}
                       disabled={generatingImage === key}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 text-white rounded-lg text-xs font-medium hover:bg-blue-600 disabled:opacity-50"
                     >
                       {generatingImage === key ? (
                         <Loader2 className="w-3 h-3 animate-spin" />
@@ -76,7 +79,7 @@ export function LessonPreviewModal({ lesson, bundle, generatedImages, generating
                         <ImageIcon className="w-3 h-3" />
                       )}
                       {generatingImage === key ? "Generating..." : "Generate Image"}
-                    </button>
+                    </Button>
                   </div>
                   <p className="text-xs text-blue-800 mb-3">{media.image_prompt}</p>
                   {generatedImages[key] && (

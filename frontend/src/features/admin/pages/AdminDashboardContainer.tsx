@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui";
 import { useAuthStore } from "../../../store/authStore";
 
 const NAV_ITEMS = [
@@ -64,15 +65,12 @@ export default function AdminDashboardContainer() {
 
         {/* Logout */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-white/50 hover:bg-red-600/20 hover:text-red-400 transition-all"
-          >
+          <Button variant="ghost" onClick={handleLogout} className="w-full">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
             Déconnexion
-          </button>
+          </Button>
         </div>
       </aside>
 
@@ -88,14 +86,11 @@ export default function AdminDashboardContainer() {
       <div className="flex-1 flex flex-col min-h-screen">
         {/* Header */}
         <header className="bg-white/80 backdrop-blur-sm border-b border-black/5 p-4 flex items-center justify-between sticky top-0 z-30">
-          <button
-            className="lg:hidden p-2 text-navy"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
+            <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(true)} className="lg:hidden">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </Button>
           
           <div className="flex items-center gap-4 ms-auto">
             <div className="text-end">

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from 'react-i18next';
 import { parentAPI } from "../../../api";
+import { Button, Spinner } from "@/components/ui";
 
 interface Message {
   id: number;
@@ -76,18 +77,19 @@ export default function ParentMessaging({ token }: Props) {
     } catch {}
   };
 
-  if (loading) return <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange mx-auto" />;
+  if (loading) return <div className="flex justify-center"><Spinner size="lg" /></div>;
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-black/5 p-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-medium text-navy">{t('parent.messaging.title')}</h2>
-        <button
+        <Button
+          variant="primary"
+          size="md"
           onClick={() => setComposing(!composing)}
-          className="px-4 py-2 bg-orange text-white rounded-xl text-sm font-medium hover:bg-orange-l transition-colors"
         >
           {composing ? t('parent.messaging.cancel') : t('parent.messaging.newMessage')}
-        </button>
+        </Button>
       </div>
 
       {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
@@ -121,13 +123,15 @@ export default function ParentMessaging({ token }: Props) {
             className="w-full px-4 py-2 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:border-orange"
             required
           />
-          <button
+          <Button
             type="submit"
+            variant="primary"
+            size="md"
             disabled={sending || !subject.trim() || !body.trim()}
-            className="px-6 py-2 bg-orange text-white rounded-xl text-sm font-medium hover:bg-orange-l transition-colors disabled:opacity-50"
+            loading={sending}
           >
             {sending ? t('parent.messaging.sending') : t('parent.messaging.sendButton')}
-          </button>
+          </Button>
           {sendMsg && <p className="text-sm text-gray-600">{sendMsg}</p>}
         </form>
       )}

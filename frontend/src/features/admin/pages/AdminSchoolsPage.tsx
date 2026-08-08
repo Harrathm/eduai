@@ -162,10 +162,10 @@ export default function AdminSchoolsPage() {
           <Button variant="ghost" size="md" onClick={() => fetchSchools(true)}>
             <RefreshCw className={`w-5 h-5 text-gray ${refreshing ? "animate-spin" : ""}`} />
           </Button>
-          <Button variant="secondary" size="md" onClick={exportCSV} disabled={!schools.length} className="flex items-center gap-2">
+          <Button variant="secondary" size="md" onClick={exportCSV} disabled={!schools.length}>
             <Download className="w-4 h-4" /> {t("admin.schools.btnExport")}
           </Button>
-          <Button variant="primary" size="md" onClick={() => setCreateModal(true)} className="flex items-center gap-2">
+          <Button variant="primary" size="md" onClick={() => setCreateModal(true)}>
             <Plus className="w-4 h-4" /> {t("admin.schools.btnNew")}
           </Button>
         </div>
@@ -236,8 +236,8 @@ function SchoolFormModal({ open, school, onClose, onSubmit, loading }: {
     <Modal open onClose={onClose} title={school ? t("admin.schools.modal.editTitle") : t("admin.schools.modal.createTitle")}
       footer={
         <>
-          <Button variant="ghost" size="md" onClick={onClose} className="flex-1">{t("admin.schools.modal.btnCancel")}</Button>
-          <Button variant="primary" size="md" onClick={handleSubmit} disabled={loading || !name} loading={loading} className="flex-1">
+          <Button variant="ghost" size="md" onClick={onClose}>{t("admin.schools.modal.btnCancel")}</Button>
+          <Button variant="primary" size="md" onClick={handleSubmit} disabled={loading || !name} loading={loading}>
             {school ? t("admin.schools.modal.btnSave") : t("admin.schools.modal.btnCreate")}
           </Button>
         </>

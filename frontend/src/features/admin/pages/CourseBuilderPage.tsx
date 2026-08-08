@@ -6,7 +6,7 @@ import {
   FileText, Video, HelpCircle, File, Image, Link, CheckCircle, AlertCircle,
 } from "lucide-react";
 import { courseAdmin, chapterAdmin, lessonAdmin } from "../../../api";
-import { PageSpinner } from "../../../components/ui";
+import { PageSpinner, Button } from "../../../components/ui";
 
 /* ─── Types ─────────────────────────────────────────────────────────── */
 
@@ -277,10 +277,9 @@ export default function CourseBuilderPage() {
       <div className="flex h-screen items-center justify-center bg-gray-50">
         <div className="text-center">
           <p className="text-gray-600 mb-4">Cours introuvable</p>
-          <button onClick={() => navigate("/dashboard/admin/courses")}
-            className="px-4 py-2 bg-[#0a2647] text-white rounded-lg hover:bg-[#144272]">
+          <Button variant="secondary" size="md" onClick={() => navigate("/dashboard/admin/courses")}>
             Retour aux cours
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -295,10 +294,9 @@ export default function CourseBuilderPage() {
         {/* ── Header ─────────────────────────────────────────────── */}
         <header className="bg-white border-b px-4 py-3 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate("/dashboard/admin/courses")}
-              className="p-2 hover:bg-gray-100 rounded-lg" title="Retour">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/admin/courses")} title="Retour">
               <ArrowLeft className="w-5 h-5 text-gray-600" />
-            </button>
+            </Button>
             <div>
               <h1 className="font-bold text-lg text-gray-900 line-clamp-1">{course.title}</h1>
               <p className="text-xs text-gray-500">
@@ -310,17 +308,15 @@ export default function CourseBuilderPage() {
             </div>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => navigate(`/dashboard/admin/courses/${courseId}`)}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium">
+            <Button variant="ghost" size="md" onClick={() => navigate(`/dashboard/admin/courses/${courseId}`)}>
               Éditeur classique
-            </button>
-            <button onClick={() => navigate("/dashboard/admin/courses")}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium">
+            </Button>
+            <Button variant="ghost" size="md" onClick={() => navigate("/dashboard/admin/courses")}>
               Retour à la liste
-            </button>
-            <button disabled className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium flex items-center gap-2">
+            </Button>
+            <Button variant="success" size="md" disabled>
               <Save className="w-4 h-4" /> Sauvegardé automatiquement
-            </button>
+            </Button>
           </div>
         </header>
 
@@ -401,10 +397,9 @@ export default function CourseBuilderPage() {
                             <span className="text-xs text-white/60 bg-white/10 px-2 py-0.5 rounded-full shrink-0">
                               {mod.lessons.length}
                             </span>
-                            <button onClick={() => handleDeleteModule(mod.id)}
-                              className="p-1 hover:bg-white/20 rounded shrink-0" title="Supprimer le module">
+                            <Button variant="ghost" size="sm" onClick={() => handleDeleteModule(mod.id)} title="Supprimer le module">
                               <Trash2 className="w-4 h-4 text-white/70" />
-                            </button>
+                            </Button>
                           </div>
 
                           {/* Lessons droppable */}
@@ -434,11 +429,10 @@ export default function CourseBuilderPage() {
                                             <p className="text-sm font-medium truncate">{lesson.title}</p>
                                             <p className="text-xs opacity-60">{lesson.duration_minutes || 0} min</p>
                                           </div>
-                                          <button onClick={e => { e.stopPropagation(); handleRemoveLesson(mod.id, lesson.id); }}
-                                            className="p-1 rounded hover:bg-white/60 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                                          <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); handleRemoveLesson(mod.id, lesson.id); }}
                                             title="Retirer du module">
                                             <Trash2 className="w-3.5 h-3.5 text-red-500" />
-                                          </button>
+                                          </Button>
                                         </div>
                                       )}
                                     </Draggable>
@@ -458,11 +452,11 @@ export default function CourseBuilderPage() {
                     {(provided) => (
                       <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}
                         className="w-80 shrink-0">
-                        <button onClick={handleAddModule}
+                        <Button variant="ghost" size="md" onClick={handleAddModule}
                           className="w-full h-32 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 text-gray-400 hover:border-[#2c74b3] hover:text-[#2c74b3] hover:bg-[#eef4fb] transition-colors">
                           <Plus className="w-8 h-8 mb-1" />
                           <span className="text-sm font-medium">Ajouter un module</span>
-                        </button>
+                        </Button>
                       </div>
                     )}
                   </Draggable>

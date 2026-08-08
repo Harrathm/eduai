@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../../../store/authStore";
 import { api } from "../../../utils/apiClient";
 import { PackConfiguratorModal } from "../components/pack/PackConfiguratorModal";
-import { PageWrapper } from "../../../components/ui";
+import { PageWrapper, Button } from "../../../components/ui";
 import { Package } from "lucide-react";
 
 interface Pack {
@@ -116,17 +116,14 @@ function PackCard({ pack, userNiveau, onBuy }: { pack: Pack; userNiveau?: string
             {t('packs.alreadyActive')}
           </div>
         ) : (
-          <button
-            className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
-              isMatchingLevel
-                ? "bg-navy text-white hover:bg-navy/90"
-                : "bg-gray-100 text-gray-400 cursor-not-allowed"
-            }`}
+          <Button
+            variant="secondary"
+            size="md"
             disabled={!isMatchingLevel}
             onClick={() => { if (isMatchingLevel) onBuy(pack); }}
           >
             {isMatchingLevel ? t('packs.buy') : t('packs.levelIncompatible')}
-          </button>
+          </Button>
         )}
       </div>
     </div>

@@ -1,5 +1,5 @@
 import { Eye, EyeOff, TestTube, Bot, Key, AlertCircle, ChevronDown } from "lucide-react";
-import { Button, Input } from "../../../../components/ui";
+import { Button, Input, Spinner } from "../../../../components/ui";
 import type { ApiProviderConfig } from "../../hooks/useAdminSettings";
 
 const AI_PROVIDERS = [
@@ -135,10 +135,10 @@ export function AIProviderTester({
                       <div className="text-sm text-gray">{models.length} models available</div>
                     </div>
                   </div>
-                  <button onClick={() => onToggleProvider(provider.id)}
+                  <Button onClick={() => onToggleProvider(provider.id)}
                     className={`w-14 h-8 rounded-full transition-colors ${config.enabled ? "bg-green-500" : "bg-gray-300"}`}>
                     <div className={`w-6 h-6 bg-white rounded-full transition-transform ${config.enabled ? "translate-x-7" : "translate-x-1"}`} />
-                  </button>
+                  </Button>
                 </div>
 
                 {config.enabled && (
@@ -212,7 +212,7 @@ export function AIProviderTester({
 
                     <Button variant="secondary" size="sm" onClick={() => onTestConnection(provider.id)}
                       disabled={testConnection !== null || !config.key}>
-                      {testConnection === provider.id ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <TestTube className="w-4 h-4" />}
+                      {testConnection === provider.id ? <Spinner size="sm" /> : <TestTube className="w-4 h-4" />}
                       Test Connection
                     </Button>
                   </div>
@@ -237,9 +237,9 @@ export function AIProviderTester({
               <div className="relative flex-1">
                 <input type={showStripeKey ? "text" : "password"} value={stripeKey} onChange={e => onStripeKeyChange(e.target.value)}
                   placeholder="sk_live_..." className="w-full px-4 py-3 bg-white rounded-xl border border-black/5 text-sm focus:outline-none focus:ring-2 focus:ring-orange/20 font-mono" />
-                <button onClick={() => onShowStripeKeyChange(!showStripeKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray hover:text-navy">
+                <Button variant="ghost" size="sm" onClick={() => onShowStripeKeyChange(!showStripeKey)}>
                   {showStripeKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+                </Button>
               </div>
               <Button variant="ghost" size="sm" onClick={() => onCopy(stripeKey)}>Copy</Button>
             </div>
