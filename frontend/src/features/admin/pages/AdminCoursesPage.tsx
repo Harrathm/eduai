@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { useLocation } from "react-router-dom";
 import { BookOpen, Plus, RefreshCw, Eye, EyeOff, Pencil, Trash2, Search, Copy, Archive, X, FileText, Clock, Users, Tag, Send, LayoutGrid } from "lucide-react";
 import { AdminTable, KPICard, StatusBadge, Modal as AdminModal, ConfirmModal } from "../components";
 import { Button, EmptyState, Modal } from "../../../components/ui";
@@ -26,6 +27,11 @@ const pedagogicalStatusColors: Record<string, string> = {
 
 export default function AdminCoursesPage() {
   const { t } = useTranslation();
+  const location = useLocation();
+  const basePath = useMemo(() => {
+    if (location.pathname.startsWith("/dashboard/school")) return "/dashboard/school";
+    return "/dashboard/admin";
+  }, [location.pathname]);
   const [courses, setCourses] = useState<AdminCourse[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -220,11 +226,11 @@ export default function AdminCoursesPage() {
     )},
     { key: "actions", header: t("admin.courses.table.colActions"), render: (c: AdminCourse) => (
       <div className="flex items-center gap-1 flex-wrap">
-        <Button variant="ghost" size="sm" onClick={() => window.location.href = `/dashboard/admin/courses/${c.id}`}
+        <Button variant="ghost" size="sm" onClick={() => window.location.href = `${basePath}/courses/${c.id}`}
           title={t("admin.courses.btn.edit")}>
           <Pencil className="w-4 h-4" />
         </Button>
-        <Button variant="success" size="sm" onClick={() => window.location.href = `/dashboard/admin/courses/${c.id}/builder`}
+        <Button variant="success" size="sm" onClick={() => window.location.href = `${basePath}/courses/${c.id}/builder`}
           title="Builder DnD">
           <LayoutGrid className="w-4 h-4" />
         </Button>

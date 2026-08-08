@@ -209,6 +209,8 @@ export default function App() {
               <Route path="users" element={<UserManagementView />} />
               <Route path="finance" element={<FinanceCenter />} />
               <Route path="courses" element={<AdminCoursesPage />} />
+              <Route path="courses/:courseId" element={<CourseEditorPage />} />
+              <Route path="courses/:courseId/builder" element={<CourseBuilderPage />} />
               <Route path="teachers" element={<AdminTeacherQueuePage />} />
               <Route path="settings" element={<AdminSettingsPage />} />
               <Route path="pedagogical" element={<PedagogicalLeadPage />} />
