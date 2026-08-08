@@ -907,7 +907,49 @@
       "logout": "تسجيل الخروج"
     }
   },
+  "admin": {
+    "sidebar": {
+      "dashboard": "لوحة القيادة",
+      "users": "المستخدمون",
+      "schools": "المدارس",
+      "courseDistribution": "توزيع الدورات",
+      "teacherCatalog": "كتالوج المعلمين",
+      "courses": "الدورات",
+      "reviewPedago": "المراجعة التربوية",
+      "arborescence": "الهيكل الشجري",
+      "publicationStatus": "حالة النشر",
+      "finance": "المالية",
+      "analytics": "التحليلات",
+      "teacherQueue": "قائمة المعلمين",
+      "tokenPackages": "حزم الرموز",
+      "inviteCodes": "أكواد الدعوة",
+      "auditLog": "سجل التدقيق",
+      "thresholdsConfig": "إعداد الحدود",
+      "specialitesPedago": "التخصصات التربوية",
+      "aiFactory": "مصنع الذكاء الاصطناعي",
+      "broadcast": "البث",
+      "inbox": "صندوق الوارد",
+      "settings": "الإعدادات",
+      "profile": "الملف الشخصي",
+      "logout": "تسجيل الخروج"
+    }
+  },
   "teacher": {
+    "sidebar": {
+      "dashboard": "لوحة القيادة",
+      "myClasses": "فِئَاتي",
+      "myCourses": "دروسي",
+      "aiStudio": "استوديو الذكاء الاصطناعي",
+      "revenue": "الإيرادات",
+      "wallet": "المحفظة",
+      "pathway": "المسار",
+      "elements": "العناصر",
+      "bibliotheque": "المكتبة",
+      "abonnements": "الاشتراكات",
+      "messages": "الرسائل",
+      "profile": "الملف الشخصي",
+      "logout": "تسجيل الخروج"
+    },
     "dashboard": {
       "title": "لوحة",
       "titleSuffix": "القيادة",
@@ -1334,6 +1376,13 @@
     }
   },
   "parent": {
+    "sidebar": {
+      "dashboard": "لوحة القيادة",
+      "myFamily": "عائلتي",
+      "messages": "الرسائل",
+      "profile": "الملف الشخصي",
+      "logout": "تسجيل الخروج"
+    },
     "childDetail": {
       "detachConfirm": "هل أنت متأكد من فصل هذا الطفل؟",
       "rechargeError": "خطأ أثناء الشحن",

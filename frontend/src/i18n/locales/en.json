@@ -907,7 +907,49 @@
       "logout": "Logout"
     }
   },
+  "admin": {
+    "sidebar": {
+      "dashboard": "Dashboard",
+      "users": "Users",
+      "schools": "Schools",
+      "courseDistribution": "Course Distribution",
+      "teacherCatalog": "Teacher Catalog",
+      "courses": "Courses",
+      "reviewPedago": "Pedagogical Review",
+      "arborescence": "Tree Structure",
+      "publicationStatus": "Publication Status",
+      "finance": "Finance",
+      "analytics": "Analytics",
+      "teacherQueue": "Teacher Queue",
+      "tokenPackages": "Token Packages",
+      "inviteCodes": "Invite Codes",
+      "auditLog": "Audit Log",
+      "thresholdsConfig": "Thresholds Config",
+      "specialitesPedago": "Pedagogical Specialties",
+      "aiFactory": "AI Factory",
+      "broadcast": "Broadcast",
+      "inbox": "Inbox",
+      "settings": "Settings",
+      "profile": "Profile",
+      "logout": "Logout"
+    }
+  },
   "teacher": {
+    "sidebar": {
+      "dashboard": "Dashboard",
+      "myClasses": "My Classes",
+      "myCourses": "My Courses",
+      "aiStudio": "AI Studio",
+      "revenue": "Revenue",
+      "wallet": "Wallet",
+      "pathway": "Pathway",
+      "elements": "Elements",
+      "bibliotheque": "Library",
+      "abonnements": "Subscriptions",
+      "messages": "Messages",
+      "profile": "Profile",
+      "logout": "Logout"
+    },
     "dashboard": {
       "title": "Dashboard",
       "titleSuffix": "",
@@ -1334,6 +1376,13 @@
     }
   },
   "parent": {
+    "sidebar": {
+      "dashboard": "Dashboard",
+      "myFamily": "My Family",
+      "messages": "Messages",
+      "profile": "Profile",
+      "logout": "Logout"
+    },
     "childDetail": {
       "detachConfirm": "Are you sure you want to detach this child?",
       "rechargeError": "Error during recharge",

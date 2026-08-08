@@ -907,7 +907,49 @@
       "logout": "Déconnexion"
     }
   },
+  "admin": {
+    "sidebar": {
+      "dashboard": "Tableau de bord",
+      "users": "Utilisateurs",
+      "schools": "Écoles",
+      "courseDistribution": "Distribution Cours",
+      "teacherCatalog": "Catalogue Enseignants",
+      "courses": "Cours",
+      "reviewPedago": "Revue Pédagogique",
+      "arborescence": "Arborescence",
+      "publicationStatus": "Statut Publication",
+      "finance": "Finance",
+      "analytics": "Analyses",
+      "teacherQueue": "File Enseignants",
+      "tokenPackages": "Packages Tokens",
+      "inviteCodes": "Codes Invitation",
+      "auditLog": "Journal Audit",
+      "thresholdsConfig": "Configuration Seuils",
+      "specialitesPedago": "Spécialités Pédago.",
+      "aiFactory": "AI Factory",
+      "broadcast": "Diffusion",
+      "inbox": "Boîte de réception",
+      "settings": "Paramètres",
+      "profile": "Profil",
+      "logout": "Déconnexion"
+    }
+  },
   "teacher": {
+    "sidebar": {
+      "dashboard": "Tableau de bord",
+      "myClasses": "Mes Classes",
+      "myCourses": "Mes Cours",
+      "aiStudio": "AI Studio",
+      "revenue": "Revenus",
+      "wallet": "Portefeuille",
+      "pathway": "Parcours",
+      "elements": "Éléments",
+      "bibliotheque": "Bibliothèque",
+      "abonnements": "Abonnements",
+      "messages": "Messages",
+      "profile": "Profil",
+      "logout": "Déconnexion"
+    },
     "dashboard": {
       "title": "Tableau de",
       "titleSuffix": "Bord",
@@ -1334,6 +1376,13 @@
     }
   },
   "parent": {
+    "sidebar": {
+      "dashboard": "Tableau de bord",
+      "myFamily": "Ma Famille",
+      "messages": "Messages",
+      "profile": "Profil",
+      "logout": "Déconnexion"
+    },
     "childDetail": {
       "detachConfirm": "Voulez-vous vraiment détacher cet enfant ?",
       "rechargeError": "Erreur lors de la recharge",
