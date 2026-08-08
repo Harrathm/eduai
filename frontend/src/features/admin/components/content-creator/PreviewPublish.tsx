@@ -1,4 +1,5 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useMemo } from "react";
 import { Check, Loader2, Save, BookOpen, FileText, Puzzle, Image, Sparkles } from "lucide-react";
 import { Button } from "../../../../components/ui";
 import type { AIFactoryBundle, AIPreviewInfo } from "../../../../api";
@@ -16,6 +17,11 @@ type Props = {
 
 export function PreviewPublish({ bundle, previewInfo, publishing, publishResult, onPublish, onBack, onReset, onPreviewLesson }: Props) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const basePath = useMemo(() => {
+    if (location.pathname.startsWith("/dashboard/school")) return "/dashboard/school";
+    return "/dashboard/admin";
+  }, [location.pathname]);
 
   return (
     <div className="space-y-6">
@@ -59,7 +65,7 @@ export function PreviewPublish({ bundle, previewInfo, publishing, publishResult,
             <Button
               variant="success"
               size="md"
-              onClick={() => navigate(`/dashboard/admin/courses/${publishResult.course_id}`)}
+              onClick={() => navigate(`${basePath}/courses/${publishResult.course_id}`)}
             >
               Open Course Editor
             </Button>

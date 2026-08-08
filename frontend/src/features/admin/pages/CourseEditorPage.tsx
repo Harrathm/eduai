@@ -1,5 +1,6 @@
 import { CheckCircle, AlertCircle, LayoutGrid } from "lucide-react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useMemo } from "react";
 import { PageSpinner, Button } from "../../../components/ui";
 import { useCourseEditor } from "../hooks/useCourseEditor";
 import { CourseSidebar, ChapterContent, LessonEditor, CoursePreviewModal } from "../components/course-editor";
@@ -7,6 +8,11 @@ import { CourseSidebar, ChapterContent, LessonEditor, CoursePreviewModal } from 
 export default function CourseEditorPage() {
   const { courseId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const basePath = useMemo(() => {
+    if (location.pathname.startsWith("/dashboard/school")) return "/dashboard/school";
+    return "/dashboard/admin";
+  }, [location.pathname]);
   const {
     course, chapters, loading, error, saving,
     activeChapter, setActiveChapter,
@@ -76,7 +82,7 @@ export default function CourseEditorPage() {
         onSetActiveChapter={setActiveChapter}
         onUpdateChapterTitle={handleUpdateChapterTitle}
         onCourseFieldChange={updateCourseField}
-        onOpenBuilder={() => navigate(`/dashboard/admin/courses/${courseId}/builder`)}
+        onOpenBuilder={() => navigate(`${basePath}/courses/${courseId}/builder`)}
       />
 
       {/* Main Content */}

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import {
   ArrowLeft, Plus, Trash2, GripVertical, Search, Save,
@@ -48,6 +48,11 @@ function lessonMeta(type: string) {
 export default function CourseBuilderPage() {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const basePath = useMemo(() => {
+    if (location.pathname.startsWith("/dashboard/school")) return "/dashboard/school";
+    return "/dashboard/admin";
+  }, [location.pathname]);
 
   const [course, setCourse] = useState<any>(null);
   const [modules, setModules] = useState<Module[]>([]);
@@ -308,10 +313,10 @@ export default function CourseBuilderPage() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="ghost" size="md" onClick={() => navigate(`/dashboard/admin/courses/${courseId}`)}>
+            <Button variant="ghost" size="md" onClick={() => navigate(`${basePath}/courses/${courseId}`)}>
               Éditeur classique
             </Button>
-            <Button variant="ghost" size="md" onClick={() => navigate("/dashboard/admin/courses")}>
+            <Button variant="ghost" size="md" onClick={() => navigate(`${basePath}/courses`)}>
               Retour à la liste
             </Button>
             <Button variant="success" size="md" disabled>
