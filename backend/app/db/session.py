@@ -22,9 +22,10 @@ settings = get_settings()
 # Use DATABASE_URL from settings
 db_url = settings.database_url if settings.database_url else "sqlite:///./eduai.db"
 
-if db_url.startswith("postgresql://"):
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql+pg8000://", 1)
+elif db_url.startswith("postgresql://") and "+pg8000" not in db_url:
     db_url = db_url.replace("postgresql://", "postgresql+pg8000://", 1)
-
 # Use Base from models.py so all models share the same metadata
 from app.models import Base
 
