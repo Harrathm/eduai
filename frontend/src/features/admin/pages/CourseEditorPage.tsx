@@ -11,6 +11,7 @@ export default function CourseEditorPage() {
   const location = useLocation();
   const basePath = useMemo(() => {
     if (location.pathname.startsWith("/dashboard/school")) return "/dashboard/school";
+    if (location.pathname.startsWith("/dashboard/teacher")) return "/dashboard/teacher";
     return "/dashboard/admin";
   }, [location.pathname]);
   const {
@@ -34,7 +35,7 @@ export default function CourseEditorPage() {
         <div className="bg-white rounded-2xl p-8 shadow-sm border text-center max-w-md">
           <p className="text-red-600 mb-4">{error}</p>
           <div className="flex gap-3 justify-center">
-            <Button variant="ghost" size="md" onClick={() => navigate("/dashboard/admin/courses")}>
+            <Button variant="ghost" size="md" onClick={() => navigate(basePath === "/dashboard/teacher" ? "/dashboard/teacher/learning" : `${basePath}/courses`)}>
               Retour aux cours
             </Button>
             <Button variant="danger" size="md" onClick={loadCourse}>
@@ -51,7 +52,7 @@ export default function CourseEditorPage() {
       <div className="flex h-screen items-center justify-center bg-gray-50">
         <div className="bg-white rounded-2xl p-8 shadow-sm border text-center">
           <p className="text-gray-600 mb-4">Cours introuvable</p>
-          <Button variant="secondary" size="md" onClick={() => navigate("/dashboard/admin/courses")}>
+          <Button variant="secondary" size="md" onClick={() => navigate(basePath === "/dashboard/teacher" ? "/dashboard/teacher/learning" : `${basePath}/courses`)}>
             Retour aux cours
           </Button>
         </div>
@@ -71,7 +72,7 @@ export default function CourseEditorPage() {
         saving={saving}
         previewLoading={previewLoading}
         publishErrors={publishErrors}
-        onBack={() => navigate("/dashboard/admin/courses")}
+        onBack={() => navigate(basePath === "/dashboard/teacher" ? "/dashboard/teacher/learning" : `${basePath}/courses`)}
         onPreview={handlePreview}
         onDuplicate={handleDuplicate}
         onPublish={handlePublish}

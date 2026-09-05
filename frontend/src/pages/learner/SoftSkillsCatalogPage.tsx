@@ -1,17 +1,17 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Sparkles, Search, Filter, BookOpen } from "lucide-react";
-import { catalogApi } from "../../api";
+import { Sparkles, Search, Filter, BookOpen, Lock } from "lucide-react";
+import { catalogApi, courseLearner } from "../../api";
 
 interface Formation {
   id: number;
-  name: string;
+  title: string;
   description: string | null;
-  category: string;
-  niveau_scolaire: string;
-  price: number;
-  currency: string;
+  category?: string | null;
+  niveau_scolaire?: string | null;
   is_free: boolean;
+  price_dt: number;
+  is_locked?: boolean;
 }
 
 export default function SoftSkillsCatalogPage() {
@@ -19,6 +19,9 @@ export default function SoftSkillsCatalogPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<string>("");
+  const [purchasingId, setPurchasingId] = useState<number | null>(null);
+  // Formations achetées à l'unité pendant la session (accès immédiat)
+  const [ownedIds, setOwnedIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     fetchData();
@@ -27,21 +30,33 @@ export default function SoftSkillsCatalogPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const data = await catalogApi.list({ category: "soft_skills" });
-      setFormations(Array.isArray(data) ? data : (data as any).items || (data as any).courses || []);
+      const data = await catalogApi.list({ category_cible: "Soft_Skill", limit: 50 });
+      setFormations(Array.isArray(data) ? data : (data as any).items || []);
     } catch (err) {
       console.error(err);
     }
     setLoading(false);
   };
 
+  const handlePurchase = async (f: Formation) => {
+    setPurchasingId(f.id);
+    try {
+      await courseLearner.purchase(f.id);
+      setOwnedIds(prev => new Set(prev).add(f.id));
+    } catch (err: any) {
+      alert(err?.message || "Achat impossible");
+    } finally {
+      setPurchasingId(null);
+    }
+  };
+
   const filtered = formations.filter((f) => {
-    if (search && !f.name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (search && !f.title.toLowerCase().includes(search.toLowerCase())) return false;
     if (filter && f.category !== filter) return false;
     return true;
   });
 
-  const categories = [...new Set(formations.map((f) => f.category).filter(Boolean))];
+  const categories = [...new Set(formations.map((f) => f.category).filter(Boolean))] as string[];
 
   return (
     <div className="space-y-6">
@@ -129,17 +144,24 @@ export default function SoftSkillsCatalogPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((f) => (
+          {filtered.map((f) => {
+            const isOwned = ownedIds.has(f.id);
+            const isLocked = f.is_locked && !isOwned;
+            const isFree = f.is_free || !f.price_dt || f.price_dt === 0;
+            return (
             <div key={f.id} className="bg-white rounded-2xl p-6 shadow-sm border border-black/5 hover:shadow-md transition-all">
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <h3 className="font-semibold text-navy">{f.name}</h3>
+                  <h3 className="font-semibold text-navy flex items-center gap-2">
+                    {isLocked && <Lock className="w-4 h-4 text-gray-400 shrink-0" />}
+                    {f.title}
+                  </h3>
                   <p className="text-xs text-purple-500 capitalize mt-1">{f.category?.replace(/_/g, " ")}</p>
                 </div>
-                {f.is_free || f.price === 0 ? (
+                {isFree ? (
                   <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">Gratuit</span>
                 ) : (
-                  <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">{f.price} {f.currency}</span>
+                  <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">{f.price_dt} DT</span>
                 )}
               </div>
               {f.description && (
@@ -147,15 +169,26 @@ export default function SoftSkillsCatalogPage() {
               )}
               <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
                 <span className="text-xs text-gray-400">{f.niveau_scolaire || "Tous niveaux"}</span>
-                <Link
-                  to={`/dashboard/courses/${f.id}`}
-                  className="px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-xl hover:bg-purple-700"
-                >
-                  {f.is_free || f.price === 0 ? "Commencer" : "Voir"}
-                </Link>
+                {!isLocked ? (
+                  <Link
+                    to={`/learn/courses/${f.id}`}
+                    className="px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-xl hover:bg-purple-700"
+                  >
+                    Commencer
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => handlePurchase(f)}
+                    disabled={purchasingId === f.id}
+                    className="px-3 py-1.5 bg-orange-500 text-white text-xs font-medium rounded-xl hover:bg-orange-600 disabled:opacity-50"
+                  >
+                    {purchasingId === f.id ? "Achat..." : isFree ? "S'inscrire" : `Acheter — ${f.price_dt} DT`}
+                  </button>
+                )}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

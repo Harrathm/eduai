@@ -49,10 +49,20 @@ def list_courses(
     current_user: User = Depends(set_tenant_context),
 ):
     query = db.query(Course).filter(Course.school_id == current_user.school_id)
-    if published is not None:
+
+    from app.services.course_access import get_accessible_course_ids
+    from app.deps import get_user_role
+    role = get_user_role(current_user)
+    if role in ("STUDENT", "USER"):
+        accessible_ids = get_accessible_course_ids(current_user, db)
+        query = query.filter(Course.id.in_(accessible_ids))
+        if published is not None:
+            query = query.filter(Course.is_published == published)
+        else:
+            query = query.filter(Course.is_published == True)
+    elif published is not None:
         query = query.filter(Course.is_published == published)
-    elif current_user.role == "student":
-        query = query.filter(Course.is_published == True)
+
     total = query.count()
     items = query.order_by(Course.created_at.desc()).offset(skip).limit(limit).all()
     return {"total": total, "skip": skip, "limit": limit, "items": items}

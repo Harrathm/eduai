@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Body
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Body, Form
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict
@@ -228,8 +228,8 @@ async def ask_tutor(
             # Check low balance
             check_low_balance_alert(db, current_user.id)
 
-            # Send final done signal
-            yield f"data: {json.dumps({'done': True, 'conversation_id': conv_id, 'tokens': tokens})}\n\n"
+            # Send final done signal — include RAG sources for UI traceability
+            yield f"data: {json.dumps({'done': True, 'conversation_id': conv_id, 'tokens': tokens, 'sources': rag.last_retrieval_sources[:5]}, ensure_ascii=False)}\n\n"
 
         except HTTPException:
             _safe_refund(db, current_user.id, debits)
@@ -280,7 +280,7 @@ def explain_concept(
         tokens = len(answer) // 4
         cost_usd = estimate_cost(rag.model, tokens)
         log_ai_usage(db, current_user, "explain_concept", tokens, cost_usd)
-        return AIResult(answer=answer, sources=[])
+        return AIResult(answer=answer, sources=rag.last_retrieval_sources[:5])
     except Exception as e:
         _safe_refund(db, current_user.id, debits)
         raise
@@ -318,6 +318,7 @@ def correct_assignment(
             assignment_text=assignment_text,
             question=question,
         )
+        result["sources"] = rag.last_retrieval_sources[:5]
         tokens = len(str(result)) // 4
         cost_usd = estimate_cost(rag.model, tokens)
         log_ai_usage(db, current_user, "auto_correct", tokens, cost_usd)
@@ -422,6 +423,8 @@ def generate_exercises(
 @router.post("/ingest/pdf")
 async def ingest_pdf(
     file: UploadFile = File(...),
+    niveau_scolaire: Optional[str] = Form(None),
+    matiere: Optional[str] = Form(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -454,7 +457,13 @@ async def ingest_pdf(
         texts = [c["content"] for c in chunks]
         effective_school_id = current_user.school_id or 0
         metadatas = [
-            {"source": c["source"], "chunk_index": c["index"], "school_id": effective_school_id}
+            {
+                "source": c["source"],
+                "chunk_index": c["index"],
+                "school_id": effective_school_id,
+                "niveau_scolaire": niveau_scolaire,
+                "matiere": matiere,
+            }
             for c in chunks
         ]
         es = EmbeddingsService()
@@ -470,6 +479,8 @@ async def ingest_pdf(
 def ingest_text(
     text: str,
     source: str = "manual",
+    niveau_scolaire: Optional[str] = None,
+    matiere: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -499,7 +510,13 @@ def ingest_text(
         processor = PDFProcessor()
         chunks = processor.chunk_text(text)
         metadatas = [
-            {"source": source, "chunk_index": i, "school_id": current_user.school_id}
+            {
+                "source": source,
+                "chunk_index": i,
+                "school_id": current_user.school_id,
+                "niveau_scolaire": niveau_scolaire,
+                "matiere": matiere,
+            }
             for i in range(len(chunks))
         ]
         es = EmbeddingsService()
@@ -515,6 +532,8 @@ def ingest_text(
 @router.post("/ingest/lesson/{lesson_id}")
 def ingest_lesson(
     lesson_id: int,
+    niveau_scolaire: Optional[str] = None,
+    matiere: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -541,7 +560,13 @@ def ingest_lesson(
 
     chunks = processor.chunk_text(content)
     metadatas = [
-        {"source": f"lesson_{lesson_id}: {lesson.title}", "chunk_index": i, "school_id": current_user.school_id}
+        {
+            "source": f"lesson_{lesson_id}: {lesson.title}",
+            "chunk_index": i,
+            "school_id": current_user.school_id,
+            "niveau_scolaire": niveau_scolaire,
+            "matiere": matiere,
+        }
         for i in range(len(chunks))
     ]
     es = EmbeddingsService()
@@ -597,6 +622,7 @@ def generate_content(
     db: Session = Depends(get_db),
 ):
     from app.ai import RAGService
+    from app.ai.rag_service import NO_CONTEXT_REFUSAL, _normalize_matiere, _normalize_niveau
 
     # Tier check: generate requires curriculum_aligned (etablissement only)
     # Teachers and admins are exempt — they create content for students
@@ -663,7 +689,33 @@ def generate_content(
 
     try:
         rag = RAGService(db=db)
-        content = rag.generate_text(system_prompt=system_prompt, user_prompt=prompt)
+
+        # RAG grounding : récupère le contexte officiel filtré par niveau/matière.
+        # Traduction des libellés arabes/français vers les codes canoniques de l'index
+        # (ex: "علوم الحياة والارض" -> "svt", "سابعة أساسي" -> "7eme_base").
+        level_code = _normalize_niveau(level)
+        matiere_code = _normalize_matiere(subject)
+        retrieval = rag.retrieve_with_sources(
+            school_id=current_user.school_id or 0,
+            query=f"{subject} {prompt}".strip(),
+            k=6,
+            niveau_scolaire=level_code,
+            matiere=matiere_code,
+        )
+
+        if retrieval["contexts"]:
+            rag_context = "\n\n".join(retrieval["contexts"])
+            full_user_prompt = (
+                f"Contexte officiel (base-toi UNIQUEMENT sur ce contenu) :\n{rag_context}\n\n---\n"
+                f"Demande : {prompt}"
+            )
+        else:
+            # Anti-hallucination : aucun document → consigne stricte de refus
+            full_user_prompt = (
+                f"Contexte officiel : (aucun)\n\nDemande : {prompt}\n\n{NO_CONTEXT_REFUSAL}"
+            )
+
+        content = rag.generate_text(system_prompt=system_prompt, user_prompt=full_user_prompt)
         tokens = len(content) // 4
         cost = estimate_cost(rag.model, tokens)
         log_ai_usage(db, current_user, f"ai_studio_{content_type}", tokens, cost)
@@ -674,7 +726,7 @@ def generate_content(
             _save_chat_message(db, conversation_id, "user", prompt, current_user.id)
             _save_chat_message(db, conversation_id, "assistant", content, current_user.id)
 
-        return {"content": content}
+        return {"content": content, "sources": retrieval["sources"][:5]}
     except Exception as e:
         _safe_refund(db, current_user.id, debits)
         logger.error(f"AI generate error: {e}")

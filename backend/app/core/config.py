@@ -56,7 +56,11 @@ class Settings(BaseSettings):
     frontend_reset_url: str = Field(default="http://localhost:5173/reset-password", description="Frontend password reset URL base")
 
     # CORS
-    cors_origins: str = Field(default="http://localhost:5173", description="Allowed CORS origins (comma-separated)")
+    cors_origins: str = Field(default="http://localhost:5173", alias="ALLOWED_ORIGINS", description="Allowed CORS origins (comma-separated)")
+    
+    # Jitsi Meet (live sessions)
+    jitsi_secret: str = Field(default="eduai-dev-jitsi-secret-change-in-production", description="Jitsi JWT signing secret")
+    jitsi_domain: str = Field(default="meet.jit.si", description="Jitsi Meet domain")
     
     # Environment
     environment: str = Field(default="development", description="Environment: development|staging|production")
@@ -121,6 +125,15 @@ class Settings(BaseSettings):
         if not v or v == "http://localhost:5173":
             if not allowed_origins_env and env != "production":
                 return "*"
+        return v
+
+    @field_validator("konnect_webhook_secret", mode="before")
+    @classmethod
+    def validate_konnect_webhook_secret(cls, v: str) -> str:
+        """Require konnect_webhook_secret in production."""
+        env = os.getenv("ENVIRONMENT", "development")
+        if env == "production" and not v:
+            raise ValueError("KONNECT_WEBHOOK_SECRET must be set in production")
         return v
 
     @field_validator("frontend_reset_url", mode="before")

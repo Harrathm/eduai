@@ -14,8 +14,12 @@ export interface CatalogCourse {
   description?: string;
   cover_url?: string;
   category?: string;
+  category_cible?: string;
+  tag_pack_requis?: string;
+  niveau_scolaire?: string;
   level: string;
   language: string;
+  is_locked?: boolean;
   is_free: boolean;
   price_tokens: number;
   price_dt: number;
@@ -72,16 +76,20 @@ export const catalogApi = {
   list: (params?: {
     search?: string;
     category?: string;
+    category_cible?: string;
     level?: string;
     language?: string;
+    niveau_scolaire?: string;
     skip?: number;
     limit?: number;
   }) => {
     const sp = new URLSearchParams();
     if (params?.search) sp.set("search", params.search);
     if (params?.category) sp.set("category", params.category);
+    if (params?.category_cible) sp.set("category_cible", params.category_cible);
     if (params?.level) sp.set("level", params.level);
     if (params?.language) sp.set("language", params.language);
+    if (params?.niveau_scolaire) sp.set("niveau_scolaire", params.niveau_scolaire);
     if (params?.skip) sp.set("skip", String(params.skip));
     if (params?.limit) sp.set("limit", String(params.limit));
     const qs = sp.toString();

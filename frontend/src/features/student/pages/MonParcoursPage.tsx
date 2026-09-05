@@ -1,25 +1,19 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { GraduationCap, ChevronDown, ChevronRight, Star, BookOpen, Clock, CheckCircle, AlertCircle, TrendingUp } from "lucide-react";
+import { GraduationCap, ChevronDown, ChevronRight, BookOpen, Clock, CheckCircle, PlayCircle } from "lucide-react";
 import { getMonParcours } from "../../../api";
 import type { MonParcoursNiveau } from "../../../api";
 import { PageWrapper, Button } from "../../../components/ui";
 
-const niveauColors: Record<string, string> = {
-  decouverte: "bg-blue-500",
-  standard: "bg-green-500",
-  avance: "bg-orange-500",
-};
-
-const STATUS_KEYS: Record<string, { key: string; color: string; icon: typeof CheckCircle }> = {
-  a_commencer: { key: "student.monParcours.toStart", color: "bg-gray-100 text-gray", icon: Clock },
-  en_cours: { key: "student.monParcours.inProgress", color: "bg-blue-100 text-blue", icon: BookOpen },
-  termine: { key: "student.monParcours.completed", color: "bg-green-100 text-green", icon: CheckCircle },
-  annule: { key: "student.monParcours.cancelled", color: "bg-red-100 text-red", icon: AlertCircle },
+const STATUS_COLORS: Record<string, string> = {
+  course: "bg-blue-100 text-blue",
+  free: "bg-green-100 text-green",
 };
 
 export default function MonParcoursPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [parcours, setParcours] = useState<MonParcoursNiveau[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedMatieres, setExpandedMatieres] = useState<Set<number>>(new Set());
@@ -47,6 +41,7 @@ export default function MonParcoursPage() {
     return <PageWrapper title={<>Mon <span className="italic text-orange">Parcours</span></>} icon={<GraduationCap className="w-8 h-8" />}><div className="text-center py-12 text-gray">{t('monParcours.loading')}</div></PageWrapper>;
   }
 
+  // Aucun niveau actif (aucun pack)
   if (parcours.length === 0) {
     return (
       <PageWrapper title={<>Mon <span className="italic text-orange">Parcours</span></>} icon={<GraduationCap className="w-8 h-8" />}>
@@ -54,6 +49,27 @@ export default function MonParcoursPage() {
           <GraduationCap className="w-12 h-12 text-gray-300 mx-auto mb-4" />
           <p className="text-gray mb-2">{t('monParcours.noActivePath')}</p>
           <p className="text-sm text-gray">{t('monParcours.buyPackPrompt')}</p>
+        </div>
+      </PageWrapper>
+    );
+  }
+
+  const totalCourses = parcours.reduce(
+    (acc, n) => acc + n.matieres.filter(m => (m.courses || []).length > 0).length,
+    0
+  );
+
+  // Niveau actif mais aucune matière avec cours publié : message + redirection catalogue
+  if (totalCourses === 0) {
+    return (
+      <PageWrapper title={<>Mon <span className="italic text-orange">Parcours</span></>} icon={<GraduationCap className="w-8 h-8" />}>
+        <div className="bg-white rounded-2xl shadow-sm border border-black/5 p-12 text-center">
+          <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+          <p className="text-navy font-medium mb-2">Aucun contenu disponible pour votre niveau actuellement. Explorez le catalogue global.</p>
+          <p className="text-sm text-gray mb-6">Consultez le catalogue pour découvrir les cours disponibles.</p>
+          <Button variant="primary" size="md" onClick={() => navigate("/catalog")}>
+            Consulter le catalogue
+          </Button>
         </div>
       </PageWrapper>
     );
@@ -67,19 +83,8 @@ export default function MonParcoursPage() {
     >
 
       {parcours.map(niveau => {
-        // Stats
-        let totalChapitres = 0;
-        let chapitresEnCours = 0;
-        let chapitresTermines = 0;
-        let totalNotions = 0;
-        niveau.matieres.forEach(m => {
-          totalChapitres += m.chapters.length;
-          m.chapters.forEach(ch => {
-            totalNotions += ch.notions_count;
-            if (ch.status === "en_cours") chapitresEnCours++;
-            if (ch.status === "termine") chapitresTermines++;
-          });
-        });
+        const matieresAvecCours = niveau.matieres.filter(m => (m.courses || []).length > 0);
+        if (matieresAvecCours.length === 0) return null;
 
         return (
           <div key={niveau.niveau.id} className="bg-white rounded-2xl shadow-sm border border-black/5 overflow-hidden">
@@ -89,34 +94,15 @@ export default function MonParcoursPage() {
                 <div>
                   <h2 className="text-xl font-semibold text-navy">{niveau.niveau.nom}</h2>
                   <p className="text-sm text-gray mt-0.5">
-                    {totalChapitres} {t('monParcours.chapters', { count: totalChapitres })} • {" "}
-                    {totalNotions} {t('monParcours.notions', { count: totalNotions })}
+                    {matieresAvecCours.length} {t('monParcours.matieres', { count: matieresAvecCours.length })}
                   </p>
                 </div>
-                <div className="flex gap-3 text-center">
-                  <div>
-                    <p className="text-lg font-bold text-blue">{chapitresEnCours}</p>
-                    <p className="text-xs text-gray">{t('monParcours.inProgress')}</p>
-                  </div>
-                  <div className="w-px bg-gray-200"></div>
-                  <div>
-                    <p className="text-lg font-bold text-green">{chapitresTermines}</p>
-                    <p className="text-xs text-gray">{t('monParcours.completed')}</p>
-                  </div>
-                </div>
-              </div>
-              {/* Progress bar */}
-              <div className="mt-3 h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-orange to-orange-l rounded-full transition-all duration-500"
-                  style={{ width: totalChapitres > 0 ? `${(chapitresTermines / totalChapitres) * 100}%` : "0%" }}
-                />
               </div>
             </div>
 
             {/* Matieres */}
             <div className="divide-y divide-gray-100">
-              {niveau.matieres.map(matiere => (
+              {matieresAvecCours.map(matiere => (
                 <div key={matiere.id}>
                   <Button
                     variant="ghost"
@@ -132,67 +118,53 @@ export default function MonParcoursPage() {
                     <BookOpen className="w-5 h-5 text-blue flex-shrink-0" />
                     <div className="flex-1">
                       <p className="font-medium text-navy">{matiere.nom}</p>
-                      <p className="text-xs text-gray">{matiere.chapters_count} {t('monParcours.chapters', { count: matiere.chapters_count })}</p>
+                      <p className="text-xs text-gray">{matiere.courses.length} {t('monParcours.courses', { count: matiere.courses.length })}</p>
                     </div>
-                    {/* Mini status badges */}
-                    <div className="flex gap-1">
-                      {(() => {
-                        const counts = { a_commencer: 0, en_cours: 0, termine: 0 };
-                        matiere.chapters.forEach(ch => {
-                          if (ch.status in counts) counts[ch.status as keyof typeof counts]++;
-                        });
-                        return (
-                          <>
-                            {counts.en_cours > 0 && (
-                              <span className="px-2 py-0.5 bg-blue-100 text-blue rounded-full text-xs">{counts.en_cours}</span>
-                            )}
-                            {counts.termine > 0 && (
-                              <span className="px-2 py-0.5 bg-green-100 text-green rounded-full text-xs">{counts.termine}</span>
-                            )}
-                          </>
-                        );
-                      })()}
-                    </div>
+                    <span className="px-2 py-0.5 bg-blue-100 text-blue rounded-full text-xs">
+                      {matiere.courses.length}
+                    </span>
                   </Button>
 
-                  {/* Chapters list */}
+                  {/* Cours réels */}
                   {expandedMatieres.has(matiere.id) && (
                     <div className="px-6 pb-4 space-y-2">
-                      {matiere.chapters.map(ch => {
-                        const cfg = STATUS_KEYS[ch.status] || STATUS_KEYS.a_commencer;
-                        const Icon = cfg.icon;
-                        return (
-                          <div key={ch.id} className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl">
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${niveauColors[ch.niveau_assimilation || "standard"]}`}>
-                              {ch.score_moyen !== null ? (
-                                <span className="text-white text-xs font-bold">{Math.round(ch.score_moyen)}%</span>
-                              ) : (
-                                <Star className="w-4 h-4 text-white" />
-                              )}
+                      {matiere.courses.map(course => (
+                        <button
+                          key={course.id}
+                          onClick={() => navigate(`/dashboard/courses/${course.id}`)}
+                          className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl hover:bg-blue-50 hover:border-blue-200 border border-transparent transition-all text-start"
+                        >
+                          {course.thumbnail_url || course.cover_url ? (
+                            <img
+                              src={course.thumbnail_url || course.cover_url}
+                              alt={course.title}
+                              className="w-14 h-14 rounded-lg object-cover flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-blue to-blue-l flex items-center justify-center flex-shrink-0">
+                              <PlayCircle className="w-7 h-7 text-white" />
                             </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-navy">{ch.nom}</p>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                <span className={`px-2 py-0.5 rounded-full text-xs ${cfg.color}`}>
-                                  <Icon className="w-3 h-3 inline me-1" />{t(cfg.key)}
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-navy truncate">{course.title}</p>
+                            {course.description && (
+                              <p className="text-xs text-gray truncate mt-0.5">{course.description}</p>
+                            )}
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className={`px-2 py-0.5 rounded-full text-xs ${course.is_free ? STATUS_COLORS.free : STATUS_COLORS.course}`}>
+                                {course.is_free ? "Gratuit" : "Premium"}
+                              </span>
+                              {course.total_lessons > 0 && (
+                                <span className="flex items-center gap-1 text-xs text-gray">
+                                  <Clock className="w-3 h-3" />
+                                  {course.total_lessons} {t('monParcours.lessons', { count: course.total_lessons })}
                                 </span>
-                                {ch.niveau_assimilation && (
-                                  <span className="text-xs text-gray capitalize">{ch.niveau_assimilation}</span>
-                                )}
-                              </div>
-                            </div>
-                            <div className="text-end text-xs text-gray">
-                              <p>{ch.notions_count} {t('monParcours.notion', { count: ch.notions_count })}</p>
-                              {ch.scores_count > 0 && (
-                                <p className="flex items-center gap-1 justify-end mt-0.5">
-                                  <TrendingUp className="w-3 h-3" />
-                                  {ch.scores_count} {t("student.monParcours.quizzes")}
-                                </p>
                               )}
                             </div>
                           </div>
-                        );
-                      })}
+                          <CheckCircle className="w-5 h-5 text-gray-300 flex-shrink-0" />
+                        </button>
+                      ))}
                     </div>
                   )}
                 </div>

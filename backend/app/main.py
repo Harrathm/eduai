@@ -39,6 +39,8 @@ from app.routers.media import router as media_router
 from app.routers.ai_factory import router as ai_factory_router
 from app.routers.logs import router as logs_router
 from app.routers.teacher_classes import teacher_router, admin_teacher_router
+from app.routers.teacher_live_sessions import teacher_live_router
+from app.routers.live_sessions import router as live_sessions_router
 from app.routers.payments.stripe import router as payments_router
 from app.routers.payments.konnect import router as konnect_router
 from app.routers.wallet import router as wallet_router
@@ -205,6 +207,8 @@ RATE_LIMITS = {
 
 
 ALLOWED_ORIGINS = settings.cors_origins_list
+if settings.environment != "production" and ALLOWED_ORIGINS != ["*"]:
+    ALLOWED_ORIGINS = ["*"]
 
 
 # ---------------------------------------------------------------------------
@@ -278,9 +282,9 @@ app.add_middleware(RateLimiter, rates=RATE_LIMITS)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization", "X-Requested-With", "X-Tenant-ID"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -394,6 +398,7 @@ app.include_router(courses_router, prefix="/api")
 app.include_router(ai_factory_router)
 app.include_router(logs_router)
 app.include_router(teacher_router, prefix="/api/teacher")
+app.include_router(teacher_live_router, prefix="/api/teacher")
 app.include_router(admin_teacher_router, prefix="/api/admin")
 app.include_router(payments_router, prefix="/api/payments")
 app.include_router(konnect_router, prefix="/api")
@@ -409,14 +414,15 @@ app.include_router(goals_pedagogical_router, prefix="/api")
 app.include_router(adaptive_pathway_router, prefix="/api/pathway")
 app.include_router(gamification_router, prefix="/api/gamification")
 app.include_router(parent_router, prefix="/api")
-app.include_router(parcours_router, prefix="/api")
-app.include_router(elements_router, prefix="/api")
-app.include_router(bibliotheque_router, prefix="/api")
+app.include_router(parcours_router, prefix="/api/pathway")
+app.include_router(elements_router, prefix="/api/pathway")
+app.include_router(bibliotheque_router, prefix="/api/pathway")
 app.include_router(abonnements_router, prefix="/api")
 app.include_router(famille_router, prefix="/api")
 app.include_router(licences_router, prefix="/api")
 app.include_router(bulk_seats_router)
 app.include_router(teacher_revenue_router)
+app.include_router(live_sessions_router, prefix="/api")
 
 
 # Add file logging for error log viewer

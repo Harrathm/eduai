@@ -5,6 +5,8 @@ import { AdminTable, KPICard, StatusBadge, ConfirmModal, Modal } from "../compon
 import { Button } from "../../../components/ui";
 import { adminUsers, adminSchools } from "../../../api";
 import type { AdminUser, AdminSchool, PaginatedResponse } from "../../../api";
+import { CYCLE_NIVEAUX } from "../constants/cycles";
+import { useAuthStore } from "../../../store/authStore";
 
 type RoleFilter = "all" | "student" | "teacher" | "admin_school" | "pedagogical_admin" | "pedagogical_lead" | "super_admin";
 type StatusFilter = "all" | "active" | "inactive";
@@ -20,15 +22,15 @@ const ROLE_ICONS: Record<string, React.ReactNode> = {
   member: <Users className="w-4 h-4 text-gray" />,
 };
 
-const NIVEAUX = [
-  "1ere annee", "2eme annee", "3eme annee", "4eme annee", "5eme annee", "6eme annee",
-  "7eme de base", "8eme de base", "9eme de base",
-  "1ere annee secondaire", "2eme annee secondaire", "3eme annee secondaire", "4eme annee secondaire",
-  "1ere annee sciences", "2eme annee sciences", "3eme annee mathematiques", "4eme annee mathematiques",
-];
+const NIVEAUX = Object.values(CYCLE_NIVEAUX).flat();
 
 export default function AdminUsersPage() {
   const { t } = useTranslation();
+  const { user } = useAuthStore();
+  // Fix #5/#7 — Hide platform-only actions for admin_school (non-platform admins).
+  // Backend requires require_platform_admin (super_admin | pedagogical_admin) for
+  // toggleActive, changeRole, addWallet, deductWallet — a 403 would occur otherwise.
+  const isPlatformAdmin = user?.roles?.some((r: string) => r === "super_admin" || r === "pedagogical_admin") ?? false;
   const [result, setResult] = useState<PaginatedResponse<AdminUser> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -239,9 +241,15 @@ export default function AdminUsersPage() {
     )},
     { key: "school", header: t("admin.users.table.colSchool"), render: (u: AdminUser) => <span className="text-sm text-gray">{u.school_name || "—"}</span> },
     { key: "is_active", header: t("admin.users.table.colStatus"), render: (u: AdminUser) => (
-      <Button variant={u.is_active ? "success" : "ghost"} size="sm" onClick={() => toggleActive(u)}>
-        {u.is_active ? t("admin.users.status.active") : t("admin.users.status.inactive")}
-      </Button>
+      isPlatformAdmin ? (
+        <Button variant={u.is_active ? "success" : "ghost"} size="sm" onClick={() => toggleActive(u)}>
+          {u.is_active ? t("admin.users.status.active") : t("admin.users.status.inactive")}
+        </Button>
+      ) : (
+        <span className={`text-xs font-medium ${u.is_active ? "text-green-600" : "text-gray"}`}>
+          {u.is_active ? t("admin.users.status.active") : t("admin.users.status.inactive")}
+        </span>
+      )
     )},
     { key: "token_balance", header: t("admin.users.table.colTokens"), render: (u: AdminUser) => <span className="font-semibold text-blue-600">{u.token_balance?.toLocaleString("fr-TN")}</span> },
     { key: "dt_balance", header: t("admin.users.table.colBalance"), render: (u: AdminUser) => <span className="font-semibold text-green-600">{u.dt_balance?.toLocaleString("fr-TN")} DT</span> },
@@ -253,12 +261,16 @@ export default function AdminUsersPage() {
         <Button variant="ghost" size="sm" onClick={() => openEditModal(u)} title={t("admin.users.btn.edit")}>
           <Pencil className="w-4 h-4" />
         </Button>
-        <Button variant="secondary" size="sm" onClick={() => setBalanceModal({ user: u, type: "tokens", mode: "add", amount: 0 })} title={t("admin.users.btn.addTokens")}>
-          <Coins className="w-4 h-4" />
-        </Button>
-        <Button variant="secondary" size="sm" onClick={() => setRoleModal(u)} title={t("admin.users.btn.changeRole")}>
-          <Shield className="w-4 h-4" />
-        </Button>
+        {isPlatformAdmin && (
+          <>
+            <Button variant="secondary" size="sm" onClick={() => setBalanceModal({ user: u, type: "tokens", mode: "add", amount: 0 })} title={t("admin.users.btn.addTokens")}>
+              <Coins className="w-4 h-4" />
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => setRoleModal(u)} title={t("admin.users.btn.changeRole")}>
+              <Shield className="w-4 h-4" />
+            </Button>
+          </>
+        )}
         <Button variant="danger" size="sm" onClick={() => setDeleteTarget(u)} title={t("admin.users.btn.delete")}>
           <Trash2 className="w-4 h-4" />
         </Button>

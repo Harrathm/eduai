@@ -3,8 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../../../store/authStore";
 import { Wallet, Coins, Clock } from "lucide-react";
 import { EmptyState } from "../../../components/ui";
-
-const API_URL = import.meta.env.VITE_API_URL || "";
+import { teacherWalletApi } from "../../../api";
 
 interface PoolEntry {
   pool: string;
@@ -42,19 +41,12 @@ export default function TeacherWallet() {
     if (!token) return;
     setLoading(true);
     try {
-      const [balRes, histRes] = await Promise.all([
-        fetch(`${API_URL}/api/wallet/balance`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(`${API_URL}/api/wallet/history?page=1&page_size=20`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+      const [balData, histData] = await Promise.all([
+        teacherWalletApi.balance(),
+        teacherWalletApi.history(1, 20),
       ]);
-      if (balRes.ok) setBalance(await balRes.json());
-      if (histRes.ok) {
-        const data = await histRes.json();
-        setHistory(data.transactions || []);
-      }
+      setBalance(balData);
+      setHistory(histData?.transactions || []);
     } catch (err) {
       console.error(err);
     }

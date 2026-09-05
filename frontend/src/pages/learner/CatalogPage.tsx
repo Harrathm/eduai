@@ -4,17 +4,21 @@ import { Link, useNavigate } from "react-router-dom";
 import { catalogApi, type CatalogCourse, enrollmentApi } from "../../api";
 const catalogAPI = catalogApi;
 const enrollmentAPI = enrollmentApi;
-import { Search, BookOpen, Clock, Users, Award, ChevronRight } from "lucide-react";
+import { Search, BookOpen, Clock, Users, Award, ChevronRight, Lock } from "lucide-react";
+import { useAuthStore } from "../../store/authStore";
+import UpsellModal from "../../components/UpsellModal";
 
 const LEVELS = { beginner: "Débutant", intermediate: "Intermédiaire", advanced: "Avancé" };
 
 export default function CatalogPage() {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [courses, setCourses] = useState<CatalogCourse[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [myCourses, setMyCourses] = useState<Set<number>>(new Set());
   const [filters, setFilters] = useState({ search: "", category: "", level: "" });
+  const [upsell, setUpsell] = useState<{ open: boolean; course?: CatalogCourse }>({ open: false });
 
   useEffect(() => {
     loadCourses();
@@ -25,7 +29,9 @@ export default function CatalogPage() {
   const loadCourses = async () => {
     setLoading(true);
     try {
-      const data = await catalogAPI.list(filters);
+      const params = { ...filters };
+      if (user?.niveau_scolaire) params.niveau_scolaire = user.niveau_scolaire;
+      const data = await catalogAPI.list(params);
       setCourses(Array.isArray(data) ? data : (data.items || []));
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
@@ -41,7 +47,8 @@ export default function CatalogPage() {
   const loadMyCourses = async () => {
     try {
       const data = await enrollmentAPI.myCourses();
-      setMyCourses(new Set((data || []).map((c: any) => c.course_id)));
+      const list = Array.isArray(data) ? data : (data.items || []);
+      setMyCourses(new Set(list.map((c: any) => c.course_id)));
     } catch (err) { /* Not logged in */ }
   };
 
@@ -112,9 +119,11 @@ export default function CatalogPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {courses.map(course => {
               const isEnrolled = myCourses.has(course.id);
+              // Un cours auquel l'élève est inscrit n'est jamais considéré verrouillé
+              const isLocked = course.is_locked && !isEnrolled;
               return (
-                <div key={course.id} className="bg-white rounded-xl border overflow-hidden hover:shadow-lg transition-all group">
-                  <div className="aspect-video bg-gray-100 relative">
+                <div key={course.id} className={`bg-white rounded-xl border overflow-hidden hover:shadow-lg transition-all group ${isLocked ? "border-orange-200" : ""}`}>
+                  <div className={`aspect-video bg-gray-100 relative ${isLocked ? "opacity-60 grayscale" : ""}`}>
                     {course.cover_url
                       ? <img src={course.cover_url} alt={course.title} className="w-full h-full object-cover" />
                       : <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-navy-100 to-purple-100">
@@ -123,6 +132,11 @@ export default function CatalogPage() {
                     }
                     {course.is_free && (
                       <span className="absolute top-2 left-2 px-2 py-0.5 bg-green-500 text-white text-xs font-medium rounded">Gratuit</span>
+                    )}
+                    {isLocked && (
+                      <span className="absolute top-2 left-2 px-2 py-0.5 bg-gray-900/80 text-white text-xs font-medium rounded flex items-center gap-1">
+                        <Lock className="w-3 h-3" /> Verrouillé
+                      </span>
                     )}
                     {isEnrolled && (
                       <span className="absolute top-2 right-2 px-2 py-0.5 bg-navy-500 text-white text-xs font-medium rounded flex items-center gap-1">
@@ -149,7 +163,20 @@ export default function CatalogPage() {
                       {course.total_modules > 0 && <span className="flex items-center gap-1">📚 {course.total_modules} modules</span>}
                     </div>
                     <div className="flex gap-2">
-                      {isEnrolled ? (
+                      {isLocked ? (
+                        <>
+                          <button
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setUpsell({ open: true, course }); }}
+                            className="flex-1 py-2 bg-orange-500 text-white text-sm rounded-lg hover:bg-orange-600 font-medium"
+                          >
+                            Débloquer
+                          </button>
+                          <button onClick={() => navigate(`/learn/courses/${course.id}`)}
+                            className="py-2 px-3 border text-sm text-gray-600 rounded-lg hover:bg-gray-50">
+                            Aperçu
+                          </button>
+                        </>
+                      ) : isEnrolled ? (
                         <button onClick={() => navigate(`/learn/courses/${course.id}`)}
                           className="flex-1 flex items-center justify-center gap-2 py-2 bg-navy-600 text-white text-sm rounded-lg hover:bg-navy-700 font-medium">
                           Continuer <ChevronRight className="w-4 h-4" />
@@ -174,6 +201,15 @@ export default function CatalogPage() {
           </div>
         )}
       </div>
+
+      <UpsellModal
+        isOpen={upsell.open}
+        onClose={() => setUpsell({ open: false })}
+        requiredPack={upsell.course?.tag_pack_requis || "Silver"}
+        message={upsell.course
+          ? `Le cours « ${upsell.course.title} » nécessite un abonnement pour être débloqué.`
+          : undefined}
+      />
     </div>
   );
 }

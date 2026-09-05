@@ -39,7 +39,7 @@ export default function PathwayCatalogPage() {
     try {
       // Use existing pack purchase endpoint via centralized api client
       const { api } = await import("../../../api");
-      const data = await api.post<any>(`/api/packs/${item.pack.id}/purchase`);
+      const data = await api.post<any>(`/api/abonnements/packs/${item.pack.id}/purchase`);
       showToast(data.message || t("student.pathway.purchaseSuccess"));
 
       // Auto-enroll in pathway

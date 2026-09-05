@@ -3,7 +3,7 @@ from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Optional
 import logging
 import json
 import csv
@@ -104,6 +104,11 @@ def list_schools(
     admin=Depends(require_admin),
 ):
     query = db.query(School)
+    # Fix #1 — tenant isolation: admin_school ne voit que son école
+    if not _is_super(admin):
+        if not admin.school_id:
+            return {"total": 0, "page": page, "per_page": per_page, "items": []}
+        query = query.filter(School.id == admin.school_id)
     if search:
         st = f"%{search}%"
         query = query.filter((School.name.ilike(st)) | (School.domain.ilike(st)))
@@ -357,6 +362,21 @@ def create_user(
     db.add(user)
     db.commit()
     db.refresh(user)
+
+    # FIX #7 — alignement sur l'auto-inscription (auth.register) : un élève
+    # créé par un admin démarre avec 100 crédits TRIAL expirant sous 30 jours.
+    if role == "student":
+        from datetime import datetime as _dt, timezone as _tz, timedelta as _td
+        from app.models import WalletPool
+        from app.services.wallet import add_credits
+        add_credits(
+            db, user.id, WalletPool.TRIAL, 100,
+            expires_at=_dt.now(_tz.utc) + _td(days=30),
+        )
+        # add_credits ne fait pas de commit : sans celui-ci la transaction est
+        # annulée à la fermeture de la session (get_db).
+        db.commit()
+
     return UserRead.model_validate(user)
 
 
@@ -447,7 +467,7 @@ def analytics_overview(db: Session = Depends(get_db), admin=Depends(require_admi
         submissions = db.query(Submission).join(Assignment).join(Assignment.classroom).filter(ClassRoom.school_id == admin.school_id).all()
 
     total_submissions = len(submissions)
-    pending_submissions = sum(1 for s in submissions if s.grade is None)
+    pending_submissions = sum(1 for s in submissions if not s.is_graded)
 
     ai_requests = 0
     ai_cost = 0.0
@@ -483,7 +503,7 @@ def user_analytics(
     result = []
     for user in users:
         subs = db.query(Submission).filter(Submission.student_id == user.id).all()
-        grades = [s.grade for s in subs if s.grade is not None]
+        grades = [s.ai_score for s in subs if s.ai_score is not None]
         avg_grade = sum(grades) / len(grades) if grades else None
 
         result.append(UserAnalytics(
@@ -873,8 +893,8 @@ def list_messages(
             body=msg.body,
             sender_id=msg.sender_id,
             sender_name=msg.sender.full_name if msg.sender else "Admin",
-            recipient_id=msg.recipient_id,
-            recipient_name=msg.recipient.full_name if msg.recipient else None,
+            recipient_id=msg.receiver_id,
+            recipient_name=msg.receiver.full_name if msg.receiver else None,
             recipient_role=msg.recipient_role,
             target_audience=msg.target_audience,
             is_read=msg.is_read,
@@ -897,7 +917,7 @@ def create_message(
         subject=message_in.subject,
         body=message_in.body,
         sender_id=admin.id,
-        recipient_id=message_in.recipient_id,
+        receiver_id=message_in.recipient_id,
         recipient_role=message_in.recipient_role,
         school_id=admin.school_id,
     )
@@ -912,8 +932,8 @@ def create_message(
         body=message.body,
         sender_id=message.sender_id,
         sender_name=admin.full_name or "Admin",
-        recipient_id=message.recipient_id,
-        recipient_name=message.recipient.full_name if message.recipient else None,
+        recipient_id=message.receiver_id,
+        recipient_name=message.receiver.full_name if message.receiver else None,
         recipient_role=message.recipient_role,
         target_audience=message.target_audience,
         is_read=message.is_read,
@@ -2110,9 +2130,24 @@ def delete_school(school_id: int, db: Session = Depends(get_db), admin=Depends(r
     school = db.query(School).filter(School.id == school_id).first()
     if not school:
         raise HTTPException(status_code=404, detail="School not found")
+
+    # Fix #3 — Préserver les cours promus en bibliothèque globale avant
+    # suppression. On les détache (school_id = None) pour qu'ils survivent
+    # à la résiliation du tenant (ON DELETE SET NULL sur Course.school_id).
+    from app.models import CourseOwnerType
+    global_courses = (
+        db.query(Course)
+        .filter(Course.school_id == school_id, Course.owner_type == CourseOwnerType.EDUAI_CATALOG)
+        .all()
+    )
+    for course in global_courses:
+        course.school_id = None
+    if global_courses:
+        db.flush()
+
     db.delete(school)
     db.commit()
-    return {"ok": True, "deleted": school_id}
+    return {"ok": True, "deleted": school_id, "preserved_global_courses": len(global_courses)}
 
 
 # ---- Course Analytics ----
@@ -2164,6 +2199,13 @@ def list_audit_logs(
 ):
     from app.models import AuditLog
     query = db.query(AuditLog)
+    # Fix #2 — tenant isolation: non-super admins voient uniquement les logs
+    # des admins de LEUR école (jointure AuditLog.admin_id -> User.school_id).
+    if not _is_super(admin):
+        if not admin.school_id:
+            return {"total": 0, "page": page, "per_page": per_page, "items": []}
+        school_admin_ids = db.query(User.id).filter(User.school_id == admin.school_id).subquery()
+        query = query.filter(AuditLog.admin_id.in_(school_admin_ids))
     if action:
         query = query.filter(AuditLog.action == action)
     if admin_id:

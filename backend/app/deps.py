@@ -22,6 +22,25 @@ def set_tenant_context(current_user: User = Depends(get_current_user)) -> User:
     The first line is check_school_access(). Never remove this dependency.
     """
     role = get_user_role(current_user)
+
+    # Fix #4 — Maintenance mode: block non-admin users when their school is in maintenance.
+    # Admin roles (super_admin, pedagogical_admin, admin_school, pedagogical_lead) can
+    # still access the platform to manage settings (including deactivating maintenance).
+    _ADMIN_ROLES = {"super_admin", "pedagogical_admin", "admin_school", "pedagogical_lead"}
+    if role not in _ADMIN_ROLES and getattr(current_user, "school_id", None):
+        from app.models import School
+        from app.db import SessionLocal
+        _db = SessionLocal()
+        try:
+            _school = _db.query(School).filter(School.id == current_user.school_id).first()
+            if _school and _school.maintenance_mode:
+                raise HTTPException(
+                    status_code=503,
+                    detail="L'école est actuellement en maintenance. Veuillez réessayer plus tard.",
+                )
+        finally:
+            _db.close()
+
     if role in ("super_admin", "pedagogical_admin"):
         # Global roles legitimately access all schools — suppress tenant filter
         _tenant_filter_suppressed.set(True)
@@ -111,6 +130,17 @@ def require_teacher_or_admin(current_user: User = Depends(set_tenant_context)) -
     role = get_user_role(current_user)
     if role not in ("super_admin", "admin_school", "teacher"):
         raise HTTPException(status_code=403, detail=f"Teacher or admin access required. Role='{role}'")
+    return current_user
+
+
+def require_course_writer(current_user: User = Depends(set_tenant_context)) -> User:
+    """Require admin or teacher role for course/chapter/lesson write operations.
+
+    Teachers are restricted to courses they authored (checked via _can_access_course).
+    """
+    role = get_user_role(current_user)
+    if role not in ("super_admin", "admin_school", "pedagogical_admin", "pedagogical_lead", "teacher"):
+        raise HTTPException(status_code=403, detail=f"Course writer access required. Role='{role}'")
     return current_user
 
 

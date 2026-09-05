@@ -258,7 +258,10 @@ class School(Base):
     
     # Relationships
     users: Mapped[List[User]] = relationship("User", back_populates="school", cascade="all, delete-orphan")
-    courses: Mapped[List[Course]] = relationship("Course", back_populates="school", cascade="all, delete-orphan")
+    # Fix #3 — Suppression du delete-orphan sur courses pour préserver la
+    # bibliothèque globale (owner_type="eduai_catalog") lors de la résiliation.
+    # Le FK utilise désormais ON DELETE SET NULL (voir Course.school_id).
+    courses: Mapped[List[Course]] = relationship("Course", back_populates="school")
     transactions: Mapped[List[Transaction]] = relationship("Transaction", back_populates="school", cascade="all, delete-orphan")
     documents: Mapped[List[Document]] = relationship("Document", back_populates="school", cascade="all, delete-orphan")
     messages: Mapped[List[Message]] = relationship("Message", back_populates="school", cascade="all, delete-orphan")
@@ -305,6 +308,15 @@ class User(Base):
     
     # Onboarding
     onboarding_complete: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # FIX #6 — Vérification email (non bloquante : le compte reste utilisable,
+    # la vérification est prouvée par token émis à l'inscription).
+    email_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    email_verification_token: Mapped[Optional[str]] = mapped_column(String(64), unique=True)
+
+    # M2 FIX — code d'invitation parental (élèves uniquement). Requis par un
+    # parent pour lier l'élève à son compte (POST /parents/me/enfants/lier).
+    invitation_code: Mapped[Optional[str]] = mapped_column(String(12), unique=True, nullable=True)
     
     # Niveau scolaire (élèves uniquement)
     niveau_scolaire: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)  # ex: "9ème de base", "2ème année sciences"
@@ -385,6 +397,10 @@ class User(Base):
         "AIConversation", back_populates="user", cascade="all, delete-orphan"
     )
 
+    # Live sessions
+    live_sessions: Mapped[List["LiveSession"]] = relationship("LiveSession", back_populates="teacher", foreign_keys="LiveSession.teacher_id", cascade="all, delete-orphan")
+    live_attendances: Mapped[List["LiveAttendance"]] = relationship("LiveAttendance", back_populates="student", foreign_keys="LiveAttendance.student_id", cascade="all, delete-orphan")
+
 
 # ============================================================
 # FINANCIAL AUDIT
@@ -457,8 +473,8 @@ class Course(Base):
     
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     uuid: Mapped[str] = mapped_column(UUID(as_uuid=True), default=lambda: uuid.uuid4(), unique=True)
-    school_id: Mapped[int] = mapped_column(ForeignKey("schools.id", ondelete="CASCADE"), nullable=False)
-    author_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    school_id: Mapped[Optional[int]] = mapped_column(ForeignKey("schools.id", ondelete="SET NULL"), nullable=True)
+    author_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     modified_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     
     # Content
@@ -1358,7 +1374,7 @@ class Certificate(Base):
     course_id: Mapped[int] = mapped_column(Integer, nullable=False)
     enrollment_id: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    certificate_number: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    certificate_number: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
     student_name: Mapped[str] = mapped_column(String(255), nullable=False)
     course_name: Mapped[str] = mapped_column(String(255), nullable=False)
 
@@ -1490,7 +1506,9 @@ class TeacherClass(Base):
     teacher: Mapped[User] = relationship("User", foreign_keys=[teacher_id])
     school: Mapped[Optional[School]] = relationship("School", foreign_keys=[school_id])
     course_accesses: Mapped[List[ClassCourseAccess]] = relationship("ClassCourseAccess", back_populates="teacher_class", cascade="all, delete-orphan")
+    parcours_accesses: Mapped[List["ClassParcoursAccess"]] = relationship("ClassParcoursAccess", back_populates="teacher_class", cascade="all, delete-orphan")
     enrollments: Mapped[List[StudentEnrollment]] = relationship("StudentEnrollment", back_populates="teacher_class", cascade="all, delete-orphan")
+    live_sessions: Mapped[List["LiveSession"]] = relationship("LiveSession", back_populates="teacher_class", foreign_keys="LiveSession.class_id", cascade="all, delete-orphan")
 
 
 class ClassCourseAccess(Base):
@@ -1510,6 +1528,25 @@ class ClassCourseAccess(Base):
 
     teacher_class: Mapped[TeacherClass] = relationship("TeacherClass", back_populates="course_accesses")
     course: Mapped[Course] = relationship("Course", foreign_keys=[course_id])
+
+
+class ClassParcoursAccess(Base):
+    """Links a parcours to a TeacherClass (many-to-many)."""
+    __tablename__ = "class_parcours_access"
+    __table_args__ = (
+        Index("ix_cpa_class_parcours", "class_id", "parcours_id", unique=True),
+        Index("ix_cpa_class_id", "class_id"),
+        Index("ix_cpa_parcours_id", "parcours_id"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    class_id: Mapped[int] = mapped_column(ForeignKey("teacher_classes.id", ondelete="CASCADE"), nullable=False)
+    parcours_id: Mapped[int] = mapped_column(ForeignKey("parcours.id", ondelete="CASCADE"), nullable=False)
+    assigned_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    teacher_class: Mapped[TeacherClass] = relationship("TeacherClass", back_populates="parcours_accesses")
+    parcours: Mapped["Parcours"] = relationship("Parcours", foreign_keys=[parcours_id])
 
 
 class StudentEnrollment(Base):
@@ -2230,6 +2267,7 @@ class TypeElementPedagogique(str, Enum):
 
 class StatutElementPedagogique(str, Enum):
     BROUILLON = "brouillon"
+    BROUILLON_IA = "brouillon_ia"
     EN_REVIEW = "en_review"
     PUBLIE = "publie"
     REJETE = "rejete"
@@ -2410,7 +2448,7 @@ class ElementPedagogique(Base):
         Index("ix_elements_lecon", "lecon_id"),
         Index("ix_elements_paragraphe", "paragraphe_id"),
         CheckConstraint(
-            "(lecon_id IS NOT NULL AND paragraphe_id IS NULL) OR (lecon_id IS NULL AND paragraphe_id IS NOT NULL)",
+            "est_global = true OR ((lecon_id IS NOT NULL AND paragraphe_id IS NULL) OR (lecon_id IS NULL AND paragraphe_id IS NOT NULL))",
             name="ck_element_one_parent",
         ),
     )
@@ -2503,17 +2541,20 @@ class ContentPromotion(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     element_source_id: Mapped[int] = mapped_column(ForeignKey("elements_pedagogiques.id", ondelete="CASCADE"), nullable=False)
+    element_promoted_id: Mapped[Optional[int]] = mapped_column(ForeignKey("elements_pedagogiques.id", ondelete="CASCADE"))
     parcours_destination_id: Mapped[Optional[int]] = mapped_column(ForeignKey("parcours.id", ondelete="SET NULL"))
     snapshot_json: Mapped[dict] = mapped_column(JSON, nullable=False)
     effectuee_par_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
-    element_source: Mapped["ElementPedagogique"] = relationship("ElementPedagogique", backref="promotions")
+    element_source: Mapped["ElementPedagogique"] = relationship("ElementPedagogique", backref="promotions", foreign_keys=[element_source_id])
+    element_promoted: Mapped[Optional["ElementPedagogique"]] = relationship("ElementPedagogique", foreign_keys=[element_promoted_id])
     parcours_destination: Mapped[Optional["Parcours"]] = relationship("Parcours")
     effectuee_par: Mapped[Optional["User"]] = relationship("User", foreign_keys=[effectuee_par_id])
 
     __table_args__ = (
         Index("ix_content_promotions_element", "element_source_id"),
+        Index("ix_content_promotions_promoted", "element_promoted_id"),
     )
 
 
@@ -2540,6 +2581,13 @@ class TypeCompte(str, Enum):
     INDIVIDUEL = "individuel"
     FAMILLE = "famille"
     ECOLE = "ecole"
+
+
+class LiveSessionStatus(str, Enum):
+    UPCOMING = "upcoming"
+    LIVE = "live"
+    ENDED = "ended"
+    CANCELLED = "cancelled"
 
 
 class PackDefinition(Base):
@@ -2746,3 +2794,63 @@ class AuditImpersonation(Base):
         Index("ix_audit_impersonations_target", "target_user_id"),
         Index("ix_audit_impersonations_started", "started_at"),
     )
+
+
+# ============================================================
+# LIVE SESSIONS
+# ============================================================
+
+class LiveSession(Base):
+    """A live video session (séance en direct) scheduled by a teacher for a class."""
+    __tablename__ = "live_sessions"
+    __table_args__ = (
+        Index("ix_ls_teacher_id", "teacher_id"),
+        Index("ix_ls_class_id", "class_id"),
+        Index("ix_ls_school_id", "school_id"),
+        Index("ix_ls_scheduled_at", "scheduled_at"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    teacher_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    class_id: Mapped[int] = mapped_column(ForeignKey("teacher_classes.id", ondelete="CASCADE"), nullable=False)
+    school_id: Mapped[Optional[int]] = mapped_column(ForeignKey("schools.id", ondelete="CASCADE"), nullable=True)
+
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text)
+    scheduled_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    duration_minutes: Mapped[int] = mapped_column(Integer, default=60)
+    status: Mapped[str] = mapped_column(String(20), default=LiveSessionStatus.UPCOMING.value)
+    meeting_url: Mapped[Optional[str]] = mapped_column(String(500))
+    meeting_token: Mapped[Optional[str]] = mapped_column(String(255))
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+    # Relationships
+    teacher: Mapped[User] = relationship("User", foreign_keys=[teacher_id])
+    school: Mapped[Optional[School]] = relationship("School", foreign_keys=[school_id])
+    teacher_class: Mapped[TeacherClass] = relationship("TeacherClass", foreign_keys=[class_id])
+    attendances: Mapped[List["LiveAttendance"]] = relationship("LiveAttendance", back_populates="live_session", cascade="all, delete-orphan")
+
+
+class LiveAttendance(Base):
+    """Tracks student attendance for a live session."""
+    __tablename__ = "live_attendance"
+    __table_args__ = (
+        Index("ix_la_session_student", "live_session_id", "student_id", unique=True),
+        Index("ix_la_session_id", "live_session_id"),
+        Index("ix_la_student_id", "student_id"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    live_session_id: Mapped[int] = mapped_column(ForeignKey("live_sessions.id", ondelete="CASCADE"), nullable=False)
+    student_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+
+    joined_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    left_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    duration_seconds: Mapped[Optional[int]] = mapped_column(Integer)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # Relationships
+    live_session: Mapped["LiveSession"] = relationship("LiveSession", back_populates="attendances")
+    student: Mapped[User] = relationship("User", foreign_keys=[student_id])

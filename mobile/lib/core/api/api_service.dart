@@ -4,10 +4,12 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 class ApiService {
-  static const String baseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:8000',
-  );
+  static String get baseUrl {
+    const envUrl = String.fromEnvironment('API_BASE_URL', defaultValue: '');
+    if (envUrl.isNotEmpty) return envUrl;
+    if (kIsWeb) return 'http://localhost:8000';
+    return 'http://10.0.2.2:8000';
+  }
 
   String? _token;
   final http.Client _client = http.Client();
@@ -154,6 +156,11 @@ class ApiService {
 
   Future<Map<String, dynamic>> getLearnerDashboard() async {
     return await get('/api/learner/dashboard');
+  }
+
+  Future<List<dynamic>> getModulesForCourse(int courseId) async {
+    final response = await get('/api/academy/courses/$courseId/modules');
+    return List<dynamic>.from(response);
   }
 
   // ─── Assignments ──────────────────────────────────────────────────

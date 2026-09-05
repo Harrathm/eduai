@@ -6,6 +6,7 @@ import os
 import uuid
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
@@ -16,9 +17,12 @@ from app.models import User, UserRole, VerificationStatus
 from app.models import (
     Course, Module, Lesson, CourseEnrollment, Certificate,
     Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer,
-    Note, Bookmark, LessonProgress, CourseOwnerType
+    Note, Bookmark, LessonProgress, CourseOwnerType, CourseStatus
 )
-from app.services.course_access import has_course_access
+from app.models import (
+    StudentEnrollment, LiveSession, LiveAttendance, LiveSessionStatus,
+)
+from app.services.course_access import has_course_access, get_accessible_course_ids
 
 router = APIRouter(tags=["Learner"])
 
@@ -153,11 +157,20 @@ def list_published_courses(
     category: str = None,
     level: str = None,
     search: str = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    """Public course catalog - shows only published courses"""
+    """Course catalog filtered by student's pack access.
+    Shows only courses the student can access based on their subscription."""
     from app.models import Course, CourseStatus
-    query = db.query(Course).filter(Course.is_published == True)
+
+    # Get accessible course IDs based on pack/subscription
+    accessible_ids = get_accessible_course_ids(current_user, db)
+
+    query = db.query(Course).filter(
+        Course.status == CourseStatus.PUBLISHED,
+        Course.id.in_(accessible_ids),
+    )
     
     if category:
         query = query.filter(Course.category == category)
@@ -181,6 +194,7 @@ def list_published_courses(
                 "cover_url": c.cover_url,
                 "thumbnail_url": c.thumbnail_url,
                 "category": c.category,
+                "category_cible": getattr(c, "category_cible", "Scolaire") or "Scolaire",
                 "level": c.level or "beginner",
                 "tags": c.tags,
                 "price_tokens": c.price_tokens or 0,
@@ -205,11 +219,17 @@ def list_catalog(
     niveau_scolaire: str = None,
     search: str = None,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    """Platform catalog — eduai_catalog courses only (formations pour enseignants/élèves)."""
+    """Platform catalog filtered by student's pack access.
+    Shows only eduai_catalog courses the student can access."""
+    # Get accessible course IDs based on pack/subscription
+    accessible_ids = get_accessible_course_ids(current_user, db)
+
     query = db.query(Course).filter(
-        Course.is_published == True,
+        Course.status == CourseStatus.PUBLISHED,
         Course.owner_type == CourseOwnerType.EDUAI_CATALOG.value,
+        Course.id.in_(accessible_ids),
     )
 
     if category:
@@ -232,6 +252,7 @@ def list_catalog(
                 "cover_url": c.cover_url,
                 "thumbnail_url": c.thumbnail_url,
                 "category": c.category,
+                "category_cible": getattr(c, "category_cible", "Scolaire") or "Scolaire",
                 "level": c.level or "beginner",
                 "niveau_scolaire": c.niveau_scolaire,
                 "tags": c.tags,
@@ -255,7 +276,7 @@ def get_course_detail(course_id: int, db: Session = Depends(get_db)):
     from app.models import Course, CourseStatus
     course = db.query(Course).filter(
         Course.id == course_id,
-        Course.is_published == True,
+        Course.status == CourseStatus.PUBLISHED,
         Course.visibility != "school_only"
     ).first()
     if not course:
@@ -293,16 +314,14 @@ def get_course_syllabus(course_id: int, db: Session = Depends(get_db), current_u
 
     course_query = db.query(Course).filter(Course.id == course_id)
     if not is_super:
-        course_query = course_query.filter(Course.is_published == True)
+        course_query = course_query.filter(Course.status == CourseStatus.PUBLISHED)
     course = course_query.first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
 
     if not is_super and not has_course_access(current_user, course, db):
-        raise HTTPException(
-            status_code=403,
-            detail="Accès non autorisé — achetez ce cours ou le pack correspondant"
-        )
+        # Freemium : autorisé sous quota ; sinon 402 structuré (UpsellModal)
+        _freemium_gate_or_402(current_user, course, db)
 
     modules = db.query(Module).filter(Module.course_id == course_id).order_by(Module.order).all()
     result = []
@@ -339,7 +358,7 @@ def enroll_in_course(
 ):
     course = db.query(Course).filter(
         Course.id == course_id,
-        Course.is_published == True
+        Course.status == CourseStatus.PUBLISHED
     ).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -410,6 +429,101 @@ def my_enrolled_courses(
 
 # ============ Lesson Progress ============
 
+# Quota Freemium serveur : leçons complétées par trimestre pour les élèves
+# Gratuit / sans abonnement (aligné avec FREE_QUOTA_LIMIT côté frontend).
+FREE_LESSONS_PER_TRIMESTER = 3
+
+
+def _trimester_bounds(now=None):
+    """Bornes du trimestre scolaire tunisien courant.
+    T1 : septembre → décembre ; T2 : janvier → mars ; T3 : avril → août."""
+    from datetime import datetime as dt, timezone as tz
+    now = now or dt.now(tz.utc)
+    y, m = now.year, now.month
+    if m >= 9:
+        return dt(y, 9, 1), dt(y + 1, 1, 1)
+    if m <= 3:
+        return dt(y, 1, 1), dt(y, 4, 1)
+    return dt(y, 4, 1), dt(y, 9, 1)
+
+
+def _active_abonnement_tier(user: User, db: Session):
+    """Tier du pack de l'abonnement actif de l'élève (lowercase), ou None."""
+    from app.models import Abonnement, PackDefinition
+    from datetime import datetime as dt, timezone as tz
+    now = dt.now(tz.utc)
+    abo = db.query(Abonnement).join(PackDefinition).filter(
+        Abonnement.user_id == user.id,
+        Abonnement.statut.in_(["actif", "grace"]),
+        Abonnement.fin > now,
+    ).order_by(Abonnement.created_at.desc()).first()
+    if not abo or not abo.pack:
+        return None
+    return (abo.pack.tier or "").strip().lower() or None
+
+
+def _free_lessons_used_this_trimester(user_id: int, db: Session) -> int:
+    """Nombre de leçons uniques complétées par l'élève durant le trimestre courant."""
+    from sqlalchemy import func
+    start, end = _trimester_bounds()
+    return db.query(func.count(func.distinct(LessonProgress.lesson_id))).join(
+        CourseEnrollment, CourseEnrollment.id == LessonProgress.enrollment_id
+    ).filter(
+        CourseEnrollment.student_id == user_id,
+        LessonProgress.status == "completed",
+        LessonProgress.completed_at != None,  # noqa: E711
+        LessonProgress.completed_at >= start,
+        LessonProgress.completed_at < end,
+    ).scalar() or 0
+
+
+def _freemium_gate_or_402(user: User, course: Course, db: Session) -> None:
+    """Appelé quand has_course_access() refuse un contenu payant.
+
+    - Élève payant (Basic/Silver/Golden) : délègue à require_abac_access() qui
+      lève un 402 structuré (pack requis / matière non incluse).
+    - Élève Gratuit ou sans abonnement : accès Freemium autorisé dans la limite
+      de FREE_LESSONS_PER_TRIMESTER leçons complétées par trimestre (calendrier
+      tunisien), sur les cours Scolaires de son niveau. Au-delà : HTTPException
+      402 structurée pour déclencher l'UpsellModal côté frontend.
+    """
+    from app.services.course_access import require_abac_access, _normalize_niveau
+
+    tag_requis = getattr(course, "tag_pack_requis", "Basic") or "Basic"
+    tier = _active_abonnement_tier(user, db)
+
+    if tier in ("basic", "basique", "silver", "golden"):
+        # Payant : l'ABAC explique précisément le refus via un 402 structuré
+        require_abac_access(user, course, db)
+        raise HTTPException(status_code=402, detail={
+            "message": "Accès non autorisé — inscrivez-vous à ce cours ou achetez-le.",
+            "required_pack": tag_requis,
+        })
+
+    category_cible = getattr(course, "category_cible", "Scolaire") or "Scolaire"
+    if category_cible != "Scolaire":
+        raise HTTPException(status_code=402, detail={
+            "message": "Ce contenu nécessite un abonnement ou un achat.",
+            "required_pack": getattr(course, "tag_pack_requis", "Silver") or "Silver",
+        })
+
+    # Le contenu Freemium est limité au niveau scolaire de l'élève
+    c_niv = _normalize_niveau(getattr(course, "niveau_scolaire", None))
+    u_niv = _normalize_niveau(getattr(user, "niveau_scolaire", None))
+    if c_niv and u_niv and c_niv != u_niv:
+        raise HTTPException(
+            status_code=403,
+            detail="Ce cours ne correspond pas à votre niveau scolaire.",
+        )
+
+    used = _free_lessons_used_this_trimester(user.id, db)
+    if used >= FREE_LESSONS_PER_TRIMESTER:
+        raise HTTPException(status_code=402, detail={
+            "message": "Quota gratuit dépassé. Passez à un pack supérieur.",
+            "required_pack": "Basic",
+        })
+
+
 @router.get("/lessons/{lesson_id}", response_model=dict)
 def get_lesson_content(
     lesson_id: int,
@@ -429,10 +543,8 @@ def get_lesson_content(
     if not is_super:
         # Free lessons are always accessible; paid lessons require course access
         if not lesson.is_free and not has_course_access(user, course, db):
-            raise HTTPException(
-                status_code=403,
-                detail="Accès non autorisé — achetez ce cours ou le pack correspondant"
-            )
+            # Freemium : autorisé sous quota ; sinon 402 structuré (UpsellModal)
+            _freemium_gate_or_402(user, course, db)
 
     quiz_data = None
     if lesson.quiz_id:
@@ -489,10 +601,8 @@ def update_lesson_progress(
 
     is_super = get_user_role(user) == "super_admin"
     if not is_super and not lesson.is_free and not has_course_access(user, course, db):
-        raise HTTPException(
-            status_code=403,
-            detail="Accès non autorisé — achetez ce cours ou le pack correspondant"
-        )
+        # Freemium : autorisé sous quota ; sinon 402 structuré (UpsellModal)
+        _freemium_gate_or_402(user, course, db)
 
     enrollment = db.query(CourseEnrollment).filter(
         CourseEnrollment.student_id == user.id,
@@ -500,11 +610,9 @@ def update_lesson_progress(
     ).first()
     if not enrollment:
         is_course_free = not course.price or course.price <= 0
-        if not is_course_free:
-            raise HTTPException(
-                status_code=403,
-                detail="Inscription requise — achetez ce cours ou le pack correspondant"
-            )
+        if not is_course_free and not is_super and not has_course_access(user, course, db):
+            # Freemium : auto-inscription autorisée sous quota ; sinon 402 upsell
+            _freemium_gate_or_402(user, course, db)
         enrollment = CourseEnrollment(
             student_id=user.id,
             course_id=course.id,
@@ -547,7 +655,11 @@ def update_lesson_progress(
     if status_val == "completed":
         progress.completed_at = dt.now(timezone.utc)
 
-    db.commit()
+    # FIX #10 : plus de commit intermédiaire ici. Un simple flush rend les
+    # lignes visibles pour les requêtes suivantes DANS la même transaction ;
+    # le commit unique intervient en toute fin de fonction, après calcul du
+    # pourcentage et génération éventuelle du certificat.
+    db.flush()
 
     total_lessons = db.query(Lesson).filter(Lesson.module_id.in_(
         db.query(Module.id).filter(Module.course_id == course.id)
@@ -570,18 +682,32 @@ def update_lesson_progress(
         ).first()
 
         if not existing_cert:
+            # FIX #11 : numéro de certificat à haute entropie (48 bits aléatoires)
+            # au lieu de randbelow(1000000) (≈20 bits, collisions probables à
+            # l'échelle). Le pré-check évite le cas courant ; la contrainte
+            # UNIQUE en base (models.Certificate.certificate_number) reste la
+            # garantie absolue anti-doublon.
             import secrets
+            while True:
+                cert_number = f"CERT-{secrets.token_hex(6).upper()}"
+                exists = db.query(Certificate).filter(
+                    Certificate.certificate_number == cert_number
+                ).first()
+                if not exists:
+                    break
             cert = Certificate(
                 student_id=user.id,
                 course_id=course.id,
                 enrollment_id=enrollment.id,
-                certificate_number=f"CERT-{secrets.randbelow(1000000):06d}",
+                certificate_number=cert_number,
                 student_name=user.full_name or user.email,
                 course_name=course.title,
                 verification_code=secrets.token_hex(16)
             )
             db.add(cert)
 
+    # FIX #10 : COMMIT UNIQUE — progression + pourcentage + certificat sont
+    # atomiques (soit tout persiste, soit rien).
     db.commit()
     return {"success": True, "progress_percent": progress_percent}
 
@@ -608,10 +734,8 @@ def start_quiz_attempt(
             module = db.query(Module).filter(Module.id == lesson.module_id).first()
             course = db.query(Course).filter(Course.id == module.course_id).first()
             if not has_course_access(user, course, db):
-                raise HTTPException(
-                    status_code=403,
-                    detail="Accès non autorisé — achetez ce cours ou le pack correspondant"
-                )
+                # Freemium : autorisé sous quota ; sinon 402 structuré (UpsellModal)
+                _freemium_gate_or_402(user, course, db)
 
     if quiz.max_attempts:
         existing = db.query(QuizAttempt).filter(
@@ -653,10 +777,8 @@ def get_quiz(
             module = db.query(Module).filter(Module.id == lesson.module_id).first()
             course = db.query(Course).filter(Course.id == module.course_id).first()
             if not has_course_access(user, course, db):
-                raise HTTPException(
-                    status_code=403,
-                    detail="Accès non autorisé — achetez ce cours ou le pack correspondant"
-                )
+                # Freemium : autorisé sous quota ; sinon 402 structuré (UpsellModal)
+                _freemium_gate_or_402(user, course, db)
 
     questions = db.query(QuizQuestion).filter(QuizQuestion.quiz_id == quiz_id).order_by(QuizQuestion.order_index).all()
     return {
@@ -729,10 +851,8 @@ def _do_submit_attempt(attempt_id: int, answers: list, db: Session, user: User) 
             module = db.query(Module).filter(Module.id == lesson.module_id).first()
             course = db.query(Course).filter(Course.id == module.course_id).first()
             if not lesson.is_free and not has_course_access(user, course, db):
-                raise HTTPException(
-                    status_code=403,
-                    detail="Accès non autorisé — achetez ce cours ou le pack correspondant"
-                )
+                # Freemium : autorisé sous quota ; sinon 402 structuré (UpsellModal)
+                _freemium_gate_or_402(user, course, db)
     correct_count = 0
     total_points = 0
     earned_points = 0
@@ -1099,7 +1219,7 @@ def get_my_subscription_status(
 # ============================================================
 
 from app.services.recommendation import get_recommended_path, get_daily_objective
-from app.services.student_tier import get_student_tier
+from app.services.student_tier import get_student_tier, get_student_pack_tier
 from app.services.course_access import has_course_access
 
 
@@ -1117,7 +1237,12 @@ def learner_dashboard(
     - Découverte  : progression simple, objectif quotidien, accès de base
     - Excellence  : analytics détaillés, objectifs ciblés, recommandations IA
     - Établissement : parcours complet, analytics école, objectifs programme
+
+    Correction E1 : `tier` renvoyé au frontend = tier BRUT du pack de
+    l'Abonnement actif (gratuit/basique/silver/golden) — source de vérité unique.
+    Correction E6 : expose le quota Freemium réel calculé serveur.
     """
+    pack_tier = get_student_pack_tier(current_user, db)
     tier = get_student_tier(current_user, db)
     today = datetime.now(timezone.utc).date()
 
@@ -1131,18 +1256,36 @@ def learner_dashboard(
     total_lessons_completed = 0
     total_lessons = 0
 
+    enrollment_ids = [e.id for e in enrollments]
+    course_ids = [e.course_id for e in enrollments]
+
+    # Batch preloads (eliminates N+1: 3 queries total instead of 3 per enrollment)
+    course_map = {}
+    if course_ids:
+        course_map = {c.id: c for c in db.query(Course).filter(Course.id.in_(course_ids)).all()}
+
+    lesson_counts = {}
+    if course_ids:
+        lesson_rows = db.query(Module.course_id, func.count(Lesson.id)).join(
+            Lesson, Lesson.module_id == Module.id
+        ).filter(Module.course_id.in_(course_ids)).group_by(Module.course_id).all()
+        lesson_counts = {cid: cnt for cid, cnt in lesson_rows}
+
+    completed_counts = {}
+    if enrollment_ids:
+        progress_rows = db.query(LessonProgress.enrollment_id, func.count(LessonProgress.id)).filter(
+            LessonProgress.enrollment_id.in_(enrollment_ids),
+            LessonProgress.status == "completed",
+        ).group_by(LessonProgress.enrollment_id).all()
+        completed_counts = {eid: cnt for eid, cnt in progress_rows}
+
     for e in enrollments:
-        course = db.query(Course).filter(Course.id == e.course_id).first()
+        course = course_map.get(e.course_id)
         if not course or course.status != "published":
             continue
 
-        course_lessons = db.query(Lesson).join(Module).filter(
-            Module.course_id == course.id
-        ).count()
-        completed = db.query(LessonProgress).filter(
-            LessonProgress.enrollment_id == e.id,
-            LessonProgress.status == "completed",
-        ).count()
+        course_lessons = lesson_counts.get(course.id, 0)
+        completed = completed_counts.get(e.id, 0)
 
         progress = round((completed / course_lessons) * 100, 1) if course_lessons > 0 else 0.0
         total_lessons_completed += completed
@@ -1159,7 +1302,7 @@ def learner_dashboard(
 
         # Excellence/etablissement : ajouter la matière pour analytics
         if tier in ("excellence", "etablissement"):
-            course_data["matiere"] = course.matiere or ""
+            course_data["matiere"] = course.category or ""
 
         courses.append(course_data)
 
@@ -1169,13 +1312,19 @@ def learner_dashboard(
     daily = get_daily_objective(current_user, db)
 
     # Dashboard selon palier
+    # Correction E6 : quota Freemium réel (compté serveur, tous cours confondus)
+    free_used = _free_lessons_used_this_trimester(current_user.id, db)
     dashboard = {
-        "tier": tier,
+        "tier": pack_tier,
+        "legacy_tier": tier,
         "user_id": current_user.id,
+        "niveau_scolaire": getattr(current_user, "niveau_scolaire", None),
         "total_enrolled_courses": len(enrollments),
         "overall_progress_pct": total_progress,
         "lessons_completed": total_lessons_completed,
         "total_lessons": total_lessons,
+        "free_lessons_used_this_trimester": free_used,
+        "free_lessons_limit": FREE_LESSONS_PER_TRIMESTER,
         "courses": courses,
         "daily_objective": daily,
     }
@@ -1268,3 +1417,94 @@ def daily_objective(
 ):
     """Retourne l'objectif quotidien de l'élève selon son palier."""
     return get_daily_objective(current_user, db)
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# LIVE SESSIONS - Learner View
+# ═══════════════════════════════════════════════════════════════════════
+
+
+@router.get("/live-sessions")
+def list_learner_live_sessions(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List upcoming and live sessions for classes the student is enrolled in."""
+    # Get class IDs where student is enrolled
+    enrolled_class_ids = [
+        e.class_id for e in db.query(StudentEnrollment).filter(
+            StudentEnrollment.student_id == current_user.id,
+            StudentEnrollment.is_active == True,
+        ).all()
+    ]
+    if not enrolled_class_ids:
+        return []
+
+    from sqlalchemy import or_
+    sessions = db.query(LiveSession).filter(
+        LiveSession.class_id.in_(enrolled_class_ids),
+        LiveSession.status.in_(["upcoming", "live"]),
+    ).order_by(LiveSession.scheduled_at.asc()).all()
+
+    result = []
+    for ls in sessions:
+        attendance_count = db.query(func.count(LiveAttendance.id)).filter(
+            LiveAttendance.live_session_id == ls.id
+        ).scalar() or 0
+        class_name = ls.teacher_class.name if ls.teacher_class else None
+        teacher_name = ls.teacher.full_name if ls.teacher else None
+        result.append({
+            "id": ls.id,
+            "teacher_id": ls.teacher_id,
+            "class_id": ls.class_id,
+            "title": ls.title,
+            "description": ls.description,
+            "scheduled_at": ls.scheduled_at,
+            "duration_minutes": ls.duration_minutes,
+            "status": ls.status,
+            "class_name": class_name,
+            "teacher_name": teacher_name,
+            "attendance_count": attendance_count,
+        })
+    return result
+
+
+@router.get("/live-sessions/{session_id}")
+def get_learner_live_session(
+    session_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get details of a live session (student must be enrolled in the class)."""
+    ls = db.query(LiveSession).filter(LiveSession.id == session_id).first()
+    if not ls:
+        raise HTTPException(status_code=404, detail="Live session not found")
+
+    # Verify enrollment
+    enrollment = db.query(StudentEnrollment).filter(
+        StudentEnrollment.student_id == current_user.id,
+        StudentEnrollment.class_id == ls.class_id,
+        StudentEnrollment.is_active == True,
+    ).first()
+    if not enrollment:
+        raise HTTPException(status_code=403, detail="You are not enrolled in this class")
+
+    attendance_count = db.query(func.count(LiveAttendance.id)).filter(
+        LiveAttendance.live_session_id == ls.id
+    ).scalar() or 0
+    class_name = ls.teacher_class.name if ls.teacher_class else None
+    teacher_name = ls.teacher.full_name if ls.teacher else None
+
+    return {
+        "id": ls.id,
+        "teacher_id": ls.teacher_id,
+        "class_id": ls.class_id,
+        "title": ls.title,
+        "description": ls.description,
+        "scheduled_at": ls.scheduled_at,
+        "duration_minutes": ls.duration_minutes,
+        "status": ls.status,
+        "class_name": class_name,
+        "teacher_name": teacher_name,
+        "attendance_count": attendance_count,
+    }

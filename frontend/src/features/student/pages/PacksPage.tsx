@@ -139,12 +139,19 @@ export default function PacksPage() {
   const [configPack, setConfigPack] = useState<Pack | null>(null);
 
   const userNiveau = user?.niveau_scolaire || "";
+  // Écart#1 FIX — un parent n'a pas de niveau scolaire: on liste tous les packs
+  const isParent = user?.role === "parent";
 
   useEffect(() => {
-    if (!userNiveau) return;
+    if (!userNiveau && !isParent) {
+      setLoading(false);
+      return;
+    }
     async function fetchPacks() {
       try {
-        const url = `/api/abonnements/packs?niveau_scolaire=${encodeURIComponent(userNiveau)}`;
+        const url = isParent
+          ? "/api/abonnements/packs"
+          : `/api/abonnements/packs?niveau_scolaire=${encodeURIComponent(userNiveau)}`;
         const data = await api.get(url);
         setPacks(data.items || []);
       } catch (err: any) {

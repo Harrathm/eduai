@@ -44,6 +44,7 @@ class EmbeddingsService:
         self._vectorizers: dict = {}  # per-school vectorizers (kept for compat)
         self._index_cache: dict[int, tuple] = {}  # school_id -> (vectorizer, matrix, doc_count)
         self._doc_hashes: dict[int, int] = {}  # school_id -> hash of doc list (for invalidation)
+        self._doc_mtimes: dict[int, float] = {}  # school_id -> mtime du fichier index au build
 
     def _get_docstore_file(self, school_id: int) -> str:
         return os.path.join(self.index_path, f"school_{school_id}.json")
@@ -128,11 +129,40 @@ class EmbeddingsService:
 
         logger.info(f"Indexed {len(texts)} chunks for school_id={school_id} (total: {len(existing)})")
 
+    @staticmethod
+    def _metadata_matches(
+        meta: dict,
+        niveau_scolaire: Optional[str],
+        matiere: Optional[str],
+    ) -> bool:
+        """Rétrocompatible : un chunk sans métadonnée pédagogique passe toujours le filtre.
+
+        La comparaison est insensible à la casse et aux accents (NFKD) des deux côtés,
+        afin qu'un libellé comme "SVT" / "svt" / "Svt" matche toujours la valeur de l'index.
+        """
+        def _norm(v) -> str:
+            import unicodedata as _ud
+            s = str(v or "").strip()
+            s = "".join(c for c in _ud.normalize("NFKD", s) if not _ud.combining(c))
+            return s.lower()
+
+        if not niveau_scolaire and not matiere:
+            return True
+        doc_niveau = _norm(meta.get("niveau_scolaire"))
+        doc_matiere = _norm(meta.get("matiere"))
+        if niveau_scolaire and doc_niveau and doc_niveau != _norm(niveau_scolaire):
+            return False
+        if matiere and doc_matiere and doc_matiere != _norm(matiere):
+            return False
+        return True
+
     def similarity_search(
         self,
         school_id: int,
         query: str,
         k: int = 10,
+        niveau_scolaire: Optional[str] = None,
+        matiere: Optional[str] = None,
     ) -> List[Document]:
         raw_docs = self._load_docs(school_id)
         if not raw_docs:
@@ -141,11 +171,19 @@ class EmbeddingsService:
         docs = []
         for d in raw_docs:
             if isinstance(d, dict):
-                docs.append(Document(page_content=d["page_content"], metadata=d.get("metadata", {})))
+                doc = Document(page_content=d["page_content"], metadata=d.get("metadata", {}))
             elif hasattr(d, "page_content"):
-                docs.append(Document(page_content=d.page_content, metadata=getattr(d, "metadata", {}) or {}))
+                doc = Document(page_content=d.page_content, metadata=getattr(d, "metadata", {}) or {})
+            else:
+                continue
+            if self._metadata_matches(doc.metadata, niveau_scolaire, matiere):
+                docs.append(doc)
 
         if not docs:
+            logger.info(
+                f"TF-IDF search school_id={school_id}: 0 chunks match filters "
+                f"(niveau_scolaire={niveau_scolaire!r}, matiere={matiere!r})"
+            )
             return []
 
         if not TFIDF_AVAILABLE:
@@ -156,9 +194,23 @@ class EmbeddingsService:
             doc_count = len(corpus)
             doc_hash = hash(tuple(corpus))
 
+            # Mtime du fichier index sur disque : si le fichier a été modifié
+            # après le dernier build (réingestion OCR), on force le rebuild même
+            # si le hash coïncide — évite l'index obsolète en mémoire (uvicorn --reload).
+            try:
+                file_mtime = os.path.getmtime(self._get_docstore_file(school_id))
+            except OSError:
+                file_mtime = None
+            cache_stale_by_mtime = (
+                file_mtime is not None
+                and self._doc_mtimes.get(school_id) is not None
+                and file_mtime > self._doc_mtimes[school_id] + 1e-6
+            )
+
             # Use cached vectorizer + matrix if the document set hasn't changed
             cached = self._index_cache.get(school_id)
-            if cached and self._doc_hashes.get(school_id) == doc_hash:
+            if (cached and self._doc_hashes.get(school_id) == doc_hash
+                    and not cache_stale_by_mtime):
                 vectorizer, tfidf_matrix, _ = cached
                 logger.debug(f"TF-IDF cache hit for school_id={school_id} ({doc_count} docs)")
             else:
@@ -166,13 +218,22 @@ class EmbeddingsService:
                 tfidf_matrix = vectorizer.fit_transform(corpus)
                 self._index_cache[school_id] = (vectorizer, tfidf_matrix, doc_count)
                 self._doc_hashes[school_id] = doc_hash
+                if file_mtime is not None:
+                    self._doc_mtimes[school_id] = file_mtime
                 logger.info(f"TF-IDF index rebuilt for school_id={school_id} ({doc_count} docs)")
 
             query_vec = vectorizer.transform([query])
             scores = cosine_similarity(query_vec, tfidf_matrix).flatten()
             top_indices = scores.argsort()[::-1][:k]
-            results = [docs[i] for i in top_indices if scores[i] > 0.01]
-            logger.info(f"TF-IDF search for school_id={school_id}: {len(results)} results, top_score={scores[top_indices[0]]:.4f}")
+            results = []
+            for i in top_indices:
+                if scores[i] <= 0.01:
+                    continue
+                doc = docs[i]
+                doc.metadata["_score"] = float(scores[i])
+                results.append(doc)
+            top_score = float(scores[top_indices[0]]) if len(top_indices) > 0 else 0.0
+            logger.info(f"TF-IDF search for school_id={school_id}: {len(results)} results, top_score={top_score:.4f}")
             return results
         except Exception as e:
             logger.warning(f"TF-IDF search failed: {e}")
@@ -200,6 +261,7 @@ class EmbeddingsService:
         # Invalidate cached vectorizer
         self._index_cache.pop(school_id, None)
         self._doc_hashes.pop(school_id, None)
+        self._doc_mtimes.pop(school_id, None)
 
     def get_stats(self, school_id: int) -> dict:
         raw_docs = self._load_docs(school_id)

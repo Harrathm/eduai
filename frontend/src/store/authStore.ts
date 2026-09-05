@@ -16,6 +16,7 @@ interface User {
   is_active?: boolean;
   language?: string;
   avatar_url?: string;
+  email_verified?: boolean;
   impersonated_by?: number;
 }
 
@@ -33,11 +34,11 @@ async function authAPI_login(email, password) {
   return res.json();
 }
 
-async function authAPI_register(email, password, full_name, school_name, niveau_scolaire) {
+async function authAPI_register(email, password, full_name, school_name, niveau_scolaire, role?: string) {
   const res = await fetch(`${API_URL}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password, full_name, school_name, niveau_scolaire }),
+    body: JSON.stringify({ email, password, full_name, school_name, niveau_scolaire, ...(role ? { role } : {}) }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -78,6 +79,48 @@ async function authAPI_me(token) {
   });
   if (!res.ok) throw new Error("Failed to get user");
   return res.json();
+}
+
+// FIX #6 — vérification email via le token renvoyé par /auth/register
+// (posture non bloquante : en production ce token serait transmis par email).
+async function authAPI_verifyEmail(token: string) {
+  const res = await fetch(`${API_URL}/auth/verify-email`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail || "Verification failed");
+  return data;
+}
+
+const PENDING_VERIFICATION_KEY = "eduai_pending_email_verification";
+
+function readPendingVerification(): string | null {
+  try {
+    return sessionStorage.getItem(PENDING_VERIFICATION_KEY);
+  } catch {
+    return null;
+  }
+}
+
+// Correction M1 : révoque côté serveur les refresh tokens avant de nettoyer
+// le stockage local. Fire-and-forget : la déconnexion locale ne doit jamais échouer.
+async function authAPI_logout(token?: string | null) {
+  if (!token) return;
+  try {
+    await fetch(`${API_URL}/auth/logout`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({}),
+    });
+  } catch {
+    // réseau indisponible → les refresh tokens expireront naturellement ;
+    // on poursuit quand même la déconnexion locale.
+  }
 }
 
 async function authAPI_switchContext(token: string, role: string) {
@@ -132,6 +175,8 @@ export const useAuthStore = create((set, get) => ({
   token: tokenStorage.getToken(),
   isLoading: false,
   error: null,
+  // FIX #6 — token de vérification en attente (session courante uniquement)
+  verificationToken: readPendingVerification(),
 
   login: async (email, password) => {
     set({ isLoading: true, error: null });
@@ -165,6 +210,9 @@ export const useAuthStore = create((set, get) => ({
   },
 
   logout: () => {
+    const { token } = get();
+    // Correction M1 : révocation serveur des refresh tokens (fire-and-forget)
+    authAPI_logout(token);
     tokenStorage.clearAll();
     set({ token: null, user: null });
   },
@@ -233,20 +281,57 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
-  register: async (email, password, full_name, school_name, niveau_scolaire) => {
+  register: async (email, password, full_name, school_name, niveau_scolaire, role?: string) => {
     set({ isLoading: true, error: null });
     try {
-      const data = await authAPI_register(email, password, full_name, school_name, niveau_scolaire);
+      const data = await authAPI_register(email, password, full_name, school_name, niveau_scolaire, role);
       tokenStorage.setToken(data.access_token);
       if (data.refresh_token) tokenStorage.setRefreshToken(data.refresh_token);
       const user = await authAPI_me(data.access_token);
       user.roles = [user.role];
       user.activeRole = user.role;
+      // FIX #6 — compte actif dès l'inscription ; la vérification est en attente
+      user.email_verified = false;
       tokenStorage.setUser(user);
-      set({ token: data.access_token, user, isLoading: false });
+      let verificationToken: string | null = null;
+      if (data.email_verification_token) {
+        verificationToken = data.email_verification_token;
+        try {
+          sessionStorage.setItem(PENDING_VERIFICATION_KEY, verificationToken);
+        } catch {
+          /* stockage indisponible : le token reste dans l'état du store */
+        }
+      }
+      set({ token: data.access_token, user, isLoading: false, verificationToken });
       return true;
     } catch (err) {
       set({ error: err.message, isLoading: false });
+      return false;
+    }
+  },
+
+  verifyEmail: async (tokenArg?: string) => {
+    const tok = tokenArg || get().verificationToken || readPendingVerification();
+    if (!tok) return false;
+    try {
+      await authAPI_verifyEmail(tok);
+      try { sessionStorage.removeItem(PENDING_VERIFICATION_KEY); } catch { /* noop */ }
+      const { token, user } = get();
+      let updated: User | null = user;
+      if (token) {
+        try {
+          updated = await authAPI_me(token);
+          updated.roles = updated.roles || [updated.role];
+          updated.activeRole = updated.activeRole || updated.role;
+          tokenStorage.setUser(updated);
+        } catch {
+          /* session expirée : on garde l'utilisateur courant */
+        }
+      }
+      if (updated) updated.email_verified = true;
+      set({ verificationToken: null, user: updated });
+      return true;
+    } catch {
       return false;
     }
   },

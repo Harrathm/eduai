@@ -15,7 +15,7 @@ from app.schemas import CompetenceCreate, CompetenceRead
 router = APIRouter(tags=["Module A - Bibliothèque"])
 
 
-@router.get("/bibliotheque/search")
+@router.get("/search")
 def search_elements(
     q: Optional[str] = None,
     type: Optional[str] = None,
@@ -48,7 +48,7 @@ def search_elements(
     return {"total": total, "skip": skip, "limit": limit, "items": items}
 
 
-@router.get("/bibliotheque/competences")
+@router.get("/competences")
 def list_competences(
     matiere: Optional[str] = None,
     niveau_scolaire: Optional[str] = None,
@@ -67,7 +67,7 @@ def list_competences(
     return {"total": total, "skip": skip, "limit": limit, "items": items}
 
 
-@router.post("/bibliotheque/competences", response_model=CompetenceRead)
+@router.post("/competences", response_model=CompetenceRead)
 def create_competence(
     competence_in: CompetenceCreate,
     db: Session = Depends(get_db),
@@ -83,7 +83,7 @@ def create_competence(
     return comp
 
 
-@router.get("/bibliotheque/competences/{competence_id}", response_model=CompetenceRead)
+@router.get("/competences/{competence_id}", response_model=CompetenceRead)
 def get_competence(
     competence_id: int,
     db: Session = Depends(get_db),
@@ -95,7 +95,7 @@ def get_competence(
     return comp
 
 
-@router.delete("/bibliotheque/competences/{competence_id}")
+@router.delete("/competences/{competence_id}")
 def delete_competence(
     competence_id: int,
     db: Session = Depends(get_db),

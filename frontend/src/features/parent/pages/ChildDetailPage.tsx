@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from 'react-i18next';
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { parentAPI, ProgressionData, SuiviData } from "../../../api";
+import { parentAPI, SuiviData, ProgressionData } from "../../../api";
 import { Button, Spinner } from "../../../components/ui";
 import { Wallet, ExternalLink } from "lucide-react";
 

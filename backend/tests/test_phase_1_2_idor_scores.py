@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.models import User, School, NiveauEtude, Matiere, ChapterPathway
+from app.models import User, School, NiveauEtude, Matiere, ChapterPathway, TeacherClass, StudentEnrollment
 from app.core.security import get_password_hash
 
 from tests.conftest import TEST_PASSWORD, TEST_HASH, _login, _auth
@@ -66,6 +66,17 @@ def test_db(_base_session):
     db.add(chapter)
     db.commit()
     db.refresh(chapter)
+
+    # Teacher's class with student_b enrolled (post fix-#4 policy:
+    # a teacher may only score students enrolled in their own classes)
+    tc = TeacherClass(name="Classe Test", teacher_id=teacher.id, school_id=school.id)
+    db.add(tc)
+    db.commit()
+    db.refresh(tc)
+
+    enrollment_b = StudentEnrollment(student_id=student_b.id, class_id=tc.id)
+    db.add(enrollment_b)
+    db.commit()
 
     yield db, school, student_a, student_b, teacher, chapter
 
@@ -140,3 +151,26 @@ def test_03_teacher_can_score_any_student(test_db, client):
     data = resp.json()
     assert data["eleve_id"] == student_b.id
     assert data["score"] == 90.0
+
+
+# ============================================================
+# TEST 4: Teacher CANNOT score a student outside their classes (fix #4)
+# ============================================================
+def test_04_teacher_cannot_score_student_outside_classes(test_db, client):
+    """BEFORE fix #4: teacher could score ANY student (cross-tenant).
+    AFTER fix #4: student_a is not enrolled in the teacher's class → 403."""
+    db, school, student_a, student_b, teacher, chapter = test_db
+
+    token_t = _login(client, "teacher@test.com")
+    headers_t = _auth(token_t)
+
+    resp = client.post("/api/pathway/scores", json={
+        "eleve_id": student_a.id,
+        "chapitre_id": chapter.id,
+        "score": 50.0,
+    }, headers=headers_t)
+
+    assert resp.status_code == 403, (
+        f"Cross-tenant scoring still possible! Got {resp.status_code} instead of 403. "
+        f"Response: {resp.json()}"
+    )

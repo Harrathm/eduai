@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { courseAdmin, chapterAdmin, lessonAdmin } from "../../../api";
 
 export interface Lesson {
@@ -53,6 +53,12 @@ interface Toast {
 
 export function useCourseEditor(courseId: string | undefined) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const basePath = useMemo(() => {
+    if (location.pathname.startsWith("/dashboard/school")) return "/dashboard/school";
+    if (location.pathname.startsWith("/dashboard/teacher")) return "/dashboard/teacher";
+    return "/dashboard/admin";
+  }, [location.pathname]);
   const [course, setCourse] = useState<any>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [loading, setLoading] = useState(true);
@@ -199,13 +205,13 @@ export function useCourseEditor(courseId: string | undefined) {
     try {
       await courseAdmin.duplicate(Number(courseId));
       showToast("Cours dupliqué!");
-      navigate("/dashboard/admin/courses");
+      navigate(basePath === "/dashboard/teacher" ? "/dashboard/teacher/learning" : `${basePath}/courses`);
     } catch (e: any) {
       showToast("Erreur: " + e.message, "error");
     } finally {
       setSaving(false);
     }
-  }, [courseId, navigate, showToast]);
+  }, [courseId, navigate, basePath, showToast]);
 
   const handleAddChapter = useCallback(async () => {
     if (!courseId) return;

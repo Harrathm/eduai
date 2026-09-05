@@ -231,11 +231,23 @@ export const lessonAdmin = {
   list: (moduleId: number) =>
     api.get<Lesson[]>(`/api/admin/lessons?module_id=${moduleId}`),
 
-  listAll: (params?: { search?: string; skip?: number; limit?: number }) => {
+  listAll: (params?: {
+    search?: string;
+    skip?: number;
+    limit?: number;
+    category_cible?: string;
+    niveau_scolaire?: string;
+    matiere?: string;
+    chapitre_id?: number;
+  }) => {
     const sp = new URLSearchParams();
     if (params?.search) sp.set("search", params.search);
-    if (params?.skip) sp.set("skip", String(params.skip));
-    if (params?.limit) sp.set("limit", String(params.limit));
+    if (params?.skip !== undefined) sp.set("skip", String(params.skip));
+    if (params?.limit !== undefined) sp.set("limit", String(params.limit));
+    if (params?.category_cible) sp.set("category_cible", params.category_cible);
+    if (params?.niveau_scolaire) sp.set("niveau_scolaire", params.niveau_scolaire);
+    if (params?.matiere) sp.set("matiere", params.matiere);
+    if (params?.chapitre_id !== undefined) sp.set("chapitre_id", String(params.chapitre_id));
     const qs = sp.toString();
     return api.get<Lesson[]>(`/api/admin/lessons${qs ? `?${qs}` : ""}`);
   },

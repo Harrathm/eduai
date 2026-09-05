@@ -44,6 +44,8 @@ const SchoolCourseDistribution = lazy(() => import("./features/admin/pages/Schoo
 const SuperAdminCourseFactory = lazy(() => import("./features/admin/pages/SuperAdminCourseFactory"));
 const CourseEditorPage = lazy(() => import("./features/admin/pages/CourseEditorPage"));
 const CourseBuilderPage = lazy(() => import("./features/admin/pages/CourseBuilderPage"));
+const CurriculumCoveragePage = lazy(() => import("./features/admin/pages/CurriculumCoveragePage"));
+const AdminLibraryReviewPage = lazy(() => import("./features/admin/pages/AdminLibraryReviewPage"));
 
 // Teacher
 const TeacherDashboard = lazy(() => import("./features/teacher/pages/TeacherDashboard"));
@@ -57,7 +59,9 @@ const TeacherValidationContenuPage = lazy(() => import("./features/teacher/pages
 const TeacherParcoursPage = lazy(() => import("./features/teacher/pages/TeacherParcoursPage"));
 const TeacherElementsPage = lazy(() => import("./features/teacher/pages/TeacherElementsPage"));
 const TeacherBibliothequePage = lazy(() => import("./features/teacher/pages/TeacherBibliothequePage"));
+const TeacherStudentProgressPage = lazy(() => import("./features/teacher/pages/TeacherStudentProgressPage"));
 const TeacherAbonnementsPage = lazy(() => import("./features/teacher/pages/TeacherAbonnementsPage"));
+const TeacherLiveSessions = lazy(() => import("./features/teacher/pages/TeacherLiveSessions"));
 
 // Student
 const StudentDashboard = lazy(() => import("./features/student/pages/StudentDashboard"));
@@ -74,6 +78,7 @@ const MonParcoursPage = lazy(() => import("./features/student/pages/MonParcoursP
 const GamificationPage = lazy(() => import("./features/student/pages/GamificationPage"));
 const StudentAssimilationProfilePage = lazy(() => import("./features/student/pages/StudentAssimilationProfilePage"));
 const MySkillsPage = lazy(() => import("./features/student/pages/MySkillsPage"));
+const LiveSessionRoom = lazy(() => import("./features/student/pages/LiveSessionRoom"));
 
 // Learner
 const LearnerPlayerPage = lazy(() => import("./features/learner/pages/PlayerPage"));
@@ -194,9 +199,11 @@ export default function App() {
               <Route path="audit" element={<AdminAuditLogPage />} />
               <Route path="pedagogical-review" element={<PedagogicalAdminPage />} />
               <Route path="arborescence" element={<AdminArborescencePage />} />
+              <Route path="curriculum-coverage" element={<CurriculumCoveragePage />} />
               <Route path="publication-status" element={<AdminPublicationStatusPage />} />
               <Route path="seuils-config" element={<AdminSeuilsConfigPage />} />
               <Route path="specialites-pedagogiques" element={<AdminSpecialitesPedagogiquesPage />} />
+              <Route path="library-review" element={<AdminLibraryReviewPage />} />
             </Route>
 
             {/* ADMIN_SCHOOL */}
@@ -236,19 +243,30 @@ export default function App() {
                 <RequireRole roles={["teacher", "admin_school"]}><Outlet /></RequireRole>
               }>
                 <Route path="learning" element={<MyLearning />} />
+                <Route path="courses/:courseId/editor" element={<CourseEditorPage />} />
+                <Route path="courses/:courseId/builder" element={<CourseBuilderPage />} />
                 <Route path="classroom" element={<ClassroomManager />} />
+                <Route path="suivi-pedagogique" element={<TeacherStudentProgressPage />} />
                 <Route path="ai-studio" element={<TeacherWriteGuard><TeacherAIStudio /></TeacherWriteGuard>} />
                 <Route path="wallet" element={<TeacherWallet />} />
                 <Route path="sales" element={<TeacherSalesPage />} />
                 <Route path="abonnements" element={<TeacherAbonnementsPage />} />
                 <Route path="reorientations" element={<TeacherWriteGuard><TeacherReorientationPage /></TeacherWriteGuard>} />
-                <Route path="validation-contenu" element={<TeacherWriteGuard><TeacherValidationContenuPage /></TeacherWriteGuard>} />
+                <Route path="validation-contenu" element={
+                  <RequireRole roles={["pedagogical_admin", "pedagogical_lead"]}>
+                    <TeacherValidationContenuPage />
+                  </RequireRole>
+                } />
                 <Route path="parcours" element={<TeacherWriteGuard><TeacherParcoursPage /></TeacherWriteGuard>} />
                 <Route path="elements" element={<TeacherWriteGuard><TeacherElementsPage /></TeacherWriteGuard>} />
                 <Route path="bibliotheque" element={<TeacherBibliothequePage />} />
+                <Route path="live-sessions" element={<TeacherLiveSessions />} />
               </Route>
 
               <Route path="inbox" element={<InboxPage />} />
+
+              {/* Live session join — accessible to teacher + student */}
+              <Route path="live-sessions/:sessionId/join" element={<RequireRole roles={["student", "teacher", "admin_school"]}><LiveSessionRoom /></RequireRole>} />
 
               {/* Student */}
               <Route path="courses" element={<RequireRole roles={["student", "admin_school"]}><CatalogPage /></RequireRole>} />
@@ -256,7 +274,8 @@ export default function App() {
               <Route path="courses/:courseId/lessons/:lessonId" element={<RequireRole roles={["student", "admin_school", "teacher"]}><CoursePlayerPage /></RequireRole>} />
               <Route path="ai-tutor" element={<RequireRole roles={["student", "admin_school", "teacher"]}><LearnerAIChatPage /></RequireRole>} />
               <Route path="wallet" element={<RequireRole roles={["student", "admin_school"]}><StudentWallet /></RequireRole>} />
-              <Route path="packs" element={<RequireRole roles={["student", "admin_school"]}><PacksPage /></RequireRole>} />
+              {/* Écart#1 FIX — "parent" ajouté: le parent achète les packs pour ses enfants */}
+              <Route path="packs" element={<RequireRole roles={["student", "admin_school", "parent"]}><PacksPage /></RequireRole>} />
               <Route path="settings/subscription" element={<RequireRole roles={["student", "admin_school"]}><StudentPackPage /></RequireRole>} />
               <Route path="tier" element={<RequireRole roles={["student", "admin_school"]}><StudentTierPage /></RequireRole>} />
               <Route path="soft-skills" element={<RequireAuth><SoftSkillsCatalogPage /></RequireAuth>} />
@@ -278,10 +297,11 @@ export default function App() {
               </Route>
             </Route>
 
-            {/* Public learner routes */}
-            <Route path="learn/courses" element={<CatalogPage />} />
-            <Route path="learn/courses/:courseId" element={<CoursePlayerPage />} />
-            <Route path="learn/courses/:courseId/lessons/:lessonId" element={<CoursePlayerPage />} />
+            {/* Learner routes — SECURITY FIX #8 : RequireAuth obligatoire.
+                L'UpsellModal est montée localement dans CoursePlayerPage (fix E2). */}
+            <Route path="learn/courses" element={<RequireAuth><CatalogPage /></RequireAuth>} />
+            <Route path="learn/courses/:courseId" element={<RequireAuth><CoursePlayerPage /></RequireAuth>} />
+            <Route path="learn/courses/:courseId/lessons/:lessonId" element={<RequireAuth><CoursePlayerPage /></RequireAuth>} />
 
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="*" element={<Navigate to="/login" replace />} />

@@ -78,10 +78,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   TextFormField(
                     controller: _fullNameController,
                     textCapitalization: TextCapitalization.words,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: 'Full Name',
-                      prefixIcon: const Icon(Icons.person_outlined),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      prefixIcon: Icon(Icons.person_outlined),
                     ),
                     validator: (v) => (v == null || v.trim().isEmpty) ? 'Name required' : null,
                   ),
@@ -89,10 +88,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: 'Email',
-                      prefixIcon: const Icon(Icons.email_outlined),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      prefixIcon: Icon(Icons.email_outlined),
                     ),
                     validator: (v) {
                       if (v == null || v.trim().isEmpty) return 'Email required';
@@ -111,7 +109,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
                         onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                       ),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     validator: (v) {
                       if (v == null || v.isEmpty) return 'Password required';
@@ -130,7 +127,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         icon: Icon(_obscureConfirm ? Icons.visibility_outlined : Icons.visibility_off_outlined),
                         onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
                       ),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     validator: (v) {
                       if (v != _passwordController.text) return 'Passwords do not match';
@@ -143,12 +139,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       final isLoading = state is AuthLoading;
                       return ElevatedButton(
                         onPressed: isLoading ? null : _handleRegister,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0D1B2A),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
                         child: isLoading
                             ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                             : const Text('Sign Up', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),

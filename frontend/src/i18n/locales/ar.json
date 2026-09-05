@@ -33,7 +33,9 @@
     "tier_gratuit": "مجاني",
     "tier_basique": "أساسي",
     "tier_silver": "فضي",
-    "tier_golden": "ذهبي"
+    "tier_golden": "ذهبي",
+    "next": "التالي",
+    "previous": "السابق"
   },
   "auth": {
     "loginTitle": "مرحباً بعودتك",
@@ -214,7 +216,16 @@
     "trialInfo": "تجربة: 100 ائتمان مجاني عند التسجيل (30 يوماً)",
     "subscriptionInfo": "اشتراك: 200 ائتمان/شهر مضمن في خطتك",
     "schoolInfo": "المدرسة: مخصصة من قبل إدارة مدرستك",
-    "purchasedInfo": "مشتراة: اشترِ عبر Stripe (دفع آمن)"
+    "purchasedInfo": "مشتراة: اشترِ عبر Stripe (دفع آمن)",
+    "howToGetCredits": "كيفية الحصول على أرصدة",
+    "poolPurchased": "احتياطي الشراء",
+    "poolPurchasedDesc": "الأرصدة المشتراة",
+    "poolSchool": "احتياطي المدرسة",
+    "poolSchoolDesc": "الأرصدة المخصصة من مدرستك",
+    "poolSubscription": "احتياطي الاشتراك",
+    "poolSubscriptionDesc": "الأرصدة من اشتراكك",
+    "poolTrial": "احتياطي التجربة",
+    "poolTrialDesc": "أرصدة التجربة المجانية"
   },
   "pack": {
     "title": "الباقة",
@@ -232,6 +243,8 @@
     "access": "الوصول",
     "expiration": "انتهاء الصلاحية",
     "includedFeatures": "الميزات المشمولة",
+    "noActivePack": "لا يوجد اشتراك نشط",
+    "noActivePackDesc": "ليس لديك اشتراك نشط لمستواك الحالي. يرجى اختيار اشتراك أدناه.",
     "changePack": "تغيير الباقة",
     "active": "نشط",
     "program": "البرنامج",
@@ -243,470 +256,442 @@
     "current": "الحالي",
     "loadError": "خطأ في التحميل",
     "changeError": "خطأ في التغيير",
-    "cancelError": "خطأ في الإلغاء"
+    "cancelError": "خطأ في الإلغاء",
+    "accessLabel": "الوصول",
+    "cancel": "إلغاء",
+    "expirationLabel": "ينتهي في",
+    "graceEndsOn": "ينتهي في",
+    "gracePeriodActive": "فترة سماح نشطة",
+    "gracePeriodDesc": "لديك فترة سماح 7 أيام",
+    "loadingError": "خطأ في التحميل",
+    "niveauLabel": "المستوى",
+    "noPacksAvailable": "لا توجد باقات متاحة",
+    "noPacksForLevel": "لا توجد باقات لهذا المستوى",
+    "on": "في",
+    "packLabel": "الباقة",
+    "scheduled": "مجدول",
+    "scheduledChangeNote": "سيتم التطبيق عند انتهاء الباقة الحالية"
   },
   "profile": {
     "title": "ملفي الشخصي",
     "subtitle": "إدارة تفضيلاتك",
     "info": "المعلومات",
-    "saved": "تم الحفظ!"
+    "saved": "تم الحفظ!",
+    "niveau": "المستوى المدرسي"
   },
   "admin": {
+    "sidebar": {
+      "dashboard": "لوحة القيادة",
+      "users": "المستخدمون",
+      "schools": "المدارس",
+      "courseDistribution": "توزيع الدورات",
+      "teacherCatalog": "كتالوج المعلمين",
+      "courses": "الدورات",
+      "reviewPedago": "المراجعة التربوية",
+      "libraryReview": "التحقق من المكتبة",
+      "arborescence": "الهيكل الشجري",
+      "curriculumCoverage": "تغطية المنهج",
+      "publicationStatus": "حالة النشر",
+      "finance": "المالية",
+      "analytics": "التحليلات",
+      "teacherQueue": "قائمة المعلمين",
+      "tokenPackages": "حزم الرموز",
+      "inviteCodes": "أكواد الدعوة",
+      "auditLog": "سجل التدقيق",
+      "thresholdsConfig": "إعداد الحدود",
+      "specialitesPedago": "التخصصات التربوية",
+      "aiFactory": "مصنع الذكاء الاصطناعي",
+      "broadcast": "البث",
+      "inbox": "صندوق الوارد",
+      "settings": "الإعدادات",
+      "profile": "الملف الشخصي",
+      "logout": "تسجيل الخروج"
+    },
+    "curriculumCoverage": {
+      "subtitle": "تصور تقدم إنشاء المحتوى مقارنة بالمنهج الرسمي",
+      "level": "المستوى الدراسي",
+      "selectLevel": "اختر مستوى",
+      "subject": "المادة",
+      "allSubjects": "جميع المواد",
+      "totalSubjects": "المواد",
+      "totalChapters": "الفصول",
+      "totalNotions": "المفاهيم",
+      "globalCoverage": "التغطية العامة",
+      "notionsCovered": "مفاهيم",
+      "noData": "لا توجد بيانات تغطية",
+      "selectPrompt": "اختر مستوى لعرض تغطية المنهج",
+      "noChapters": "لم يتم تعريف فصول لهذه المادة",
+      "done": "مكتمل",
+      "todo": "غير مكتمل",
+      "generateMissing": "إنشاء المحتوى المفقود"
+    },
     "courses": {
-      "title": "الدروس",
-      "titleSuffix": "الإدارة",
-      "subtitle": "{{count}} درس على المنصة",
-      "btnNew": "درس جديد",
-      "free": "مجاني",
-      "currency": "دينار تونسي",
-      "loading": "جارٍ التحميل...",
-      "status": {
-        "draft": "مسودة",
-        "published": "منشور",
-        "archived": "مؤرشف",
-        "pending": "قيد الانتظار"
-      },
-      "pedagogicalStatus": {
-        "draft": "مسودة",
-        "pending_review": "قيد المراجعة",
-        "rejected": "مرفوض",
-        "approved_for_platform": "موافق عليه (المنصة)",
-        "approved_for_b2b": "موافق عليه (B2B)",
-        "revision_requested": "مطلوب مراجعة"
-      },
-      "level": {
-        "beginner": "مبتدئ",
-        "intermediate": "متوسط",
-        "advanced": "متقدم"
-      },
-      "owner": {
-        "school": "المدرسة",
-        "independent_teacher": "معلم مستقل",
-        "eduai_catalog": "كتالوج EDUAI"
-      },
-      "visibility": {
-        "public": "عام",
-        "private": "خاص",
-        "school": "حسب المدرسة",
-        "role": "حسب الدور"
-      },
-      "enrollment": {
-        "open": "تسجيل حر",
-        "manual": "يدوي"
-      },
-      "kpi": {
-        "total": "الإجمالي",
-        "published": "المنشورة",
-        "draft": "المسودات",
-        "inReview": "قيد المراجعة",
-        "archived": "المؤرشفة"
-      },
-      "filter": {
-        "searchPlaceholder": "البحث في الدروس...",
-        "allStatus": "جميع الحالات",
-        "allCategories": "جميع الفئات",
-        "allLevels": "جميع المستويات",
-        "allPedagogicalStatus": "جميع الحالات التربوية"
-      },
-      "table": {
-        "colTitle": "الدرس",
-        "colStatus": "الحالة",
-        "colContent": "المحتوى",
-        "colPedagogical": "الحالة التربوية",
-        "colOwner": "المالك",
-        "colPrice": "السعر",
-        "colActions": "الإجراءات",
-        "chapters": "فصول",
-        "lessons": "دروس"
-      },
       "btn": {
+        "archive": "أرشفة",
+        "createNew": "إنشاء دورة",
+        "delete": "حذف",
+        "duplicate": "تكرار",
         "edit": "تعديل",
         "preview": "معاينة",
-        "duplicate": "نسخ",
-        "unpublish": "إلغاء النشر",
         "publish": "نشر",
-        "archive": "أرشفة",
-        "submitReview": "إرسال للمراجعة",
-        "delete": "حذف",
         "retry": "إعادة المحاولة",
-        "createNew": "إنشاء درس"
+        "submitReview": "إرسال للمراجعة",
+        "unpublish": "إلغاء النشر"
       },
+      "btnNew": "دورة جديدة",
+      "currency": "د.ت",
       "empty": {
-        "noResults": "لم يتم العثور على دروس",
-        "noResultsDesc": "لا توجد دروس تطابق فلاترها. حاول تعديل معاييرك.",
-        "startCreate": "ابدأ بإنشاء أول درس لك."
+        "noResults": "لا توجد نتائج",
+        "noResultsDesc": "لا توجد دورات تطابق بحثك",
+        "startCreate": "ابدأ بإنشاء دورة"
       },
-      "toast": {
-        "published": "تم نشر الدرس بنجاح",
-        "unpublished": "تم إلغاء نشر الدرس",
-        "publishBlocked": "تم حظر النشر: حقول مطلوبة مفقودة (العنوان، الوصف، الفصول، الدروس)",
-        "submittedReview": "تم إرسال الدرس للمراجعة التربوية",
-        "archived": "تم أرشفة الدرس",
-        "duplicated": "تم نسخ الدرس بنجاح",
-        "deleted": "تم حذف الدرس",
-        "created": "تم إنشاء الدرس بنجاح"
+      "enrollment": {
+        "manual": "تسجيل يدوي",
+        "open": "تسجيل مفتوح"
       },
       "errors": {
-        "loadFailed": "فشل تحميل الدروس. يرجى المحاولة مرة أخرى.",
-        "previewFailed": "فشل تحميل المعاينة"
+        "loadFailed": "خطأ في التحميل",
+        "previewFailed": "خطأ في المعاينة"
+      },
+      "filter": {
+        "allCategories": "جميع الفئات",
+        "allLevels": "جميع المستويات",
+        "allPedagogicalStatus": "جميع الحالات التربوية",
+        "allStatus": "جميع الحالات",
+        "searchPlaceholder": "البحث عن دورة..."
+      },
+      "free": "مجاني",
+      "kpi": {
+        "archived": "مؤرشفة",
+        "draft": "مسودات",
+        "inReview": "قيد المراجعة",
+        "published": "منشورة",
+        "total": "المجموع"
+      },
+      "level": {
+        "advanced": "متقدم",
+        "beginner": "مبتدئ",
+        "intermediate": "متوسط"
       },
       "modal": {
         "confirmDelete": {
-          "title": "حذف الدرس",
-          "message": "حذف \"{{name}}\"؟ هذا الإجراء لا يمكن التراجع عنه.",
-          "confirm": "حذف"
-        },
-        "preview": {
-          "title": "معاينة الدرس",
-          "chapters": "الفصول",
-          "lessons": "الدروس",
-          "duration": "المدة",
-          "prerequisites": "المتطلبات السابقة",
-          "objectives": "الأهداف التعليمية",
-          "program": "برنامج الدرس"
+          "confirm": "حذف",
+          "message": "هل أنت متأكد من حذف هذه الدورة؟",
+          "title": "تأكيد الحذف"
         },
         "create": {
-          "title": "إنشاء درس",
-          "titleLabel": "العنوان *",
-          "titlePlaceholder": "عنوان الدرس",
-          "descLabel": "وصف قصير",
-          "descPlaceholder": "ملخص الدرس في بضع أسطر",
-          "fullDescLabel": "الوصف الكامل",
-          "categoryLabel": "الفئة",
-          "categoryPlaceholder": "مثال: علوم الحاسوب",
-          "levelLabel": "المستوى",
-          "visibilityLabel": "الرؤية",
-          "enrollmentLabel": "التسجيل",
-          "tagsLabel": "الوسوم (مفصولة بفاصلة)",
-          "tagsPlaceholder": "بايثون، مبتدئ، برمجة",
-          "prereqLabel": "المتطلبات السابقة",
-          "prereqPlaceholder": "المعرفة المطلوبة قبل دراسة هذا الدرس",
-          "objectivesLabel": "الأهداف التعليمية",
-          "objectivesPlaceholder": "ما سيتمكن المتعلمون من فعله بنهاية الدرس",
           "btnCancel": "إلغاء",
           "btnCreate": "إنشاء",
+          "descLabel": "وصف قصير",
+          "descPlaceholder": "وصف في سطر واحد",
+          "enrollmentLabel": "طريقة التسجيل",
+          "fullDescLabel": "وصف كامل",
+          "levelLabel": "المستوى",
+          "objectivesLabel": "الأهداف",
+          "objectivesPlaceholder": "أهداف التعلم",
+          "prereqLabel": "المتطلبات السابقة",
+          "prereqPlaceholder": "لا توجد متطلبات",
+          "tagsLabel": "الوسوم",
+          "tagsPlaceholder": "وسم1، وسم2",
+          "title": "إنشاء دورة",
+          "titleLabel": "عنوان الدورة",
+          "titlePlaceholder": "مثال: مقدمة في الفيزياء",
           "validation": {
-            "titleRequired": "العنوان مطلوب",
-            "niveauRequired": "المستوى الدراسي مطلوب لدروس المدرسة",
-            "categoryRequired": "المادة (الفئة) مطلوبة لدروس المدرسة"
-          }
+            "categoryRequired": "الفئة مطلوبة",
+            "niveauRequired": "المستوى مطلوب",
+            "titleRequired": "العنوان مطلوب"
+          },
+          "visibilityLabel": "الظهور"
+        },
+        "preview": {
+          "chapters": "الفصول",
+          "duration": "المدة",
+          "lessons": "الدروس",
+          "objectives": "الأهداف",
+          "prerequisites": "المتطلبات السابقة",
+          "program": "البرنامج",
+          "title": "معاينة الدورة"
         }
-      }
+      },
+      "pedagogicalStatus": {
+        "approved_for_b2b": "معتمد للشركات",
+        "approved_for_platform": "معتمد للمنصة",
+        "draft": "مسودة",
+        "pending_review": "في انتظار المراجعة",
+        "rejected": "مرفوض",
+        "revision_requested": "تم طلب التعديل"
+      },
+      "status": {
+        "archived": "مؤرشف",
+        "draft": "مسودة",
+        "published": "منشور"
+      },
+      "subtitle": "إدارة كتالوج الدورات",
+      "table": {
+        "chapters": "فصول",
+        "colActions": "الإجراءات",
+        "colContent": "المحتوى",
+        "colOwner": "المالك",
+        "colPedagogical": "تربوي",
+        "colPrice": "السعر",
+        "colStatus": "الحالة",
+        "colTitle": "العنوان",
+        "lessons": "دروس"
+      },
+      "title": "إدارة الدورات",
+      "toast": {
+        "archived": "تم أرشفة الدورة",
+        "created": "تم إنشاء الدورة بنجاح",
+        "deleted": "تم حذف الدورة",
+        "duplicated": "تم تكرار الدورة",
+        "publishBlocked": "تم حظر النشر",
+        "published": "تم نشر الدورة",
+        "submittedReview": "تم الإرسال للمراجعة",
+        "unpublished": "تم إلغاء نشر الدورة"
+      },
+      "visibility": {
+        "private": "خاص",
+        "public": "عام",
+        "role": "دور",
+        "school": "مدرسة"
+      },
+      "titleSuffix": ""
     },
-    "users": {
-      "title": "المستخدمون",
-      "titleSuffix": "الإدارة",
-      "subtitle": "{{count}} مستخدم إجمالاً",
-      "loading": "جارٍ التحميل...",
-      "btnNew": "إضافة مستخدم",
-      "btnExport": "تصدير CSV",
-      "btnRetry": "إعادة المحاولة",
-      "roles": {
-        "student": "طالب",
-        "teacher": "معلم",
-        "admin_school": "مدير المدرسة",
-        "pedagogical_admin": "مسؤول تربوي (المنصة)",
-        "pedagogical_lead": "مسؤول تربوي (المدرسة)",
-        "super_admin": "مدير عام"
+    "dashboard": {
+      "btn": {
+        "retry": "إعادة المحاولة"
+      },
+      "chart": {
+        "apiCostSubtitle": "تكاليف API لـ {{period}}",
+        "apiCostTitle": "تكاليف API",
+        "cost": "التكلفة",
+        "costDT": "التكلفة (د.ت)",
+        "enrollmentSubtitle": "التسجيلات لـ {{period}}",
+        "enrollmentTitle": "التسجيلات",
+        "noApiCostData": "لا توجد بيانات تكلفة API",
+        "noEnrollmentData": "لا توجد بيانات تسجيل",
+        "registrations": "التسجيلات"
+      },
+      "period": {
+        "7d": "7 أيام",
+        "30d": "30 يومًا",
+        "90d": "90 يومًا",
+        "12m": "12 شهرًا"
+      },
+      "empty": {
+        "noData": "لا توجد بيانات متاحة",
+        "noPlanData": "لا توجد بيانات اشتراك"
+      },
+      "errors": {
+        "loadFailed": "خطأ في التحميل"
+      },
+      "kpi": {
+        "activeUsers": "المستخدمون النشطون",
+        "afterAiCosts": "بعد تكاليف الذكاء الاصطناعي",
+        "aiCost": "تكلفة الذكاء الاصطناعي",
+        "annualRunRate": "معدل التشغيل السنوي",
+        "conversion": "التحويل",
+        "estProfit": "الربح المقدر",
+        "freeToPaid": "مجاني → مدفوع",
+        "ofTotal": "من الإجمالي",
+        "published": "المنشورة",
+        "students": "التلاميذ",
+        "teachers": "المعلمون",
+        "tokensSold": "الرموز المباعة",
+        "totalCourses": "إجمالي الدورات",
+        "totalRevenue": "إجمالي الإيرادات",
+        "totalUsers": "إجمالي المستخدمين"
+      },
+      "section": {
+        "planDistribution": "توزيع الاشتراكات",
+        "quickStats": "إحصائيات سريعة",
+        "topSchools": "أفضل المدارس",
+        "userDistribution": "توزيع المستخدمين"
+      },
+      "stats": {
+        "pendingCourses": "الدورات المعلقة",
+        "publishedCourses": "الدورات المنشورة",
+        "teacherRegistrations": "تسجيلات المعلمين",
+        "totalTransactions": "إجمالي المعاملات"
+      },
+      "subtitle": "نظرة عامة على المنصة",
+      "table": {
+        "colRevenue": "الإيرادات",
+        "colSchool": "المدرسة",
+        "colShare": "الحصة"
+      },
+      "title": "لوحة",
+      "titleSuffix": ""
+    },
+    "schools": {
+      "btn": {
+        "delete": "حذف",
+        "edit": "تعديل"
+      },
+      "btnExport": "تصدير",
+      "btnNew": "مدرسة جديدة",
+      "deleteModal": {
+        "confirm": "حذف",
+        "message": "هل أنت متأكد من حذف هذه المدرسة؟",
+        "title": "تأكيد الحذف"
+      },
+      "empty": {
+        "noMatch": "لا توجد مدارس مطابقة",
+        "noSchools": "لا توجد مدارس"
+      },
+      "filter": {
+        "allPlans": "جميع الخطط",
+        "allStatus": "جميع الحالات",
+        "resultsFor": "نتائج لـ",
+        "searchPlaceholder": "البحث عن مدرسة..."
+      },
+      "kpi": {
+        "active": "نشط",
+        "freeTier": "مجاني",
+        "institution": "مؤسسة",
+        "total": "المجموع"
+      },
+      "loading": "جاري التحميل...",
+      "modal": {
+        "activeLabel": "نشط",
+        "btnCancel": "إلغاء",
+        "btnCreate": "إنشاء",
+        "btnSave": "حفظ",
+        "createTitle": "إنشاء مدرسة",
+        "domainLabel": "المجال",
+        "editTitle": "تعديل المدرسة",
+        "maxUsersLabel": "الحد الأقصى للمستخدمين",
+        "nameLabel": "اسم المدرسة",
+        "planLabel": "الاشتراك"
       },
       "status": {
         "active": "نشط",
         "inactive": "غير نشط"
       },
-      "kpi": {
-        "total": "إجمالي المستخدمين",
-        "active": "المستخدمون النشطون",
-        "ofTotal": "من {{count}} إجمالي",
-        "tokens": "الرموز في النظام",
-        "dt": "الدينار في النظام"
+      "subtitle": "إدارة المدارس الشريكة",
+      "table": {
+        "colActions": "الإجراءات",
+        "colCreated": "تاريخ الإنشاء",
+        "colMaxUsers": "الحد الأقصى",
+        "colPlan": "الاشتراك",
+        "colSchool": "المدرسة",
+        "colStatus": "الحالة"
+      },
+      "title": "إدارة",
+      "titleSuffix": "المدارس",
+      "toast": {
+        "created": "تم إنشاء المدرسة",
+        "deleted": "تم حذف المدرسة",
+        "loadFailed": "خطأ في التحميل",
+        "updated": "تم تحديث المدرسة"
+      },
+      "unlimited": "غير محدود"
+    },
+    "users": {
+      "balanceModal": {
+        "amount": "المبلغ",
+        "btnCancel": "إلغاء",
+        "btnConfirm": "تأكيد",
+        "tokens": "الرموز",
+        "user": "المستخدم"
+      },
+      "btn": {
+        "addTokens": "إضافة رموز",
+        "changeRole": "تغيير الدور",
+        "delete": "حذف",
+        "edit": "تعديل",
+        "retry": "إعادة المحاولة"
+      },
+      "btnExport": "تصدير",
+      "btnNew": "مستخدم جديد",
+      "createModal": {
+        "btnCancel": "إلغاء",
+        "btnCreate": "إنشاء",
+        "emailLabel": "البريد الإلكتروني",
+        "emailPlaceholder": "user@school.edu",
+        "fullNameLabel": "الاسم الكامل",
+        "fullNamePlaceholder": "محمد أحمد",
+        "noSchool": "لا توجد مدرسة",
+        "passwordLabel": "كلمة المرور",
+        "passwordPlaceholder": "••••••••",
+        "roleLabel": "الدور",
+        "schoolInfo": "اختر مدرسة المستخدم",
+        "schoolLabel": "المدرسة",
+        "title": "إنشاء مستخدم"
+      },
+      "deleteModal": {
+        "confirm": "حذف",
+        "message": "هل أنت متأكد من حذف هذا المستخدم؟",
+        "title": "تأكيد الحذف"
+      },
+      "editModal": {
+        "active": "نشط",
+        "approved": "معتمد",
+        "btnCancel": "إلغاء",
+        "btnSave": "حفظ",
+        "email": "البريد الإلكتروني",
+        "fullName": "الاسم الكامل",
+        "role": "الدور",
+        "title": "تعديل المستخدم"
+      },
+      "empty": {
+        "noMatch": "لا توجد نتائج",
+        "noUsers": "لا يوجد مستخدمون"
+      },
+      "errors": {
+        "createFailed": "خطأ في الإنشاء",
+        "loadFailed": "خطأ في التحميل"
       },
       "filter": {
-        "searchPlaceholder": "البحث بالاسم أو البريد...",
         "allRoles": "جميع الأدوار",
-        "students": "الطلاب",
-        "teachers": "المعلمون",
         "allStatus": "جميع الحالات",
-        "resultsFor": "نتائج البحث عن \"{{query}}\""
+        "resultsFor": "نتائج لـ",
+        "searchPlaceholder": "البحث عن مستخدم...",
+        "students": "التلاميذ",
+        "teachers": "المعلمون"
       },
+      "kpi": {
+        "active": "نشط",
+        "dt": "د.ت",
+        "ofTotal": "من الإجمالي",
+        "tokens": "الرموز",
+        "total": "المجموع"
+      },
+      "loading": "جاري التحميل...",
+      "roleModal": {
+        "btnCancel": "إلغاء",
+        "btnSave": "حفظ",
+        "title": "تغيير الدور"
+      },
+      "roles": {
+        "admin_school": "مدير المدرسة",
+        "pedagogical_admin": "مدير تربوي",
+        "pedagogical_lead": "مسؤول تربوي",
+        "student": "تلميذ",
+        "super_admin": "مدير عام",
+        "teacher": "معلم"
+      },
+      "status": {
+        "active": "نشط",
+        "inactive": "غير نشط"
+      },
+      "subtitle": "إدارة حسابات المستخدمين",
       "table": {
-        "colUser": "المستخدم",
+        "colActions": "الإجراءات",
+        "colBalance": "الرصيد",
+        "colJoined": "تاريخ الانضمام",
         "colRole": "الدور",
         "colSchool": "المدرسة",
         "colStatus": "الحالة",
         "colTokens": "الرموز",
-        "colBalance": "الرصيد (دينار)",
-        "colJoined": "تاريخ الانضمام",
-        "colActions": "الإجراءات"
+        "colUser": "المستخدم"
       },
-      "btn": {
-        "edit": "تعديل",
-        "addTokens": "إضافة رموز",
-        "changeRole": "تغيير الدور",
-        "delete": "حذف",
-        "retry": "إعادة المحاولة"
-      },
-      "empty": {
-        "noMatch": "لا يوجد مستخدمون يطابقون \"{{query}}\"",
-        "noUsers": "لم يتم العثور على مستخدمين"
-      },
+      "title": "إدارة",
+      "titleSuffix": "المستخدمين",
       "toast": {
-        "deactivated": "تم تعطيل {{name}}",
-        "activated": "تم تنشيط {{name}}",
-        "added": "تمت إضافة {{amount}} {{type}} إلى",
-        "deducted": "تم خصم {{amount}} {{type}} من",
-        "roleChanged": "تم تغيير الدور إلى {{role}}",
-        "updated": "تم تحديث المستخدم",
+        "created": "تم إنشاء المستخدم",
         "deleted": "تم حذف المستخدم",
-        "created": "تم إنشاء المستخدم بنجاح"
-      },
-      "errors": {
-        "loadFailed": "فشل تحميل المستخدمين. يرجى المحاولة مرة أخرى.",
-        "createFailed": "فشل إنشاء المستخدم"
-      },
-      "balanceModal": {
-        "addTitle": {
-          "tokens": "إضافة رموز",
-          "dt": "إضافة دينار"
-        },
-        "deductTitle": {
-          "tokens": "خصم رموز",
-          "dt": "خصم دينار"
-        },
-        "user": "المستخدم",
-        "current": "الحالي: {{balance}}",
-        "tokens": "الرموز",
-        "mode": {
-          "add": "+ إضافة",
-          "deduct": "− خصم"
-        },
-        "amount": "المبلغ",
-        "btnCancel": "إلغاء",
-        "btnConfirm": "تأكيد"
-      },
-      "roleModal": {
-        "title": "تغيير دور المستخدم",
-        "btnCancel": "إلغاء",
-        "btnSave": "حفظ"
-      },
-      "editModal": {
-        "title": "تعديل المستخدم",
-        "fullName": "الاسم الكامل",
-        "email": "البريد الإلكتروني",
-        "role": "الدور",
-        "active": "نشط",
-        "approved": "موافق عليه",
-        "btnCancel": "إلغاء",
-        "btnSave": "حفظ التغييرات",
-        "saving": "جارٍ الحفظ..."
-      },
-      "deleteModal": {
-        "title": "حذف المستخدم",
-        "message": "هل أنت متأكد من حذف {{name}}؟ هذا الإجراء لا يمكن التراجع عنه.",
-        "confirm": "حذف"
-      },
-      "createModal": {
-        "title": "إضافة مستخدم",
-        "emailLabel": "البريد الإلكتروني *",
-        "emailPlaceholder": "user@eduai.tn",
-        "passwordLabel": "كلمة المرور *",
-        "passwordPlaceholder": "كلمة المرور",
-        "fullNameLabel": "الاسم الكامل",
-        "fullNamePlaceholder": "الاسم واللقب",
-        "roleLabel": "الدور",
-        "schoolLabel": "المدرسة",
-        "noSchool": "— لا مدرسة —",
-        "schoolInfo": "سيتم ربط المستخدم بالمدرسة والاستفادة من حقوق اشتراكها.",
-        "btnCancel": "إلغاء",
-        "btnCreate": "إنشاء المستخدم",
-        "creating": "جارٍ الإنشاء..."
-      }
-    },
-    "dashboard": {
-      "title": "المنصة",
-      "titleSuffix": "نظرة عامة",
-      "subtitle": "مقاييس الأداء في الوقت الفعلي",
-      "period": {
-        "7d": "7 أيام",
-        "30d": "30 يوماً",
-        "90d": "90 يوماً",
-        "12m": "12 شهراً"
-      },
-      "btn": {
-        "retry": "إعادة المحاولة"
-      },
-      "kpi": {
-        "totalRevenue": "إجمالي الإيرادات",
-        "totalUsers": "إجمالي المستخدمين",
-        "students": "طالب",
-        "teachers": "معلم",
-        "tokensSold": "الرموز المباعة",
-        "aiCost": "تكلفة الذكاء الاصطناعي",
-        "totalCourses": "إجمالي الدروس",
-        "published": "المنشورة",
-        "annualRunRate": "المعدل السنوي",
-        "activeUsers": "المستخدمون النشطون",
-        "ofTotal": "من {{count}} إجمالي",
-        "conversion": "التحويل",
-        "freeToPaid": "مجاني إلى مدفوع",
-        "estProfit": "الربح المقدر",
-        "afterAiCosts": "بعد تكاليف الذكاء الاصطناعي"
-      },
-      "chart": {
-        "enrollmentTitle": "التسجيلات الجديدة",
-        "enrollmentSubtitle": "التسجيلات اليومية ({{period}})",
-        "noEnrollmentData": "لا توجد بيانات تسجيل",
-        "registrations": "التسجيلات",
-        "apiCostTitle": "تكاليف API الذكاء الاصطناعي",
-        "apiCostSubtitle": "تكلفة الاستهلاك اليومي ({{period}})",
-        "noApiCostData": "لا توجد بيانات تكلفة API",
-        "cost": "التكلفة",
-        "costDT": "التكلفة (دينار)"
-      },
-      "section": {
-        "userDistribution": "توزيع المستخدمين",
-        "planDistribution": "توزيع الخطط",
-        "quickStats": "إحصائيات سريعة",
-        "topSchools": "أفضل المدارس حسب الإيرادات"
-      },
-      "stats": {
-        "pendingCourses": "دروس معلقة",
-        "publishedCourses": "دروس منشورة",
-        "totalTransactions": "إجمالي المعاملات",
-        "teacherRegistrations": "تسجيلات المعلمون"
-      },
-      "table": {
-        "colSchool": "المدرسة",
-        "colRevenue": "الإيرادات (دينار)",
-        "colShare": "النسبة"
-      },
-      "empty": {
-        "noData": "لا توجد بيانات متاحة",
-        "noPlanData": "لا توجد بيانات خطط"
-      },
-      "errors": {
-        "loadFailed": "فشل تحميل البيانات. يرجى المحاولة مرة أخرى."
-      }
-    },
-    "schools": {
-      "title": "المدارس",
-      "titleSuffix": "المستأجرون",
-      "subtitle": "{{count}} مدرسة على المنصة",
-      "loading": "جارٍ التحميل...",
-      "btnNew": "مدرسة جديدة",
-      "btnExport": "تصدير",
-      "unlimited": "غير محدود",
-      "kpi": {
-        "total": "إجمالي المدارس",
-        "active": "النشطة",
-        "freeTier": "المستوى المجاني",
-        "institution": "المؤسسة"
-      },
-      "filter": {
-        "searchPlaceholder": "البحث عن مدرسة...",
-        "allPlans": "جميع الخطط",
-        "allStatus": "جميع الحالات",
-        "resultsFor": "نتائج البحث عن \"{{query}}\""
-      },
-      "status": {
-        "active": "نشط",
-        "inactive": "غير نشط"
-      },
-      "table": {
-        "colSchool": "المدرسة",
-        "colPlan": "الخطة",
-        "colMaxUsers": "الحد الأقصى للمستخدمين",
-        "colStatus": "الحالة",
-        "colCreated": "تاريخ الإنشاء",
-        "colActions": "الإجراءات"
-      },
-      "btn": {
-        "edit": "تعديل",
-        "delete": "حذف"
-      },
-      "empty": {
-        "noMatch": "لا توجد مدارس تطابق \"{{query}}\"",
-        "noSchools": "لم يتم العثور على مدارس"
-      },
-      "toast": {
-        "loadFailed": "فشل تحميل المدارس",
-        "updated": "تم تحديث المدرسة",
-        "created": "تم إنشاء المدرسة",
-        "deleted": "تم حذف المدرسة"
-      },
-      "deleteModal": {
-        "title": "حذف المدرسة",
-        "message": "حذف \"{{name}}\"؟ سيتم فقدان جميع المستخدمين والبيانات.",
-        "confirm": "حذف"
-      },
-      "modal": {
-        "editTitle": "تعديل المدرسة",
-        "createTitle": "إنشاء مدرسة",
-        "nameLabel": "الاسم *",
-        "domainLabel": "المجال",
-        "planLabel": "الخطة",
-        "maxUsersLabel": "الحد الأقصى للمستخدمين",
-        "activeLabel": "نشط",
-        "btnCancel": "إلغاء",
-        "btnSave": "حفظ",
-        "btnCreate": "إنشاء"
-      }
-    },
-    "courseBuilder": {
-      "title": "منشئ الدروس",
-      "subtitle": "إنشاء وإدارة دروسك",
-      "btnNew": "درس جديد",
-      "loading": "جارٍ التحميل...",
-      "noDescription": "لا وصف",
-      "chapters": "فصول",
-      "lessons": "دروس",
-      "status": {
-        "draft": "مسودة",
-        "published": "منشور",
-        "archived": "مؤرشف"
-      },
-      "level": {
-        "beginner": "مبتدئ",
-        "intermediate": "متوسط",
-        "advanced": "متقدم"
-      },
-      "filter": {
-        "searchPlaceholder": "البحث في الدروس...",
-        "allStatus": "جميع الحالات",
-        "allLevels": "جميع المستويات"
-      },
-      "btn": {
-        "edit": "تعديل",
-        "publish": "نشر",
-        "unpublish": "إلغاء النشر",
-        "duplicate": "نسخ"
-      },
-      "empty": {
-        "noResults": "لم يتم العثور على دروس",
-        "createFirst": "إنشاء أول درس"
-      },
-      "alerts": {
-        "titleRequired": "العنوان مطلوب",
-        "error": "خطأ: {{message}}",
-        "confirmDelete": "حذف هذا الدرس؟",
-        "deleteError": "خطأ في الحذف",
-        "errorGeneric": "خطأ",
-        "copied": "تم نسخ الدرس: {{title}}",
-        "duplicateError": "خطأ في النسخ"
-      },
-      "modal": {
-        "createTitle": "إنشاء درس جديد",
-        "titleLabel": "العنوان *",
-        "titlePlaceholder": "مقدمة في بايثون",
-        "descLabel": "وصف قصير",
-        "descPlaceholder": "ملخص موجز للدرس...",
-        "categoryLabel": "الفئة",
-        "selectPlaceholder": "اختر...",
-        "levelLabel": "المستوى",
-        "priceTokensLabel": "السعر (رموز)",
-        "priceDtLabel": "السعر (دينار)",
-        "btnCancel": "إلغاء",
-        "btnCreate": "إنشاء",
-        "creating": "جارٍ الإنشاء..."
+        "updated": "تم تحديث المستخدم"
       }
     }
   },
@@ -792,7 +777,22 @@
       "announcements": "الإعلانات والتذكيرات",
       "unreadMessages": "{{count}} رسالة(رسائل) غير مقروءة",
       "noUpcomingHomework": "لا توجد واجبات قادمة",
-      "upcomingReminders": "التذكيرات القادمة"
+      "upcomingReminders": "التذكيرات القادمة",
+      "assistantIA": "مساعد الذكاء الاصطناعي",
+      "assistantIADescription": "اطرح أسئلتك على الذكاء الاصطناعي",
+      "aucunParcours": "لا يوجد مسار نشط",
+      "aucuneFormation": "لا توجد تكوينات",
+      "catalogue": "الكتالوج",
+      "choisirMatieres": "اختيار موادي",
+      "erreurChargement": "خطأ في التحميل",
+      "formationsSoftSkills": "تكوينات المهارات الناعمة",
+      "loading": "جاري التحميل...",
+      "mesFormations": "تكويناتي",
+      "portefeuille": "المحفظة",
+      "title": "لوحة القيادة",
+      "tokensEquivalents": "ما يعادل الرموز",
+      "voirDetails": "عرض التفاصيل",
+      "voirLesPacks": "عرض الباقات"
     },
     "profile": {
       "title": "ملفي الشخصي للامتصاص",
@@ -890,7 +890,9 @@
       "goldenNoNeed": "غير ضروري — باقة ذهبية (غير محدودة)",
       "newTrimester": "الفصل الجديد {{trimester}}",
       "daysRemaining": "{{count}} يوم(أيام) متبقي(ة)",
-      "currentTrimester": "الفصل {{label}}"
+      "currentTrimester": "الفصل {{label}}",
+      "badge": "الفصل",
+      "errorLoading": "خطأ في تحميل الفصل"
     },
     "sidebar": {
       "dashboard": "لوحة القيادة",
@@ -905,33 +907,15 @@
       "messages": "الرسائل",
       "profile": "الملف الشخصي",
       "logout": "تسجيل الخروج"
-    }
-  },
-  "admin": {
-    "sidebar": {
-      "dashboard": "لوحة القيادة",
-      "users": "المستخدمون",
-      "schools": "المدارس",
-      "courseDistribution": "توزيع الدورات",
-      "teacherCatalog": "كتالوج المعلمين",
-      "courses": "الدورات",
-      "reviewPedago": "المراجعة التربوية",
-      "arborescence": "الهيكل الشجري",
-      "publicationStatus": "حالة النشر",
-      "finance": "المالية",
-      "analytics": "التحليلات",
-      "teacherQueue": "قائمة المعلمين",
-      "tokenPackages": "حزم الرموز",
-      "inviteCodes": "أكواد الدعوة",
-      "auditLog": "سجل التدقيق",
-      "thresholdsConfig": "إعداد الحدود",
-      "specialitesPedago": "التخصصات التربوية",
-      "aiFactory": "مصنع الذكاء الاصطناعي",
-      "broadcast": "البث",
-      "inbox": "صندوق الوارد",
-      "settings": "الإعدادات",
-      "profile": "الملف الشخصي",
-      "logout": "تسجيل الخروج"
+    },
+    "liveSessions": {
+      "nextSession": "الجلسة المباشرة القادمة",
+      "join": "انضم",
+      "joinNow": "انضم الآن",
+      "noSessions": "لا توجد جلسات قادمة",
+      "joinError": "تعذر الانضمام إلى الجلسة",
+      "goBack": "رجوع",
+      "leave": "مغادرة"
     }
   },
   "teacher": {
@@ -946,6 +930,8 @@
       "elements": "العناصر",
       "bibliotheque": "المكتبة",
       "abonnements": "الاشتراكات",
+      "suiviPedagogique": "متابعة التلاميذ",
+      "liveSessions": "الجلسات المباشرة",
       "messages": "الرسائل",
       "profile": "الملف الشخصي",
       "logout": "تسجيل الخروج"
@@ -1035,7 +1021,9 @@
       "filters": {
         "all": "الكل",
         "brouillon": "مسودة",
+        "brouillon_ia": "مسودة ذكاء اصطناعي",
         "draft": "مسودة",
+        "draftIa": "مسودة ذكاء اصطناعي",
         "en_review": "قيد المراجعة",
         "review": "قيد المراجعة",
         "publie": "منشور",
@@ -1208,11 +1196,18 @@
         "addLesson": "إضافة درس",
         "addChapter": "إضافة فصل",
         "cancel": "إلغاء",
-        "save": "حفظ"
+        "save": "حفظ",
+        "delete": "حذف",
+        "promote": "ترقية إلى فصل",
+        "demote": "تخفيض إلى درس"
       },
       "modal": {
         "editTitle": "تعديل",
-        "createTitle": "إنشاء"
+        "createTitle": "إنشاء",
+        "confirmDelete": "تأكيد الحذف",
+        "deleteMessage": "هل تريد حقاً حذف « {{name}} »؟ لا يمكن التراجع عن هذا الإجراء.",
+        "selectTarget": "اختر الفصل الهدف",
+        "demoteMessage": "اختر الفصل الذي تريد نقل هذا العنصر إليه:"
       },
       "fields": {
         "title": "العنوان",
@@ -1223,7 +1218,11 @@
       },
       "toasts": {
         "created": "تم إنشاء المسار",
-        "modified": "تم التعديل"
+        "modified": "تم التعديل",
+        "deleted": "تم الحذف",
+        "promoted": "تم ترقية الدرس إلى فصل",
+        "demoted": "تم تخفيض الفصل إلى درس",
+        "noTargetChapitre": "لا يوجد فصل آخر متاح كهدف"
       }
     },
     "bibliotheque": {
@@ -1336,14 +1335,39 @@
       "createFirst": "إنشاء فِئَة",
       "createClass": "إنشاء فِئَة",
       "classNamePlaceholder": "اسم الفِئَة...",
+      "descriptionPlaceholder": "الوصف (اختياري)...",
       "courses": "دورة",
+      "parcours": "مسار",
       "students": "طالب",
       "coursesCount": "دورة",
       "selectClass": "اختر فِئَة لعرض التفاصيل",
+      "studentsTab": "الطلاب",
+      "coursesTab": "الدروس",
+      "parcoursTab": "المسارات",
       "studentsTitle": "الطلاب",
       "addStudent": "إضافة طالب",
       "noStudents": "لا يوجد طلاب في هذه الفِئَة",
+      "assignedCourses": "الدروس المعينة",
+      "assignCourse": "تعيين درس",
+      "assignCourseTitle": "تعيين درس",
+      "noCourses": "لا توجد دروس معينة",
+      "noMyCourses": "لا توجد دروس متاحة للتعيين",
+      "assignedParcours": "المسارات المعينة",
+      "assignParcours": "تعيين مسار",
+      "assignParcoursTitle": "تعيين مسار",
+      "noParcours": "لا توجد مسارات معينة",
+      "noMyParcours": "لا توجد مسارات متاحة للتعيين",
+      "btnAdd": "إضافة",
+      "btnCancel": "إلغاء",
+      "btnCreate": "إنشاء",
       "confirmDelete": "حذف هذه الفِئَة؟",
+      "loadError": "خطأ في تحميل الفئات",
+      "loadStudentsError": "خطأ في تحميل الطلاب",
+      "createError": "خطأ في إنشاء الفئة",
+      "removeStudentError": "خطأ في إزالة الطالب",
+      "assignCourseError": "خطأ في تعيين الدورة",
+      "assignParcoursError": "خطأ في تعيين المسار",
+      "deleteError": "خطأ في حذف الفئة",
       "modal": {
         "createTitle": "فِئَة جديدة",
         "namePlaceholder": "اسم الفِئَة...",
@@ -1390,6 +1414,47 @@
       "tokens": "رموز",
       "dt": "دينار",
       "viewCourse": "عرض الدورة"
+    },
+    "suivi": {
+      "title": "تتبع التلاميذ",
+      "selectClass": "اختر قسما",
+      "noClassSelected": "يرجى اختيار قسم لعرض التلاميذ.",
+      "stats": {
+        "students": "تلاميذ",
+        "avgProgress": "متوسط التقدم",
+        "blocked": "تلاميذ محظورون"
+      },
+      "table": {
+        "name": "التلميذ",
+        "progress": "التقدم",
+        "lastQuiz": "آخر اختبار",
+        "packStatus": "حالة الباقة",
+        "contact": "اتصل"
+      }
+    },
+    "liveSessions": {
+      "title": "الجلسات المباشرة",
+      "subtitle": "إدارة جلساتك المباشرة مع أقسامك",
+      "newSession": "جلسة جديدة",
+      "join": "انضم",
+      "noSessions": "لا توجد جلسات مسجلة",
+      "confirmDelete": "هل أنت متأكد من إلغاء هذه الجلسة؟",
+      "loadError": "خطأ في تحميل الجلسات",
+      "deleteError": "خطأ في حذف الجلسة",
+      "createModal": {
+        "title": "إنشاء جلسة مباشرة",
+        "class": "القسم",
+        "selectClass": "اختر قسما",
+        "titleField": "العنوان",
+        "titlePlaceholder": "مثال: درس الرياضيات",
+        "description": "الوصف",
+        "scheduledAt": "التاريخ والوقت",
+        "duration": "المدة",
+        "cancel": "إلغاء",
+        "create": "إنشاء",
+        "required": "يرجى ملء جميع الحقول المطلوبة",
+        "error": "خطأ في إنشاء الجلسة"
+      }
     }
   },
   "parent": {
@@ -1432,29 +1497,23 @@
       "chapterPrefix": "الفصل #"
     },
     "wallet": {
-      "title": "محفظة",
-      "childFallback": "الطفل",
-      "subtitle": "رصيد ائتمانات الذكاء الاصطناعي والشحن",
-      "aiCredits": "ائتمانات الذكاء الاصطناعي",
-      "purchasedDT": "دينار مشتراة",
+      "title": "المحفظة",
+      "subtitle": "الرصيد والمعاملات",
+      "credits": "الأرصدة",
+      "iaCredits": "أرصدة الذكاء الاصطناعي",
       "activePacks": "الباقات النشطة",
-      "rechargeTitle": "شحن المحفظة",
-      "redirecting": "جارٍ التحويل إلى Konnect للدفع...",
-      "rechargeSuccess": "تم الشحن بنجاح.",
-      "networkError": "خطأ في الشبكة.",
-      "backToDashboard": "العودة للوحة التحكم",
-      "poolDetail": "التفاصيل حسب المصدر",
-      "expires": "تنتهي في",
-      "credits": "ائتمان",
-      "noCredits": "لا توجد ائتمانات متاحة.",
+      "purchasedDT": "الدراهم المشتراة",
+      "expires": "ينتهي في",
+      "noCredits": "لا توجد أرصدة",
+      "poolDetail": "تفاصيل الاحتياطي",
+      "rechargeTitle": "شحن",
       "rechargeViaKonnect": "شحن عبر Konnect",
-      "pools": {
-        "trial": "تجريبي",
-        "subscription": "اشتراك",
-        "school": "المدرسة",
-        "purchased": "مشتراة",
-        "dt_purchased": "دينار مشتراة"
-      }
+      "rechargeSuccess": "تم الشحن بنجاح",
+      "backToDashboard": "العودة للوحة القيادة",
+      "childFallback": "لم يتم اختيار طفل",
+      "networkError": "خطأ في الشبكة",
+      "redirecting": "جاري التوجيه...",
+      "label": "المحفظة"
     },
     "messaging": {
       "title": "الرسائل",
@@ -1512,33 +1571,101 @@
       "removeConfirm": "إزالة هذا الطفل من العائلة؟"
     },
     "pack": {
-      "title": "باقة",
-      "subtitle": "الاشتراك والتكوين",
-      "gracePeriod": "فترة السماح",
-      "graceMessage": "الباقة في فترة السماح — تنتهي في",
-      "graceDays": "يوم(أيام)",
-      "graceHint": "اشترك في باقة جديدة للحفاظ على الوصول.",
-      "activePack": "الباقة النشطة",
-      "packLabel": "الباقة",
+      "title": "باقتي",
+      "subtitle": "تفاصيل اشتراكك",
       "accessLabel": "الوصول",
-      "expirationLabel": "انتهاء الصلاحية",
-      "availablePacksFor": "الباقات المتاحة لـ",
-      "levelLabel": "هذا المستوى",
+      "expirationLabel": "ينتهي في",
+      "levelLabel": "المستوى",
+      "packLabel": "الباقة",
+      "subscribeButton": "اشترك",
       "backButton": "رجوع",
-      "activeStatus": "نشط",
-      "subscribeButton": "اشتراك",
-      "tiers": {
-        "gratuit": "مجاني",
-        "basique": "أساسي",
-        "silver": "فضي",
-        "golden": "ذهبي"
-      },
-      "features": {
-        "freeQuota": "3 دروس / فصل",
-        "basicQuota": "2 مادة من اختيارك",
-        "silverQuota": "4 مواد من اختيارك",
-        "goldenQuota": "وصول غير محدود"
-      }
-    }
+      "activePack": "الباقة النشطة",
+      "activeStatus": "الحالة الحالية",
+      "availablePacksFor": "الباقات المتاحة لـ",
+      "gracePeriod": "فترة السماح",
+      "graceDays": "الأيام المتبقية",
+      "graceHint": "لديك فترة سماح",
+      "graceMessage": "باقة على وشك الانتهاء",
+      "label": "باقتي"
+    },
+    "activePacks": "الباقات النشطة",
+    "childrenAttached": "أطفال مرتبطون",
+    "dashboardSubtitle": "متابعة الأطفال",
+    "dashboardTitle": "لوحة القيادة",
+    "link": "رابط طفل",
+    "linkChild": "ربط طفل",
+    "linkSuccess": "تم ربط الطفل بنجاح",
+    "myChildren": "أطفالي",
+    "myFamily": "عائلتي",
+    "noChildren": "لا يوجد أطفال مرتبطون",
+    "notDefined": "غير محدد",
+    "packs": "الباقات",
+    "studentEmailPlaceholder": "بريد التلميذ",
+    "totalSpent": "إجمالي الإنفاق",
+    "unknownError": "خطأ غير معروف"
+  },
+  "courseCatalog": {
+    "buy": "شراء",
+    "cancel": "إلغاء",
+    "catalogueEduai": "كتالوج EDUAI",
+    "enrollFree": "التسجيل المجاني",
+    "enrolled": "مسجل",
+    "free": "مجاني",
+    "independent": "مستقل",
+    "loading": "جاري التحميل...",
+    "noResults": "لم يتم العثور على دورات",
+    "purchaseFailed": "فشل الشراء",
+    "purchaseSuccess": "تم الشراء بنجاح",
+    "purchasing": "جاري الشراء...",
+    "refundConditionPaid": "الدورات المدفوعة فقط",
+    "refundConditionProgress": "التقدم أقل من 30%",
+    "refundConditions": "الشروط",
+    "refundDescription": "يمكنك طلب استرداد المبلغ في ظروف معينة.",
+    "refundFailed": "فشل الإرسال",
+    "refundReasonLabel": "سبب الاسترداد",
+    "refundReasonPlaceholder": "اكتب سببك...",
+    "refundSent": "تم إرسال الطلب",
+    "refundTitle": "استرداد",
+    "requestRefund": "طلب استرداد",
+    "searchPlaceholder": "البحث عن دورة...",
+    "sendRequest": "إرسال الطلب",
+    "sending": "جاري الإرسال...",
+    "subtitle": "تصفح الدورات المتاحة"
+  },
+  "inbox": {
+    "all": "الكل",
+    "from": "من",
+    "loading": "جاري التحميل...",
+    "messageCount": "{{count}} رسائل",
+    "noMessages": "لا توجد رسائل",
+    "title": "الرسائل",
+    "unread": "غير مقروء"
+  },
+  "monParcours": {
+    "buyPackPrompt": "اشترِ باقة للوصول إلى المسارات",
+    "chapters": "الفصول",
+    "completed": "مكتمل",
+    "inProgress": "قيد التنفيذ",
+    "loading": "جاري التحميل...",
+    "noActivePath": "لا يوجد مسار نشط",
+    "notion": "مفهوم",
+    "notions": "المفاهيم",
+    "courses": "دروس",
+    "lessons": "حصص",
+    "matieres": "مواد",
+    "subtitle": "مساري التعليمي"
+  },
+  "onboarding": {
+    "choose_language": "اختر اللغة",
+    "choose_level": "اختر المستوى",
+    "finish": "إنهاء",
+    "next": "التالي",
+    "welcome_desc": "اختر لغتك ومستواك للبدء",
+    "welcome_title": "مرحباً بك في EDUAI"
+  },
+  "placement": {
+    "description": "اختبار تحديد المستوى",
+    "result": "النتيجة",
+    "submit": "إرسال"
   }
 }

@@ -153,14 +153,15 @@ def setup():
 
 
 class TestLessonAccess:
-    def test_no_access_paid_lesson_returns_403(self, setup):
-        """Student without enrollment/pack gets 403 on paid lesson content."""
+    def test_freemium_student_can_access_paid_lesson_under_quota(self, setup):
+        """Élève Gratuit/sans pack : accès Freemium autorisé tant que le quota
+        trimestriel n'est pas épuisé (modèle Freemium enforceé côté serveur)."""
         client, _, data, tokens = setup
         resp = client.get(
             f"/api/learner/lessons/{data['paid_lesson'].id}",
             headers={"Authorization": f"Bearer {tokens['student_no']}"},
         )
-        assert resp.status_code == 403, f"Expected 403, got {resp.status_code}: {resp.text}"
+        assert resp.status_code == 200, f"Expected 200 under freemium quota, got {resp.status_code}: {resp.text}"
 
     def test_enrolled_student_can_access_paid_lesson(self, setup):
         """Student with active enrollment CAN access paid lesson."""
@@ -192,14 +193,14 @@ class TestLessonAccess:
 
 
 class TestQuizAccess:
-    def test_no_access_paid_quiz_returns_403(self, setup):
-        """Student without enrollment gets 403 when starting a paid quiz."""
+    def test_freemium_student_can_start_quiz_under_quota(self, setup):
+        """Élève Gratuit/sans pack : démarrage de quiz autorisé sous quota Freemium."""
         client, _, data, tokens = setup
         resp = client.post(
             f"/api/learner/quizzes/{data['quiz'].id}/start",
             headers={"Authorization": f"Bearer {tokens['student_no']}"},
         )
-        assert resp.status_code == 403, f"Expected 403, got {resp.status_code}: {resp.text}"
+        assert resp.status_code == 200, f"Expected 200 under freemium quota, got {resp.status_code}: {resp.text}"
 
     def test_enrolled_student_can_start_quiz(self, setup):
         """Student with active enrollment CAN start the quiz."""
@@ -212,14 +213,14 @@ class TestQuizAccess:
 
 
 class TestSyllabusAccess:
-    def test_no_access_syllabus_returns_403(self, setup):
-        """Student without enrollment gets 403 on course syllabus."""
+    def test_freemium_student_can_access_syllabus_under_quota(self, setup):
+        """Élève Gratuit/sans pack : syllabus consultable tant que le quota tient."""
         client, _, data, tokens = setup
         resp = client.get(
             f"/api/learner/courses/{data['course'].id}/syllabus",
             headers={"Authorization": f"Bearer {tokens['student_no']}"},
         )
-        assert resp.status_code == 403, f"Expected 403, got {resp.status_code}: {resp.text}"
+        assert resp.status_code == 200, f"Expected 200 under freemium quota, got {resp.status_code}: {resp.text}"
 
     def test_enrolled_student_can_access_syllabus(self, setup):
         """Student with active enrollment CAN access syllabus."""
@@ -229,6 +230,119 @@ class TestSyllabusAccess:
             headers={"Authorization": f"Bearer {tokens['student_enrolled']}"},
         )
         assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
+
+
+def _exhaust_freemium_quota(db, student, school, author_id):
+    """Épuise le quota Freemium de l'élève : 3 leçons complétées ce trimestre
+    via un enrollment sur un AUTRE cours (sinon l'enrollment déverrouillerait
+    le cours cible via has_course_access)."""
+    from app.models import LessonProgress, CourseEnrollment
+    filler = Course(
+        title="Quota Filler", slug=f"quota-filler-{student.id}",
+        school_id=school.id, author_id=author_id,
+        price=0.0, price_dt=0.0, price_tokens=0,
+        visibility="public_catalog", status=CourseStatus.PUBLISHED,
+        is_published=True, niveau_scolaire="9eme de base",
+    )
+    db.add(filler)
+    db.flush()
+    enrollment = CourseEnrollment(
+        student_id=student.id,
+        course_id=filler.id,
+        status="active",
+    )
+    db.add(enrollment)
+    db.flush()
+    now = datetime.now(timezone.utc)
+    for fake_lesson_id in (800001, 800002, 800003):
+        db.add(LessonProgress(
+            enrollment_id=enrollment.id,
+            lesson_id=fake_lesson_id,
+            status="completed",
+            completed_at=now,
+        ))
+    db.commit()
+
+
+class TestFreemiumQuota:
+    """Modèle Freemium serveur : au-delà de 3 leçons/trimestre, les endpoints
+    pédagogiques renvoient 402 structuré {"message", "required_pack": "Basic"}."""
+
+    def test_quota_exhausted_lesson_returns_402(self, setup):
+        client, db, data, tokens = setup
+        _exhaust_freemium_quota(db, data["student_no"], data["school"], data["admin"].id)
+        resp = client.get(
+            f"/api/learner/lessons/{data['paid_lesson'].id}",
+            headers={"Authorization": f"Bearer {tokens['student_no']}"},
+        )
+        assert resp.status_code == 402, f"Expected 402, got {resp.status_code}: {resp.text}"
+        detail = resp.json()["detail"]
+        assert isinstance(detail, dict), f"Detail structuré attendu, got: {detail}"
+        assert detail.get("required_pack") == "Basic"
+        assert "Quota gratuit" in detail.get("message", "")
+
+    def test_quota_exhausted_quiz_start_returns_402(self, setup):
+        client, db, data, tokens = setup
+        _exhaust_freemium_quota(db, data["student_no"], data["school"], data["admin"].id)
+        resp = client.post(
+            f"/api/learner/quizzes/{data['quiz'].id}/start",
+            headers={"Authorization": f"Bearer {tokens['student_no']}"},
+        )
+        assert resp.status_code == 402, f"Expected 402, got {resp.status_code}: {resp.text}"
+
+    def test_quota_exhausted_progress_returns_402_without_enrollment_leak(self, setup):
+        from app.models import CourseEnrollment
+        client, db, data, tokens = setup
+        _exhaust_freemium_quota(db, data["student_no"], data["school"], data["admin"].id)
+
+        def target_enrollments():
+            return db.query(CourseEnrollment).filter(
+                CourseEnrollment.student_id == data["student_no"].id,
+                CourseEnrollment.course_id == data["course"].id,
+            ).count()
+
+        before = target_enrollments()
+        resp = client.post(
+            f"/api/learner/lessons/{data['paid_lesson'].id}/progress",
+            headers={"Authorization": f"Bearer {tokens['student_no']}"},
+            json={"status": "completed"},
+        )
+        assert resp.status_code == 402, f"Expected 402, got {resp.status_code}: {resp.text}"
+        assert before == target_enrollments() == 0, \
+            "Aucune auto-inscription ne doit être créée après un 402"
+
+    def test_paid_pack_student_not_judged_by_free_quota(self, setup):
+        """Un élève avec abonnement payant actif n'est PAS jugé par le quota
+        freemium : il passe par l'ABAC (402 structuré pack/matière)."""
+        from app.models import Abonnement, PackDefinition
+        client, db, data, tokens = setup
+        student = data["student_no"]
+        pack = PackDefinition(
+            nom="Pack Test", tier="basique",
+            niveau_scolaire="9eme de base",
+            prix_tnd=0, est_actif=True,
+        )
+        db.add(pack)
+        db.flush()
+        db.add(Abonnement(
+            user_id=student.id, pack_id=pack.id, statut="actif",
+            debut=datetime.now(timezone.utc),
+            fin=datetime(2099, 12, 31, tzinfo=timezone.utc),
+        ))
+        # Le cours exige Golden : l'ABAC doit refuser ce pack basique
+        data["course"].tag_pack_requis = "Golden"
+        db.commit()
+        # Quota épuisé quand même → le message quota ne doit jamais apparaître
+        _exhaust_freemium_quota(db, student, data["school"], data["admin"].id)
+        resp = client.get(
+            f"/api/learner/lessons/{data['paid_lesson'].id}",
+            headers={"Authorization": f"Bearer {tokens['student_no']}"},
+        )
+        assert resp.status_code == 402, f"Expected 402, got {resp.status_code}: {resp.text}"
+        detail = resp.json()["detail"]
+        assert isinstance(detail, dict)
+        assert "Quota gratuit" not in detail.get("message", "")
+        assert detail.get("required_pack") == "Golden"
 
 
 class TestPurchaseCourse:

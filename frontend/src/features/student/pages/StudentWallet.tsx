@@ -46,7 +46,7 @@ export default function StudentWallet() {
         api.get("/api/wallet/history?page=1&page_size=20"),
       ]);
       setBalance(balData);
-      setHistory(histData.transactions || []);
+      setHistory(histData.items || []);
     } catch (err) {
       console.error(err);
     }

@@ -5,6 +5,7 @@ import { BookOpen, Plus, RefreshCw, Eye, EyeOff, Pencil, Trash2, Search, Copy, A
 import { AdminTable, KPICard, StatusBadge, Modal as AdminModal, ConfirmModal } from "../components";
 import { Button, EmptyState, Modal } from "../../../components/ui";
 import { adminCourses, pathwayApi } from "../../../api";
+import { CYCLE_NIVEAUX, CYCLE_LABELS } from "../constants/cycles";
 import type { AdminCourse } from "../../../api";
 import { useAuthStore } from "../../../store/authStore";
 import DOMPurify from "dompurify";
@@ -480,6 +481,7 @@ function CourseFormModal({ open, onClose, onSubmit, loading }: {
   const [prerequisites, setPrerequisites] = useState("");
   const [learningObjectives, setLearningObjectives] = useState("");
   const [categoryCible, setCategoryCible] = useState("Scolaire");
+  const [cycleScolaire, setCycleScolaire] = useState("");
   const [niveauScolaire, setNiveauScolaire] = useState("");
   const [matieres, setMatieres] = useState<{id: number; nom: string}[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
@@ -489,6 +491,11 @@ function CourseFormModal({ open, onClose, onSubmit, loading }: {
   useEffect(() => {
     if (isTeacher) setCategoryCible("Scolaire");
   }, [isTeacher]);
+
+  useEffect(() => {
+    setNiveauScolaire("");
+    setCategory("");
+  }, [cycleScolaire]);
 
   useEffect(() => {
     if (isScolaire && niveauScolaire) {
@@ -574,28 +581,45 @@ function CourseFormModal({ open, onClose, onSubmit, loading }: {
           </div>
         </div>
         {isScolaire && (
-          <div className="grid grid-cols-2 gap-4">
+          <>
             <div>
-              <label className="block text-sm font-medium text-gray mb-1.5">Niveau scolaire *</label>
-              <input value={niveauScolaire} onChange={e => setNiveauScolaire(e.target.value)}
-                className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5 focus:outline-none"
-                placeholder="Ex: 3ème année secondaire" />
+              <label className="block text-sm font-medium text-gray mb-1.5">Cycle scolaire *</label>
+              <select value={cycleScolaire} onChange={e => setCycleScolaire(e.target.value)}
+                className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5 focus:outline-none">
+                <option value="">-- Choisir un cycle --</option>
+                {Object.entries(CYCLE_LABELS).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray mb-1.5">Matière (catégorie) *</label>
-              {matieres.length > 0 ? (
-                <select value={category} onChange={e => setCategory(e.target.value)}
-                  className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5 focus:outline-none">
-                  <option value="">-- Choisir une matière --</option>
-                  {matieres.map(m => <option key={m.id} value={m.nom}>{m.nom}</option>)}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray mb-1.5">Niveau scolaire *</label>
+                <select value={niveauScolaire} onChange={e => setNiveauScolaire(e.target.value)}
+                  disabled={!cycleScolaire}
+                  className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5 focus:outline-none disabled:opacity-50 disabled:bg-gray-100">
+                  <option value="">{cycleScolaire ? "-- Choisir un niveau --" : "-- Sélectionner un cycle d'abord --"}</option>
+                  {(CYCLE_NIVEAUX[cycleScolaire] || []).map(n => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
                 </select>
-              ) : (
-                <input value={category} onChange={e => setCategory(e.target.value)}
-                  className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5 focus:outline-none"
-                  placeholder="Ex: Mathématiques" />
-              )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray mb-1.5">Matière (catégorie) *</label>
+                {matieres.length > 0 ? (
+                  <select value={category} onChange={e => setCategory(e.target.value)}
+                    className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5 focus:outline-none">
+                    <option value="">-- Choisir une matière --</option>
+                    {matieres.map(m => <option key={m.id} value={m.nom}>{m.nom}</option>)}
+                  </select>
+                ) : (
+                  <input value={category} onChange={e => setCategory(e.target.value)}
+                    className="w-full px-4 py-3 bg-cream-m rounded-xl border border-black/5 focus:outline-none"
+                    placeholder="Ex: Mathématiques" />
+                )}
+              </div>
             </div>
-          </div>
+          </>
         )}
         <div className="grid grid-cols-2 gap-4">
           <div>

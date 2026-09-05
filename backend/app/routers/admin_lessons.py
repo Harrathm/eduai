@@ -1,13 +1,14 @@
 """Lesson API backed by the existing lessons table."""
 
 import json
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
 from app.db import get_db
-from app.deps import require_admin, get_user_role, require_active_subscription
+from app.deps import require_admin, require_course_writer, get_user_role, require_active_subscription
 from app.audit import log_admin_action
 from app.models import Course, Module, Lesson, User
 
@@ -15,12 +16,20 @@ from app.models import Course, Module, Lesson, User
 router = APIRouter(tags=["Admin Lessons"])
 
 
-def _can_access_module(db: Session, admin: User, module: Module) -> None:
-    role = get_user_role(admin)
+def _can_access_module(db: Session, user: User, module: Module) -> None:
+    role = get_user_role(user)
     if role == "super_admin":
         return
+    if role == "pedagogical_admin":
+        return
     course = db.query(Course).filter(Course.id == module.course_id).first()
-    if not course or course.school_id != admin.school_id:
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    if role == "teacher":
+        if course.author_id != user.id:
+            raise HTTPException(status_code=403, detail="Access denied")
+        return
+    if course.school_id != user.school_id:
         raise HTTPException(status_code=403, detail="Access denied")
 
 
@@ -46,6 +55,7 @@ class LessonCreate(BaseModel):
 class LessonUpdate(BaseModel):
     title: str | None = Field(None, min_length=1, max_length=255)
     description: str | None = None
+    module_id: int | None = None
     lesson_type: str | None = None
     content_text: str | None = None
     content_url: str | None = None
@@ -95,25 +105,50 @@ def _serialize_lesson(lesson: Lesson) -> dict:
 
 @router.get("")
 def list_lessons(
-    module_id: int,
+    module_id: Optional[int] = None,
     skip: int = 0,
     limit: int = 20,
+    search: Optional[str] = None,
+    category_cible: Optional[str] = None,
+    niveau_scolaire: Optional[str] = None,
+    matiere: Optional[str] = None,
+    chapitre_id: Optional[int] = None,
     db: Session = Depends(get_db),
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_course_writer),
 ):
-    module = db.query(Module).filter(Module.id == module_id).first()
-    if not module:
-        raise HTTPException(status_code=404, detail="Chapter not found")
-    _can_access_module(db, admin, module)
+    query = db.query(Lesson).join(Module, Lesson.module_id == Module.id).join(Course, Module.course_id == Course.id)
 
-    query = db.query(Lesson).filter(Lesson.module_id == module_id)
+    if module_id is not None:
+        module = db.query(Module).filter(Module.id == module_id).first()
+        if not module:
+            raise HTTPException(status_code=404, detail="Chapter not found")
+        _can_access_module(db, admin, module)
+        query = query.filter(Lesson.module_id == module_id)
+    else:
+        role = get_user_role(admin)
+        if role not in ("super_admin", "pedagogical_admin") and admin.school_id:
+            query = query.filter(
+                (Lesson.school_id == admin.school_id) | (Course.is_published == True)
+            )
+
+    if chapitre_id is not None:
+        query = query.filter(Lesson.module_id == chapitre_id)
+    if category_cible:
+        query = query.filter(Course.category_cible == category_cible)
+    if niveau_scolaire:
+        query = query.filter(Course.niveau_scolaire == niveau_scolaire)
+    if matiere:
+        query = query.filter(Course.category == matiere)
+    if search:
+        query = query.filter(Lesson.title.ilike(f"%{search}%"))
+
     total = query.count()
     lessons = query.order_by(Lesson.order).offset(skip).limit(limit).all()
     return {"total": total, "skip": skip, "limit": limit, "items": [_serialize_lesson(l) for l in lessons]}
 
 
 @router.get("/{lesson_id}")
-def get_lesson(lesson_id: int, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+def get_lesson(lesson_id: int, db: Session = Depends(get_db), admin: User = Depends(require_course_writer)):
     lesson = db.query(Lesson).filter(Lesson.id == lesson_id).first()
     if not lesson:
         raise HTTPException(status_code=404, detail="Lesson not found")
@@ -128,7 +163,7 @@ def create_lesson(
     module_id: int,
     data: LessonCreate,
     db: Session = Depends(get_db),
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_course_writer),
     _sub=Depends(require_active_subscription),
 ):
     module = db.query(Module).filter(Module.id == module_id).first()
@@ -173,7 +208,7 @@ def update_lesson(
     lesson_id: int,
     data: LessonUpdate,
     db: Session = Depends(get_db),
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_course_writer),
 ):
     lesson = db.query(Lesson).filter(Lesson.id == lesson_id).first()
     if not lesson:
@@ -186,6 +221,12 @@ def update_lesson(
     if "image_urls" in update_data:
         update_data["image_urls"] = json.dumps(update_data["image_urls"])
 
+    if "module_id" in update_data and update_data["module_id"] != lesson.module_id:
+        target_module = db.query(Module).filter(Module.id == update_data["module_id"]).first()
+        if not target_module:
+            raise HTTPException(status_code=404, detail="Target module not found")
+        _can_access_module(db, admin, target_module)
+
     for field, value in update_data.items():
         if hasattr(lesson, field):
             setattr(lesson, field, value)
@@ -197,7 +238,7 @@ def update_lesson(
 
 
 @router.delete("/{lesson_id}", status_code=204)
-def delete_lesson(lesson_id: int, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+def delete_lesson(lesson_id: int, db: Session = Depends(get_db), admin: User = Depends(require_course_writer)):
     lesson = db.query(Lesson).filter(Lesson.id == lesson_id).first()
     if not lesson:
         raise HTTPException(status_code=404, detail="Lesson not found")
@@ -213,7 +254,7 @@ def delete_lesson(lesson_id: int, db: Session = Depends(get_db), admin: User = D
 def reorder_lessons(
     body: dict,
     db: Session = Depends(get_db),
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_course_writer),
 ):
     order = body.get("order", [])
     for idx, lesson_id in enumerate(order):

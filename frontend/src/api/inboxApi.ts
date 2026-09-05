@@ -29,10 +29,10 @@ export const inboxApi = {
   },
 
   markRead: (messageId: number) =>
-    api.post<void>(`/api/inbox/messages/${messageId}/read`),
+    api.put<void>(`/api/inbox/messages/${messageId}/read`),
 
   send: (data: { recipient_id: number; subject: string; content: string }) =>
-    api.post<InboxMessage>("/api/inbox/messages", data),
+    api.post<InboxMessage>("/api/admin/messages", data),
 
   delete: (messageId: number) =>
     api.delete<void>(`/api/inbox/messages/${messageId}`),

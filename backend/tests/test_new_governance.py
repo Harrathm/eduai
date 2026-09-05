@@ -7,7 +7,7 @@ os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 os.environ["ENVIRONMENT"] = "development"
 
 import pytest
-from datetime import datetime, timezone, date
+from datetime import datetime, timezone, date, timedelta
 from decimal import Decimal
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine

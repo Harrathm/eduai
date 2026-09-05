@@ -9,11 +9,15 @@ import { api } from "./client";
 
 export interface DashboardData {
   tier: string;
+  legacy_tier?: string;
   user_id: number;
   total_enrolled_courses: number;
   overall_progress_pct: number;
   lessons_completed: number;
   total_lessons: number;
+  /** Correction E6 : quota Freemium réel calculé serveur (par trimestre) */
+  free_lessons_used_this_trimester?: number;
+  free_lessons_limit?: number;
   courses: DashboardCourse[];
   daily_objective: DailyObjective;
   features: TierFeatures;

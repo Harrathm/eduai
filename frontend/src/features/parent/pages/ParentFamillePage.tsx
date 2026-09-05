@@ -37,6 +37,7 @@ export default function ParentFamillePage() {
   const [dashboardEnfants, setDashboardEnfants] = useState<DashboardEnfant[]>([]);
   const [loading, setLoading] = useState(true);
   const [linkEmail, setLinkEmail] = useState("");
+  const [linkCode, setLinkCode] = useState("");
   const [linkLoading, setLinkLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -63,13 +64,14 @@ export default function ParentFamillePage() {
   };
 
   const handleLink = async () => {
-    if (!token || !linkEmail.trim()) return;
+    if (!token || !linkEmail.trim() || !linkCode.trim()) return;
     setLinkLoading(true);
     setMessage(null);
     try {
-      await parentEnfants.lie(linkEmail.trim());
+      await parentEnfants.lie(linkEmail.trim(), linkCode.trim());
       setMessage({ type: "success", text: t('parent.famille.toasts.linkedSuccess') });
       setLinkEmail("");
+      setLinkCode("");
       fetchData();
     } catch {
       setMessage({ type: "error", text: t('parent.famille.toasts.networkError') });
@@ -144,7 +146,7 @@ export default function ParentFamillePage() {
         <h2 className="text-lg font-semibold text-navy mb-4 flex items-center gap-2">
           <UserPlus className="w-5 h-5" /> {t('parent.famille.linkChild')}
         </h2>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <input
             type="email"
             value={linkEmail}
@@ -152,9 +154,17 @@ export default function ParentFamillePage() {
             placeholder={t('parent.famille.childEmailPlaceholder')}
             className="flex-1 px-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange/30"
           />
+          <input
+            type="text"
+            value={linkCode}
+            onChange={(e) => setLinkCode(e.target.value.toUpperCase())}
+            placeholder="Code d'invitation (6 caractères)"
+            maxLength={12}
+            className="w-full sm:w-56 px-4 py-2 border border-gray-200 rounded-xl text-sm uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-orange/30"
+          />
           <Button
             onClick={handleLink}
-            disabled={linkLoading || !linkEmail.trim()}
+            disabled={linkLoading || !linkEmail.trim() || !linkCode.trim()}
             variant="secondary"
             loading={linkLoading}
           >

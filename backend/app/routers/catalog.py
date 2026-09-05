@@ -8,6 +8,7 @@ from typing import Optional
 
 from app.db import get_db
 from app.models import Course, CourseStatus, Module, Lesson, User, UserRole
+from app.auth import get_current_user_optional
 
 router = APIRouter()
 
@@ -21,13 +22,33 @@ def list_courses(
     level: Optional[str] = None,
     language: Optional[str] = None,
     price: Optional[str] = None,
-    db: Session = Depends(get_db)
+    niveau_scolaire: Optional[str] = None,
+    category_cible: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
-    """Public course catalog - shows only published courses with visibility='public_catalog'"""
+    """Public course catalog.
+
+    Pour les élèves connectés, TOUS les cours publiés correspondant aux filtres
+    sont retournés, avec un flag `is_locked` : true si l'élève n'a pas accès
+    (ABAC / pack / achat), false sinon. Les cartes verrouillées servent de
+    surface d'upsell côté frontend au lieu d'être masquées.
+    """
     query = db.query(Course).filter(
         Course.status == CourseStatus.PUBLISHED,
         Course.visibility == "public_catalog",
     )
+
+    # Ensemble des cours accessibles pour l'élève (utilisé pour is_locked)
+    locked_for_student = False
+    accessible_ids = None
+    if current_user:
+        from app.deps import get_user_role
+        role = get_user_role(current_user)
+        if role in ("STUDENT", "USER"):
+            from app.services.course_access import get_accessible_course_ids
+            locked_for_student = True
+            accessible_ids = get_accessible_course_ids(current_user, db)
 
     if search:
         query = query.filter(Course.title.ilike(f"%{search}%"))
@@ -37,6 +58,10 @@ def list_courses(
         query = query.filter(Course.level == level)
     if language:
         query = query.filter(Course.language == language)
+    if niveau_scolaire:
+        query = query.filter(Course.niveau_scolaire == niveau_scolaire)
+    if category_cible:
+        query = query.filter(Course.category_cible == category_cible)
     if price == "free":
         query = query.filter((Course.price_tokens == 0) & (Course.price_dt == 0))
     elif price == "paid":
@@ -44,6 +69,9 @@ def list_courses(
 
     total = query.count()
     courses = query.order_by(Course.published_at.desc()).offset(skip).limit(limit).all()
+
+    def _is_locked(c: Course) -> bool:
+        return bool(locked_for_student and accessible_ids is not None and c.id not in accessible_ids)
 
     return {
         "total": total,
@@ -55,8 +83,12 @@ def list_courses(
                 "description": (c.short_description or c.description or "")[:200],
                 "cover_url": c.cover_url,
                 "category": c.category,
+                "category_cible": getattr(c, "category_cible", "Scolaire") or "Scolaire",
+                "tag_pack_requis": getattr(c, "tag_pack_requis", "Basic") or "Basic",
                 "level": c.level,
                 "language": c.language,
+                "niveau_scolaire": c.niveau_scolaire,
+                "is_locked": _is_locked(c),
                 "is_free": (c.price_tokens or 0) == 0 and float(c.price_dt or 0) == 0,
                 "price_tokens": c.price_tokens or 0,
                 "price_dt": float(c.price_dt or 0),

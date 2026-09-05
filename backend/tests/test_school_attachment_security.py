@@ -99,7 +99,10 @@ class TestSchoolAttachmentSecurity:
         resp = _register(client, "no-school@test.com", school_name=None)
 
         assert resp.status_code == 400, f"Attendu 400, recu {resp.status_code}: {resp.text}"
-        assert "school" in resp.json()["detail"].lower()
+        detail = resp.json()["detail"].lower()
+        assert ("school" in detail) or ("école" in detail) or ("inconnue" in detail), (
+            f"Message inattendu: {detail}"
+        )
 
     def test_register_without_school_does_not_attach_to_existing(self, setup):
         """Apres un rejet, aucun user ne doit exister avec l'ecole cliente."""
@@ -111,23 +114,23 @@ class TestSchoolAttachmentSecurity:
         user = db.query(User).filter(User.email == "no-school@test.com").first()
         assert user is None, "Le user ne doit PAS etre cree sans school_name"
 
-    def test_register_with_school_name_creates_new_school(self, setup):
-        """Une inscription AVEC school_name cree une NOUVELLE ecole (pas l'existante)."""
+    def test_register_with_unknown_school_name_rejected(self, setup):
+        """SECURITY FIX #1 : une inscription avec un school_name INCONNU est
+        REJETEE (HTTP 400) — /register ne cree plus JAMAIS d'ecole.
+        La creation d'ecole passe exclusivement par /auth/register-school."""
         db, real_school, course = setup
         client = TestClient(app)
 
+        schools_before = db.query(School).count()
+
         resp = _register(client, "new-school@test.com", school_name="Ma Nouvelle Ecole")
-        assert resp.status_code == 200
+        assert resp.status_code in (400, 404), f"Attendu 400/404, recu {resp.status_code}: {resp.text}"
 
         user = db.query(User).filter(User.email == "new-school@test.com").first()
-        assert user is not None
-        assert user.school_id != real_school.id, (
-            "Le user ne doit PAS etre rattache a l'ecole cliente existante"
+        assert user is None, "Le user ne doit PAS etre cree pour une ecole inconnue"
+        assert db.query(School).count() == schools_before, (
+            "Aucune ecole ne doit etre creee par /auth/register"
         )
-
-        new_school = db.query(School).filter(School.id == user.school_id).first()
-        assert new_school is not None
-        assert new_school.name == "Ma Nouvelle Ecole"
 
     def test_register_with_existing_domain_finds_correct_school(self, setup):
         """Une inscription avec un domain existant trouve la bonne ecole."""
@@ -145,15 +148,19 @@ class TestSchoolAttachmentSecurity:
         assert user.school_id == real_school.id
 
     def test_new_user_cannot_access_school_only_content_of_real_school(self, setup):
-        """Un eleve inscrit dans SA propre ecole ne peut PAS voir le contenu school_only d'une AUTRE ecole."""
+        """Un eleve inscrit dans une AUTRE ecole (existante, active) ne peut PAS
+        voir le contenu school_only de l'ecole cliente."""
         db, real_school, course = setup
         client = TestClient(app)
 
-        # Inscrire dans une ecole DIFFERENTE
-        resp = _register(client, "other-school@test.com", school_name="Autre Ecole")
-        assert resp.status_code == 200
+        # Creer une seconde ecole ACTIVE existante, puis s'y inscrire par son nom
+        other_school = School(name="Autre Ecole", slug="autre-ecole", subscription_tier="free")
+        db.add(other_school)
+        db.commit()
 
-        token = _login(client, "other-school@test.com")
+        resp = _register(client, "other-school@test.com", school_name="Autre Ecole")
+        assert resp.status_code == 200, resp.text
+        token = resp.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
         # Tenter d'acceder au cours school_only de l'ecole cliente

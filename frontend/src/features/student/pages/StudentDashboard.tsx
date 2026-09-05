@@ -8,6 +8,9 @@ import { TrimesterReconfigBanner } from "../components/trimester/TrimesterReconf
 import { QuotaGauge } from "../components/quota/QuotaGauge";
 import { QuotaExhaustedModal } from "../components/quota/QuotaExhaustedModal";
 import { useState, useEffect } from "react";
+import { learnerLiveSessionsApi } from "../../../api/liveSessionApi";
+import type { LiveSession } from "../../../api/liveSessionApi";
+import { Video, Radio } from "lucide-react";
 
 function WidgetError({ message }: { message: string }) {
   return (
@@ -47,11 +50,19 @@ export default function StudentDashboard() {
     quota, trimester,
     isFreePack, isBasicOrSilver, isGolden,
     matieresCount, globalProgress,
-    lastLesson, learningTimeMinutes, averageScore,
+    lastLesson, learningTimeMinutes, averageScore, matieresNames,
   } = useStudentDashboard();
 
   const [showQuotaModal, setShowQuotaModal] = useState(false);
   const [aiLang, setAiLang] = useState<"fr" | "ar">("fr");
+  const [liveSessions, setLiveSessions] = useState<LiveSession[]>([]);
+
+  useEffect(() => {
+    learnerLiveSessionsApi
+      .list()
+      .then((res) => setLiveSessions(Array.isArray(res) ? res : (res.data || [])))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (quota.exhausted && !quota.isNotFree && !loading) {
@@ -64,6 +75,7 @@ export default function StudentDashboard() {
   const firstName = (user?.full_name || user?.email || "").split(" ")[0] || "Élève";
   const niveauScolaire = (user as any)?.niveau_scolaire || null;
   const courses = dashboard?.courses ?? [];
+  const displayMatieresCount = courses.length > 0 ? courses.length : matieresNames.length;
 
   return (
     <PageWrapper noHeader>
@@ -231,7 +243,7 @@ export default function StudentDashboard() {
                     <span className="text-[10px] text-gray-400">{lastLesson.progressPct}%</span>
                   </div>
                 </div>
-                <Button variant="primary" size="sm" onClick={() => navigate("/dashboard/courses")}>
+                <Button variant="primary" size="sm" onClick={() => navigate(`/dashboard/courses/${lastLesson.courseId}`)}>
                   {t("student.dashboard.continue")}
                 </Button>
               </div>
@@ -250,7 +262,7 @@ export default function StudentDashboard() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>{t("student.dashboard.accessibleSubjects")}</CardTitle>
-                <span className="text-xs text-gray-400">{matieresCount} {t("student.dashboard.subjectCount")}</span>
+                <span className="text-xs text-gray-400">{displayMatieresCount} {t("student.dashboard.subjectCount")}</span>
               </div>
             </CardHeader>
             {sourceErrors.dashboard ? (
@@ -272,6 +284,23 @@ export default function StudentDashboard() {
                         {course.lessons_completed}/{course.total_lessons} {t("student.dashboard.lessons")}
                       </p>
                     </div>
+                  </Button>
+                ))}
+              </div>
+            ) : matieresNames.length > 0 ? (
+              <div className="grid grid-cols-2 gap-3">
+                {matieresNames.slice(0, 6).map((name, idx) => (
+                  <Button
+                    key={idx}
+                    variant="ghost"
+                    size="md"
+                    onClick={() => navigate("/dashboard/mon-parcours")}
+                    className="flex items-center gap-2 p-3 rounded-xl text-left"
+                  >
+                    <svg className="w-4 h-4 text-orange shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                    <span className="text-sm text-navy">{name}</span>
                   </Button>
                 ))}
               </div>
@@ -439,6 +468,52 @@ export default function StudentDashboard() {
               </div>
             ) : (
               <WidgetError message={t("student.dashboard.erreurChargement")} />
+            )}
+          </Card>
+
+          {/* LIVE SESSION — next session */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Video className="w-4 h-4 text-orange" />
+                {t("student.liveSessions.nextSession")}
+              </CardTitle>
+            </CardHeader>
+            {liveSessions.length > 0 ? (
+              <div className="space-y-3">
+                {liveSessions.slice(0, 2).map((session) => (
+                  <div key={session.id} className="flex items-center justify-between p-3 bg-cream rounded-xl">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-navy truncate">{session.title}</p>
+                      <p className="text-[10px] text-gray-400">
+                        {new Date(session.scheduled_at).toLocaleDateString(undefined, {
+                          day: "numeric",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => navigate(`/dashboard/live-sessions/${session.id}/join`)}
+                    >
+                      {session.status === "live" ? (
+                        <><Radio className="w-3.5 h-3.5" /> {t("student.liveSessions.joinNow")}</>
+                      ) : (
+                        <>{t("student.liveSessions.join")}</>
+                      )}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 p-3 bg-cream rounded-xl">
+                <div className="w-8 h-8 bg-gray-200 rounded-lg flex items-center justify-center shrink-0">
+                  <Video className="w-4 h-4 text-gray-500" />
+                </div>
+                <p className="text-sm text-gray-400">{t("student.liveSessions.noSessions")}</p>
+              </div>
             )}
           </Card>
         </div>

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../../../store/authStore";
 import { api } from "../../../utils/apiClient";
-import { Package, AlertTriangle, CheckCircle, Clock, RefreshCw, ArrowUpCircle, ArrowDownCircle, XCircle } from "lucide-react";
+import { Package, AlertTriangle, CheckCircle, Clock, RefreshCw, ArrowUpCircle, ArrowDownCircle, XCircle, X, Check } from "lucide-react";
 import { useTrimesterReconfiguration } from "../hooks/useTrimesterReconfiguration";
 import { TrimesterReconfigBanner } from "../components/trimester/TrimesterReconfigBanner";
 import { TrimesterInfo } from "../components/trimester/TrimesterInfo";
@@ -63,6 +63,27 @@ const TIER_ICONS: Record<string, string> = {
   silver: "🥈",
   golden: "🥇",
 };
+
+const FEATURE_LABELS: Record<string, string> = {
+  ai_ask: "Questions au Tuteur IA",
+  ai_quiz: "Génération de Quiz",
+  ai_explain: "Explications IA",
+  max_lessons_per_day: "Leçons / jour",
+  max_quiz_per_day: "Quiz / jour",
+  soft_skills: "Soft Skills",
+  teacher_training: "Formation Enseignants",
+  premium_content: "Contenu Premium",
+  priority_support: "Support Prioritaire",
+  analytics: "Analyses & Statistiques",
+};
+
+function formatFeatureValue(key: string, val: any): { label: string; enabled: boolean; display: string } {
+  const label = FEATURE_LABELS[key] || key.replace(/_/g, " ");
+  if (typeof val === "boolean") {
+    return { label, enabled: val, display: "" };
+  }
+  return { label, enabled: true, display: String(val) };
+}
 
 export default function StudentPackPage() {
   const { t } = useTranslation();
@@ -239,7 +260,7 @@ export default function StudentPackPage() {
       )}
 
       {/* Current Pack */}
-      {data?.current_pack && (
+      {data?.current_pack && abo?.statut !== "invalide" ? (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-navy">{t('pack.activePack')}</h2>
@@ -276,18 +297,35 @@ export default function StudentPackPage() {
               />
             </div>
           )}
-          {data.current_pack.features && (
+          {data.current_pack.features && Object.keys(data.current_pack.features).length > 0 && (
             <div className="mt-4 pt-4 border-t border-gray-100">
               <p className="text-xs text-gray-500 mb-2">{t('pack.includedFeatures')}</p>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(data.current_pack.features).map(([key, val]) => (
-                  <span key={key} className="px-2 py-1 bg-gray-50 text-gray-600 text-xs rounded-full">
-                    {key.replace(/_/g, " ")}: {String(val)}
-                  </span>
-                ))}
+              <div className="space-y-1.5">
+                {Object.entries(data.current_pack.features).map(([key, val]) => {
+                  const feat = formatFeatureValue(key, val);
+                  return (
+                    <div key={key} className="flex items-center gap-2">
+                      {feat.enabled ? (
+                        <Check className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+                      ) : (
+                        <X className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" />
+                      )}
+                      <span className={`text-sm ${feat.enabled ? "text-navy" : "text-gray-400 line-through"}`}>
+                        {feat.label}
+                        {feat.display && <span className="text-gray-400 ml-1">({feat.display})</span>}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
+        </div>
+      ) : (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
+          <AlertTriangle className="w-8 h-8 text-amber-500 mx-auto mb-3" />
+          <h3 className="font-semibold text-amber-800 mb-1">{t('pack.noActivePack')}</h3>
+          <p className="text-sm text-amber-700">{t('pack.noActivePackDesc')}</p>
         </div>
       )}
 

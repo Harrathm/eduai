@@ -197,7 +197,7 @@ export default function AdminInboxView() {
           {loading ? (
             <PageSpinner />
           ) : messages.length === 0 ? (
-            <EmptyState icon={Inbox} message="Aucun message" />
+            <EmptyState icon={<Inbox />} title="Aucun message" />
           ) : (
             <div className="space-y-4">
               {messages.map((msg) => (

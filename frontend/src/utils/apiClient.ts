@@ -3,6 +3,44 @@ import { triggerUpsell } from "../components/UpsellModal";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
+const PACK_LABELS: Record<string, string> = {
+  basic: "Basique",
+  basique: "Basique",
+  silver: "Silver",
+  golden: "Golden",
+  gold: "Golden",
+  gratuit: "Gratuit",
+  free: "Gratuit",
+};
+
+function extractPackName(raw: unknown): string | null {
+  if (raw && typeof raw === "object") {
+    const pack = (raw as Record<string, unknown>).required_pack;
+    if (typeof pack === "string" && pack.trim()) {
+      const key = pack.trim().toLowerCase();
+      return PACK_LABELS[key] || pack.trim();
+    }
+    const msg = (raw as Record<string, unknown>).message;
+    if (typeof msg === "string") return extractPackName(msg);
+    return null;
+  }
+  if (typeof raw !== "string") return null;
+  // Match explicite sur les noms de packs connus, où qu'ils soient dans le message
+  const m = raw.match(/\b(basique|basic|silver|golden|gold|gratuit)\b/i);
+  if (!m) return null;
+  const key = m[1].toLowerCase();
+  return PACK_LABELS[key] || m[1];
+}
+
+function detailToMessage(raw: unknown, fallback: string): string {
+  if (typeof raw === "string" && raw.trim()) return raw;
+  if (raw && typeof raw === "object") {
+    const msg = (raw as Record<string, unknown>).message;
+    if (typeof msg === "string" && msg.trim()) return msg;
+  }
+  return fallback;
+}
+
 interface RequestInterceptor {
   onFulfilled: (config: RequestInit) => RequestInit | Promise<RequestInit>;
 }
@@ -128,7 +166,7 @@ class ApiClient {
               const retryResponse = await fetch(url, retryConfig);
               if (!retryResponse.ok) {
                 const errorData = await retryResponse.json().catch(() => ({}));
-                throw new Error(errorData.detail || `HTTP ${retryResponse.status}`);
+                throw new Error(detailToMessage(errorData.detail, `HTTP ${retryResponse.status}`));
               }
               const retryText = await retryResponse.text();
               return retryText ? (JSON.parse(retryText) as T) : (null as T);
@@ -150,12 +188,10 @@ class ApiClient {
         
         // Handle 402 Payment Required — ABAC upsell
         if (processedResponse.status === 402) {
-          const detail = errorData.detail || "Contenu premium requis";
-          // Extract pack name from message if present
-          const packMatch = detail.match(/Pack\s+(\w+)/i);
-          const requiredPack = packMatch ? packMatch[1] : "Silver";
-          triggerUpsell(detail, requiredPack);
-          throw new Error(detail);
+          const message = detailToMessage(errorData.detail, "Contenu premium requis");
+          const requiredPack = extractPackName(errorData.detail) || "Silver";
+          triggerUpsell(message, requiredPack);
+          throw new Error(message);
         }
         
         if (processedResponse.status === 429) {
@@ -165,9 +201,10 @@ class ApiClient {
           throw new Error("Ressource introuvable.");
         }
         if (processedResponse.status >= 500) {
-          throw new Error("Erreur serveur. Veuillez réessayer plus tard.");
+          const detail = detailToMessage(errorData.detail, "Erreur serveur interne.");
+          throw new Error(detail);
         }
-        throw new Error(errorData.detail || `HTTP ${processedResponse.status}`);
+        throw new Error(detailToMessage(errorData.detail, `HTTP ${processedResponse.status}`));
       }
 
       // Handle empty responses

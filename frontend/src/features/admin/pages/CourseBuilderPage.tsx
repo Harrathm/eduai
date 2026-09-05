@@ -2,10 +2,11 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import {
-  ArrowLeft, Plus, Trash2, GripVertical, Search, Save,
+  ArrowLeft, Plus, Trash2, GripVertical, Search,
   FileText, Video, HelpCircle, File, Image, Link, CheckCircle, AlertCircle,
 } from "lucide-react";
 import { courseAdmin, chapterAdmin, lessonAdmin } from "../../../api";
+import { pathwayApi } from "../../../api/pathwayApi";
 import { PageSpinner, Button } from "../../../components/ui";
 
 /* ─── Types ─────────────────────────────────────────────────────────── */
@@ -51,6 +52,7 @@ export default function CourseBuilderPage() {
   const location = useLocation();
   const basePath = useMemo(() => {
     if (location.pathname.startsWith("/dashboard/school")) return "/dashboard/school";
+    if (location.pathname.startsWith("/dashboard/teacher")) return "/dashboard/teacher";
     return "/dashboard/admin";
   }, [location.pathname]);
 
@@ -62,6 +64,13 @@ export default function CourseBuilderPage() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
+  /* ── Course Builder library filters ─────────────────────────────── */
+  const [filterCategory, setFilterCategory] = useState<string>("");
+  const [filterNiveau, setFilterNiveau] = useState<string>("");
+  const [filterMatiere, setFilterMatiere] = useState<string>("");
+  const [niveaux, setNiveaux] = useState<{ id: number; nom: string }[]>([]);
+  const [matieresForNiveau, setMatieresForNiveau] = useState<{ id: number; nom: string }[]>([]);
+
   const showToast = useCallback((message: string, type: "success" | "error" = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3500);
@@ -71,8 +80,8 @@ export default function CourseBuilderPage() {
 
   const fetchModuleLessons = useCallback(async (moduleId: number): Promise<Lesson[]> => {
     try {
-      const lessons = await lessonAdmin.list(moduleId) as unknown as Lesson[];
-      return Array.isArray(lessons) ? lessons : [];
+      const raw = await lessonAdmin.list(moduleId) as unknown as Lesson[] | { items?: Lesson[] };
+      return Array.isArray(raw) ? raw : ((raw as any).items || []);
     } catch { return []; }
   }, []);
 
@@ -97,7 +106,12 @@ export default function CourseBuilderPage() {
         setModules(loaded);
 
         try {
-          const raw = await lessonAdmin.listAll({ limit: 200 }) as unknown as Lesson[] | { items?: Lesson[] };
+          const raw = await lessonAdmin.listAll({
+            limit: 200,
+            ...(filterCategory ? { category_cible: filterCategory } : {}),
+            ...(filterNiveau ? { niveau_scolaire: filterNiveau } : {}),
+            ...(filterMatiere ? { matiere: filterMatiere } : {}),
+          }) as unknown as Lesson[] | { items?: Lesson[] };
           if (cancelled) return;
           const all = Array.isArray(raw) ? raw : ((raw as any).items || []);
           setAllLessons(all);
@@ -106,7 +120,29 @@ export default function CourseBuilderPage() {
       finally { if (!cancelled) setLoading(false); }
     })();
     return () => { cancelled = true; };
-  }, [courseId, fetchModuleLessons, showToast]);
+  }, [courseId, fetchModuleLessons, showToast, filterCategory, filterNiveau, filterMatiere]);
+
+  /* ── Fetch niveaux list on mount ──────────────────────────────── */
+  useEffect(() => {
+    let cancelled = false;
+    pathwayApi.getNiveaux().then((data: any) => {
+      if (!cancelled) setNiveaux(data || []);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  /* ── Fetch matieres when niveau changes ───────────────────────── */
+  useEffect(() => {
+    if (!filterNiveau) { setMatieresForNiveau([]); setFilterMatiere(""); return; }
+    let cancelled = false;
+    pathwayApi.getMatieresByNiveau(filterNiveau).then((res: any) => {
+      if (cancelled) return;
+      const data = res || {};
+      const all = [...(data.langues || []), ...(data.specialites || [])];
+      setMatieresForNiveau(all);
+    }).catch(() => { if (!cancelled) setMatieresForNiveau([]); });
+    return () => { cancelled = true; };
+  }, [filterNiveau]);
 
   /* ── Library (unassigned lessons) ────────────────────────────────── */
 
@@ -127,6 +163,7 @@ export default function CourseBuilderPage() {
 
   const onDragEnd = useCallback(async (result: DropResult) => {
     const { source, destination, draggableId } = result;
+    console.log("[DnD] onDragEnd", { source, destination, draggableId });
     if (!destination) return;
     const lessonId = Number(draggableId.replace("les-", ""));
     const srcModuleId = source.droppableId.startsWith("mod-")
@@ -207,7 +244,9 @@ export default function CourseBuilderPage() {
     }
 
     try {
-      await lessonAdmin.update(lessonId, { chapter_id: dstModuleId } as any);
+      console.log("[DnD] Updating lesson", lessonId, "module_id =", dstModuleId);
+      await lessonAdmin.update(lessonId, { module_id: dstModuleId } as any);
+      console.log("[DnD] Update OK, reordering...");
       const dstMod = modules.find(m => m.id === dstModuleId);
       if (dstMod) {
         const order = [...dstMod.lessons.filter(l => l.id !== lessonId).map(l => l.id)];
@@ -231,7 +270,7 @@ export default function CourseBuilderPage() {
         updates.forEach(u => { const m = map.get(u.id); if (m) m.lessons = u.lessons; });
         return [...map.values()];
       });
-    } catch { showToast("Erreur déplacement leçon", "error"); }
+    } catch (err) { console.error("[DnD] Drop error:", err); showToast("Erreur déplacement leçon", "error"); }
   }, [modules, courseId, allLessons, fetchModuleLessons, showToast]);
 
   /* ── Module CRUD ─────────────────────────────────────────────────── */
@@ -282,7 +321,7 @@ export default function CourseBuilderPage() {
       <div className="flex h-screen items-center justify-center bg-gray-50">
         <div className="text-center">
           <p className="text-gray-600 mb-4">Cours introuvable</p>
-          <Button variant="secondary" size="md" onClick={() => navigate("/dashboard/admin/courses")}>
+          <Button variant="secondary" size="md" onClick={() => navigate(basePath === "/dashboard/teacher" ? "/dashboard/teacher/learning" : `${basePath}/courses`)}>
             Retour aux cours
           </Button>
         </div>
@@ -299,7 +338,7 @@ export default function CourseBuilderPage() {
         {/* ── Header ─────────────────────────────────────────────── */}
         <header className="bg-white border-b px-4 py-3 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/admin/courses")} title="Retour">
+            <Button variant="ghost" size="sm" onClick={() => navigate(basePath === "/dashboard/teacher" ? "/dashboard/teacher/learning" : `${basePath}/courses`)} title="Retour">
               <ArrowLeft className="w-5 h-5 text-gray-600" />
             </Button>
             <div>
@@ -316,12 +355,13 @@ export default function CourseBuilderPage() {
             <Button variant="ghost" size="md" onClick={() => navigate(`${basePath}/courses/${courseId}`)}>
               Éditeur classique
             </Button>
-            <Button variant="ghost" size="md" onClick={() => navigate(`${basePath}/courses`)}>
+            <Button variant="ghost" size="md" onClick={() => navigate(basePath === "/dashboard/teacher" ? "/dashboard/teacher/learning" : `${basePath}/courses`)}>
               Retour à la liste
             </Button>
-            <Button variant="success" size="md" disabled>
-              <Save className="w-4 h-4" /> Sauvegardé automatiquement
-            </Button>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 rounded-lg cursor-default">
+              <CheckCircle className="w-4 h-4 text-green-500" />
+              Sauvegardé automatiquement
+            </span>
           </div>
         </header>
 
@@ -338,6 +378,32 @@ export default function CourseBuilderPage() {
                   onChange={e => setLibrarySearch(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2c74b3] focus:border-transparent" />
               </div>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
+                  className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#2c74b3]">
+                  <option value="">Tous les types</option>
+                  <option value="Scolaire">Scolaire</option>
+                  <option value="Soft_Skill">Soft Skill</option>
+                  <option value="Teacher_Training">Formation</option>
+                </select>
+                <select value={filterNiveau} onChange={e => { setFilterNiveau(e.target.value); setFilterMatiere(""); }}
+                  className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#2c74b3]">
+                  <option value="">Tous les niveaux</option>
+                  {niveaux.map(n => <option key={n.id} value={n.nom}>{n.nom}</option>)}
+                </select>
+                <select value={filterMatiere} onChange={e => setFilterMatiere(e.target.value)}
+                  className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#2c74b3] col-span-2"
+                  disabled={!filterNiveau || matieresForNiveau.length === 0}>
+                  <option value="">{filterNiveau ? "Toutes les matières" : "Sélectionnez un niveau"}</option>
+                  {matieresForNiveau.map(m => <option key={m.id} value={m.nom}>{m.nom}</option>)}
+                </select>
+              </div>
+              {(filterCategory || filterNiveau || filterMatiere) && (
+                <button onClick={() => { setFilterCategory(""); setFilterNiveau(""); setFilterMatiere(""); }}
+                  className="mt-1.5 text-[10px] text-[#2c74b3] hover:underline">
+                  Effacer les filtres
+                </button>
+              )}
               <p className="text-xs text-gray-400 mt-2">
                 {libraryLessons.length} leçon{libraryLessons.length !== 1 ? "s" : ""} disponible{libraryLessons.length !== 1 ? "s" : ""}
               </p>
@@ -385,16 +451,14 @@ export default function CourseBuilderPage() {
             <Droppable droppableId="modules" direction="horizontal">
               {(provided) => (
                 <div ref={provided.innerRef} {...provided.droppableProps}
-                  className="flex-1 flex gap-4 p-4 overflow-x-auto items-start">
+                  className="flex-1 flex gap-4 p-4 overflow-x-clip items-start">
                   {modules.map((mod, modIndex) => (
-                    <Draggable key={`mod-${mod.id}`} draggableId={`mod-${mod.id}`} index={modIndex}>
-                      {(modDragProvided, modDragSnapshot) => (
-                        <div ref={modDragProvided.innerRef} {...modDragProvided.draggableProps}
-                          className={`w-80 shrink-0 bg-white rounded-xl shadow-sm border flex flex-col max-h-[calc(100vh-8rem)] ${modDragSnapshot.isDragging ? "shadow-xl ring-2 ring-[#2c74b3]" : ""}`}>
-
-                          {/* Module header */}
-                          <div {...modDragProvided.dragHandleProps}
-                            className="p-3 border-b bg-gradient-to-r from-[#0a2647] to-[#144272] rounded-t-xl flex items-center gap-2">
+                    <div key={`mod-col-${mod.id}`} className="w-80 shrink-0 flex flex-col bg-white rounded-xl shadow-sm border max-h-[calc(100vh-8rem)]">
+                      <Draggable key={`mod-${mod.id}`} draggableId={`mod-${mod.id}`} index={modIndex}>
+                        {(modDragProvided, modDragSnapshot) => (
+                          <div ref={modDragProvided.innerRef} {...modDragProvided.draggableProps}
+                            {...modDragProvided.dragHandleProps}
+                            className={`p-3 border-b bg-gradient-to-r from-[#0a2647] to-[#144272] rounded-t-xl flex items-center gap-2 cursor-grab ${modDragSnapshot.isDragging ? "shadow-xl ring-2 ring-[#2c74b3]" : ""}`}>
                             <GripVertical className="w-4 h-4 text-white/50 shrink-0" />
                             <input type="text" value={mod.title}
                               onChange={e => handleUpdateModuleTitle(mod.id, e.target.value)}
@@ -406,50 +470,49 @@ export default function CourseBuilderPage() {
                               <Trash2 className="w-4 h-4 text-white/70" />
                             </Button>
                           </div>
+                        )}
+                      </Draggable>
 
-                          {/* Lessons droppable */}
-                          <Droppable droppableId={`mod-${mod.id}`}>
-                            {(dropProvided, dropSnapshot) => (
-                              <div ref={dropProvided.innerRef} {...dropProvided.droppableProps}
-                                className={`flex-1 overflow-y-auto p-2 space-y-1 min-h-[120px] transition-colors ${dropSnapshot.isDraggingOver ? "bg-[#eef4fb]" : ""}`}>
-                                {mod.lessons.length === 0 && (
-                                  <div className={`h-full min-h-[100px] flex flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors ${dropSnapshot.isDraggingOver ? "border-[#2c74b3] bg-[#eef4fb]" : "border-gray-200"}`}>
-                                    <FileText className="w-8 h-8 text-gray-300 mb-1" />
-                                    <p className="text-xs text-gray-400">
-                                      {dropSnapshot.isDraggingOver ? "Déposez ici" : "Glissez une leçon ici"}
-                                    </p>
-                                  </div>
-                                )}
-                                {mod.lessons.map((lesson, lesIndex) => {
-                                  const meta = lessonMeta(lesson.lesson_type);
-                                  const Icon = meta.icon;
-                                  return (
-                                    <Draggable key={`les-${lesson.id}`} draggableId={`les-${lesson.id}`} index={lesIndex}>
-                                      {(lesProvided, lesSnapshot) => (
-                                        <div ref={lesProvided.innerRef} {...lesProvided.draggableProps} {...lesProvided.dragHandleProps}
-                                          className={`flex items-center gap-2 p-2 rounded-lg border transition-shadow cursor-grab group ${meta.bg} ${lesSnapshot.isDragging ? "shadow-lg ring-2 ring-[#2c74b3]" : "hover:shadow-sm"}`}>
-                                          <GripVertical className="w-4 h-4 opacity-40 shrink-0" />
-                                          <Icon className="w-4 h-4 shrink-0" />
-                                          <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium truncate">{lesson.title}</p>
-                                            <p className="text-xs opacity-60">{lesson.duration_minutes || 0} min</p>
-                                          </div>
-                                          <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); handleRemoveLesson(mod.id, lesson.id); }}
-                                            title="Retirer du module">
-                                            <Trash2 className="w-3.5 h-3.5 text-red-500" />
-                                          </Button>
-                                        </div>
-                                      )}
-                                    </Draggable>
-                                  );
-                                })}
-                                {dropProvided.placeholder}
+                      <Droppable droppableId={`mod-${mod.id}`}>
+                        {(dropProvided, dropSnapshot) => (
+                          <div ref={dropProvided.innerRef} {...dropProvided.droppableProps}
+                            className={`flex-1 overflow-y-auto p-2 space-y-1 min-h-[120px] transition-colors ${dropSnapshot.isDraggingOver ? "bg-[#eef4fb]" : ""}`}>
+                            {mod.lessons.length === 0 && (
+                              <div className={`h-full min-h-[100px] flex flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors ${dropSnapshot.isDraggingOver ? "border-[#2c74b3] bg-[#eef4fb]" : "border-gray-200"}`}>
+                                <FileText className="w-8 h-8 text-gray-300 mb-1" />
+                                <p className="text-xs text-gray-400">
+                                  {dropSnapshot.isDraggingOver ? "Déposez ici" : "Glissez une leçon ici"}
+                                </p>
                               </div>
                             )}
-                          </Droppable>
-                        </div>
-                      )}
-                    </Draggable>
+                            {mod.lessons.map((lesson, lesIndex) => {
+                              const meta = lessonMeta(lesson.lesson_type);
+                              const Icon = meta.icon;
+                              return (
+                                <Draggable key={`les-${lesson.id}`} draggableId={`les-${lesson.id}`} index={lesIndex}>
+                                  {(lesProvided, lesSnapshot) => (
+                                    <div ref={lesProvided.innerRef} {...lesProvided.draggableProps} {...lesProvided.dragHandleProps}
+                                      className={`flex items-center gap-2 p-2 rounded-lg border transition-shadow cursor-grab group ${meta.bg} ${lesSnapshot.isDragging ? "shadow-lg ring-2 ring-[#2c74b3]" : "hover:shadow-sm"}`}>
+                                      <GripVertical className="w-4 h-4 opacity-40 shrink-0" />
+                                      <Icon className="w-4 h-4 shrink-0" />
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium truncate">{lesson.title}</p>
+                                        <p className="text-xs opacity-60">{lesson.duration_minutes || 0} min</p>
+                                      </div>
+                                      <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); handleRemoveLesson(mod.id, lesson.id); }}
+                                        title="Retirer du module">
+                                        <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                                      </Button>
+                                    </div>
+                                  )}
+                                </Draggable>
+                              );
+                            })}
+                            {dropProvided.placeholder}
+                          </div>
+                        )}
+                      </Droppable>
+                    </div>
                   ))}
 
                   {/* Add module button */}

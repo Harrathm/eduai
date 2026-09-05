@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
-  tierApi, abonnementApi, walletApi, inboxApi, catalogApi,
+  tierApi, abonnementApi, walletApi, inboxApi, catalogApi, pathwayApi,
   type DashboardData, type Abonnement, type WalletBalance, type CatalogCourse,
 } from "../../../api";
 import type { InboxMessage } from "../../../api/inboxApi";
 import { useTrimesterReconfiguration } from "./useTrimesterReconfiguration";
 
-const FREE_QUOTA_LIMIT = 3;
+const FREE_QUOTA_LIMIT = 3; // fallback uniquement — la valeur serveur (free_lessons_limit) prime
 
 interface QuotaState {
   tier: string | null;
@@ -20,6 +20,7 @@ interface QuotaState {
 }
 
 export interface LastLesson {
+  courseId: number;
   title: string;
   courseTitle: string;
   progressPct: number;
@@ -50,14 +51,25 @@ interface StudentDashboardData {
   lastLesson: LastLesson | null;
   learningTimeMinutes: number;
   averageScore: number;
+  matieresNames: string[];
 }
 
 const PAID_TIERS = ["basique", "basic", "silver", "golden"];
 
+// Correction E6 : le quota affiché = valeurs SERVEUR (free_lessons_used_this_trimester /
+// free_lessons_limit du dashboard), pas une constante locale. Le compteur serveur est
+// réel : leçons uniques complétées durant le trimestre courant, tous cours confondus.
 function computeQuota(dashboard: DashboardData | null, activeAbo: Abonnement | null): QuotaState {
   if (!dashboard) return { tier: null, used: 0, limit: FREE_QUOTA_LIMIT, remaining: FREE_QUOTA_LIMIT, percent: 0, exhausted: false, isNotFree: false, error: null };
   const tier = dashboard.tier;
-  const used = (dashboard as any).free_lessons_used ?? dashboard.lessons_completed;
+  const limit =
+    typeof (dashboard as any).free_lessons_limit === "number" && (dashboard as any).free_lessons_limit > 0
+      ? (dashboard as any).free_lessons_limit
+      : FREE_QUOTA_LIMIT;
+  const used =
+    typeof (dashboard as any).free_lessons_used_this_trimester === "number"
+      ? (dashboard as any).free_lessons_used_this_trimester
+      : ((dashboard as any).free_lessons_used ?? dashboard.lessons_completed);
 
   const aboTier = (activeAbo as any)?.pack?.tier || activeAbo?.tier || null;
   const isPaid = aboTier !== null && PAID_TIERS.includes(aboTier.toLowerCase());
@@ -66,11 +78,11 @@ function computeQuota(dashboard: DashboardData | null, activeAbo: Abonnement | n
     return { tier: aboTier, used: 0, limit: Infinity, remaining: Infinity, percent: 0, exhausted: false, isNotFree: true, error: null };
   }
 
-  const remaining = Math.max(0, FREE_QUOTA_LIMIT - used);
-  const percent = Math.min(100, Math.round((used / FREE_QUOTA_LIMIT) * 100));
-  const exhausted = used >= FREE_QUOTA_LIMIT;
-  const isNotFree = tier !== null && tier !== "decouverte";
-  return { tier, used, limit: FREE_QUOTA_LIMIT, remaining, percent, exhausted, isNotFree, error: null };
+  const remaining = Math.max(0, limit - used);
+  const percent = Math.min(100, Math.round((used / limit) * 100));
+  const exhausted = used >= limit;
+  const isNotFree = tier !== null && tier !== "gratuit" && tier !== "decouverte";
+  return { tier, used, limit, remaining, percent, exhausted, isNotFree, error: null };
 }
 
 export function useStudentDashboard() {
@@ -90,6 +102,7 @@ export function useStudentDashboard() {
     lastLesson: null,
     learningTimeMinutes: 0,
     averageScore: 0,
+    matieresNames: [],
   });
   const mountedRef = useRef(true);
   const trimester = useTrimesterReconfiguration();
@@ -105,7 +118,7 @@ export function useStudentDashboard() {
       abonnementApi.mesAbonnements(),
       walletApi.balance(),
       inboxApi.list({ unread_only: false }),
-      catalogApi.list({ category: "soft_skills", limit: 3 }),
+      catalogApi.list({ category_cible: "Soft_Skill", limit: 3 }),
       abonnementApi.listPacks(),
     ]);
 
@@ -138,6 +151,28 @@ export function useStudentDashboard() {
     console.log("DEBUG ABO - activeAbo:", activeAbo);
     console.log("DEBUG ABO - activeAbo.pack?.tier:", (activeAbo as any)?.pack?.tier);
 
+    // ── Extract matiere names from abonnement matieres_config ──
+    let matieresNames: string[] = [];
+    const matieresConfig = (activeAbo as any)?.matieres_config;
+    const matiereIds: number[] = matieresConfig?.matieres || [];
+    const niveauScolaire = dashData?.niveau_scolaire || "";
+    if (matiereIds.length > 0 && niveauScolaire) {
+      try {
+        const allMatieres = await pathwayApi.getMatieresByNiveau(niveauScolaire);
+        const flat: any[] = Array.isArray(allMatieres)
+          ? allMatieres
+          : [
+              ...(Array.isArray((allMatieres as any)?.langues) ? (allMatieres as any).langues : []),
+              ...(Array.isArray((allMatieres as any)?.specialites) ? (allMatieres as any).specialites : []),
+            ];
+        const idSet = new Set(matiereIds);
+        matieresNames = flat
+          .filter((m: any) => idSet.has(m.id))
+          .map((m: any) => m.nom)
+          .filter(Boolean);
+      } catch { /* ignore */ }
+    }
+
     // ── Process inbox ──
     const messages = Array.isArray(inboxData) ? inboxData : [];
     const unread = messages.filter((m: any) => !m.is_read).length;
@@ -159,6 +194,7 @@ export function useStudentDashboard() {
             (a.progress_pct ?? 0) > (b.progress_pct ?? 0) ? a : b
           );
           return {
+            courseId: (last as any).id,
             title: last.title || "Dernière leçon",
             courseTitle: last.title,
             progressPct: last.progress_pct ?? 0,
@@ -168,9 +204,14 @@ export function useStudentDashboard() {
     const mockLearningTime = Math.round((dashData?.lessons_completed ?? 0) * 12);
     const mockAvgScore = dashData?.overall_progress_pct ?? 0;
 
+    // ── Resolve pack tier: l'API sérialise le tier dans abonnement.pack.tier ──
+    const resolvedPackTier = (
+      ((activeAbo as any)?.pack?.tier || (activeAbo as any)?.tier || "") as string
+    ).toLowerCase() || null;
+
     setData({
       dashboard: dashData,
-      packTier: activeAbo?.tier || null,
+      packTier: resolvedPackTier,
       abonnement: activeAbo || null,
       wallet: walletData,
       unreadCount: unread,
@@ -184,6 +225,7 @@ export function useStudentDashboard() {
       lastLesson: mockLastLesson,
       learningTimeMinutes: mockLearningTime,
       averageScore: mockAvgScore,
+      matieresNames,
     });
   }, []);
 
@@ -193,9 +235,10 @@ export function useStudentDashboard() {
     return () => { mountedRef.current = false; };
   }, [fetchData]);
 
-  const isFreePack = data.packTier === "gratuit" || data.packTier === null;
-  const isBasicOrSilver = data.packTier === "basique" || data.packTier === "silver";
-  const isGolden = data.packTier === "golden";
+  const packTierLower = (data.packTier || "").toLowerCase();
+  const isFreePack = !packTierLower || packTierLower === "gratuit";
+  const isBasicOrSilver = ["basique", "basic", "silver"].includes(packTierLower);
+  const isGolden = packTierLower === "golden";
 
   const matieresCount = data.dashboard?.courses?.length ?? 0;
   const globalProgress = data.dashboard?.overall_progress_pct ?? 0;

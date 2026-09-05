@@ -73,6 +73,8 @@ export const adminDashboard = {
 
 export const adminAnalytics = {
   overview: () => api.get<any>("/api/admin/analytics/overview"),
+  dashboard: () => api.get<any>("/api/admin/analytics/overview"),
+  global: () => api.get<any>("/api/admin/stats/global"),
   users: () => api.get<any>("/api/admin/analytics/users"),
   courses: () => api.get<any>("/api/admin/analytics/courses"),
   revenue: (period: string = "30d") =>
@@ -103,6 +105,21 @@ export interface ErrorLogResponse {
   file: string;
   truncated: boolean;
   error?: string;
+}
+
+export interface BroadcastMessage {
+  id: number;
+  type: string;
+  subject: string;
+  body: string;
+  sender_id?: number;
+  sender_name?: string;
+  recipient_id?: number;
+  recipient_name?: string;
+  recipient_role?: string;
+  target_audience?: string;
+  is_read: boolean;
+  created_at: string;
 }
 
 export const adminSettings = {
@@ -151,6 +168,13 @@ export const adminLogs = {
 // ─── Broadcast ──────────────────────────────────────────────────────────────
 
 export const adminBroadcast = {
+  listMessages: (params?: { skip?: number; limit?: number }) => {
+    const sp = new URLSearchParams();
+    if (params?.skip) sp.set("skip", String(params.skip));
+    if (params?.limit) sp.set("limit", String(params.limit));
+    const qs = sp.toString();
+    return api.get<any>(`/api/admin/messages${qs ? `?${qs}` : ""}`);
+  },
   send: (data: { subject: string; body: string; recipients?: string }) =>
     api.post<any>("/api/admin/broadcast", data),
 };
@@ -207,7 +231,13 @@ export const adminTeacherRegistrations = {
 // ─── Users All (Financial Hub) ─────────────────────────────────────────────
 
 export const adminUsersAll = {
-  list: () => api.get<any[]>("/api/admin/users-all"),
+  list: (params?: { role?: string; limit?: number }) => {
+    const sp = new URLSearchParams();
+    if (params?.role) sp.set("role", params.role);
+    if (params?.limit) sp.set("limit", String(params.limit));
+    const qs = sp.toString();
+    return api.get<{ total: number; items: any[] }>(`/api/admin/users-all${qs ? `?${qs}` : ""}`);
+  },
   update: (userId: number, data: { token_balance?: number; dt_balance?: number }) =>
     api.put<any>(`/api/admin/users/${userId}`, data),
 };
@@ -239,8 +269,47 @@ export const pedagogicalLead = {
 
 // ─── AI Factory (admin) ─────────────────────────────────────────────────────
 
+const API_URL_BASE = import.meta.env.VITE_API_URL || "";
+
 export const adminAIFactory = {
   generatePlan: (data: any) => api.post<any>("/api/admin/ai-factory/generate-plan", data),
   generateContent: (data: any) => api.post<any>("/api/admin/ai-factory/generate-content", data),
   generateQuiz: (data: any) => api.post<any>("/api/admin/ai-factory/generate-quiz", data),
+
+  generateContentStream: async (data: any): Promise<Response> => {
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+    const url = `${API_URL_BASE}/api/admin/ai-factory/generate-content-stream`;
+    return fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(data),
+    });
+  },
+
+  generateMediaPrompts: (data: any) => api.post<any>("/api/admin/ai-factory/generate-media-prompts", data),
+  generateImage: (data: any) => api.post<any>("/api/admin/ai-factory/generate-image", data),
+  saveImageToBundle: (data: any) => api.post<any>("/api/admin/ai-factory/save-image-to-bundle", data),
+  preview: (data: any) => api.post<any>("/api/admin/ai-factory/preview", data),
+  publish: (data: any) => api.post<any>("/api/admin/ai-factory/publish", data),
+  ingestPDF: async (file: File) => {
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+    const url = `${API_URL_BASE}/api/ai/ingest/pdf`;
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: "Upload failed" }));
+      throw new Error(err.detail || "Upload failed");
+    }
+    return res.json();
+  },
 };

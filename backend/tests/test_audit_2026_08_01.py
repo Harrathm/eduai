@@ -370,7 +370,14 @@ class TestBug2AtomicCommit:
 class TestHasCourseAccessExecution:
     """
     Pour CHACUN des 13 endpoints, crée un élève SANS accès (pas d'enrollment,
-    pas de purchase, pas de pack, pas d'accès école) et vérifie le 403 réel.
+    pas de purchase, pas de pack, pas d'accès école).
+
+    Depuis l'activation du modèle Freemium (learner.py), les endpoints de
+    consommation pédagogique (syllabus, leçon, quiz) ne renvoient plus 403 :
+    un élève Gratuit/sans pack est autorisé sous quota, puis bloqué par un 402
+    structuré {"message", "required_pack"} une fois le quota trimestriel épuisé.
+    Le fixture épuise donc volontairement ce quota (3 leçons complétées sur un
+    autre cours) pour vérifier le garde-fou serveur réel : le 402 upsell.
     """
 
     @pytest.fixture(autouse=True)
@@ -411,6 +418,36 @@ class TestHasCourseAccessExecution:
         paid_lesson = _create_lesson(db, module.id, school.id, is_free=False)
         quiz = _create_quiz(db, paid_lesson.id)
 
+        # ── Quota Freemium ÉPUISÉ pour student_no_access ──
+        # 3 leçons uniques "complétées" ce trimestre, via un enrollment sur un
+        # AUTRE cours (sinon l'enrollment lui-même déverrouillerait le cours cible).
+        from app.models import LessonProgress as LP
+        quota_course = Course(
+            title="Quota Filler", slug="quota-filler",
+            school_id=school.id, author_id=teacher.id,
+            price=0.0, price_dt=0.0, price_tokens=0,
+            visibility="public_catalog", status=CourseStatus.PUBLISHED,
+            is_published=True, niveau_scolaire="9eme de base",
+        )
+        db.add(quota_course)
+        db.flush()
+        quota_enrollment = CourseEnrollment(
+            student_id=student_no_access.id,
+            course_id=quota_course.id,
+            status="active",
+        )
+        db.add(quota_enrollment)
+        db.flush()
+        _now = datetime.now(timezone.utc)
+        for fake_lesson_id in (900001, 900002, 900003):
+            db.add(LP(
+                enrollment_id=quota_enrollment.id,
+                lesson_id=fake_lesson_id,
+                status="completed",
+                completed_at=_now,
+            ))
+        db.commit()
+
         client = TestClient(app)
 
         self.client = client
@@ -434,50 +471,52 @@ class TestHasCourseAccessExecution:
 
     # ── 1. GET /lessons/{id} ──────────────────────────────────────────────
     def test_01_get_lesson_no_access(self):
-        """GET /api/learner/lessons/{id} → 403 sans accès."""
+        """GET /api/learner/lessons/{id} → 402 quota Freemium épuisé (upsell)."""
         resp = self.client.get(
             f"/api/learner/lessons/{self.paid_lesson.id}",
             headers=self._auth(),
         )
-        assert resp.status_code == 403, (
-            f"GET /lessons/{self.paid_lesson.id} devrait retourner 403, "
+        assert resp.status_code == 402, (
+            f"GET /lessons/{self.paid_lesson.id} devrait retourner 402, "
             f"obtenu {resp.status_code}: {resp.text}"
         )
+        detail = resp.json()["detail"]
+        assert isinstance(detail, dict) and detail.get("required_pack") == "Basic"
 
     # ── 2. POST /lessons/{id}/progress ────────────────────────────────────
     def test_02_post_lesson_progress_no_access(self):
-        """POST /api/learner/lessons/{id}/progress → 403 sans accès."""
+        """POST /api/learner/lessons/{id}/progress → 402 quota épuisé."""
         resp = self.client.post(
             f"/api/learner/lessons/{self.paid_lesson.id}/progress",
             headers=self._auth(),
             json={"completed": True},
         )
-        assert resp.status_code == 403, (
-            f"POST /lessons/{self.paid_lesson.id}/progress devrait retourner 403, "
+        assert resp.status_code == 402, (
+            f"POST /lessons/{self.paid_lesson.id}/progress devrait retourner 402, "
             f"obtenu {resp.status_code}: {resp.text}"
         )
 
     # ── 3. POST /quizzes/{id}/start ───────────────────────────────────────
     def test_03_post_quiz_start_no_access(self):
-        """POST /api/learner/quizzes/{id}/start → 403 sans accès."""
+        """POST /api/learner/quizzes/{id}/start → 402 quota épuisé."""
         resp = self.client.post(
             f"/api/learner/quizzes/{self.quiz.id}/start",
             headers=self._auth(),
         )
-        assert resp.status_code == 403, (
-            f"POST /quizzes/{self.quiz.id}/start devrait retourner 403, "
+        assert resp.status_code == 402, (
+            f"POST /quizzes/{self.quiz.id}/start devrait retourner 402, "
             f"obtenu {resp.status_code}: {resp.text}"
         )
 
     # ── 4. GET /quizzes/{id} ──────────────────────────────────────────────
     def test_04_get_quiz_no_access(self):
-        """GET /api/learner/quizzes/{id} → 403 sans accès."""
+        """GET /api/learner/quizzes/{id} → 402 quota épuisé."""
         resp = self.client.get(
             f"/api/learner/quizzes/{self.quiz.id}",
             headers=self._auth(),
         )
-        assert resp.status_code == 403, (
-            f"GET /quizzes/{self.quiz.id} devrait retourner 403, "
+        assert resp.status_code == 402, (
+            f"GET /quizzes/{self.quiz.id} devrait retourner 402, "
             f"obtenu {resp.status_code}: {resp.text}"
         )
 
@@ -493,8 +532,8 @@ class TestHasCourseAccessExecution:
             headers=self._auth(),
             json={"attempt_id": 99999, "answers": []},
         )
-        assert resp.status_code in (403, 404), (
-            f"POST /quizzes/{self.quiz.id}/submit devrait retourner 403 ou 404, "
+        assert resp.status_code in (402, 404), (
+            f"POST /quizzes/{self.quiz.id}/submit devrait retourner 402 ou 404, "
             f"obtenu {resp.status_code}: {resp.text}"
         )
 
@@ -577,13 +616,13 @@ class TestHasCourseAccessExecution:
 
     # ── 12. GET /courses/{id}/syllabus ────────────────────────────────────
     def test_12_get_syllabus_no_access(self):
-        """GET /api/learner/courses/{id}/syllabus → 403 sans accès."""
+        """GET /api/learner/courses/{id}/syllabus → 402 quota épuisé."""
         resp = self.client.get(
             f"/api/learner/courses/{self.course.id}/syllabus",
             headers=self._auth(),
         )
-        assert resp.status_code == 403, (
-            f"GET /learner/courses/{self.course.id}/syllabus devrait retourner 403, "
+        assert resp.status_code == 402, (
+            f"GET /learner/courses/{self.course.id}/syllabus devrait retourner 402, "
             f"obtenu {resp.status_code}: {resp.text}"
         )
 

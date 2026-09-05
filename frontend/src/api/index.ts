@@ -19,4 +19,5 @@ export * from "./schoolApi";
 export * from "./adminApi";
 export * from "./pathwayApi";
 export * from "./teacherApi";
+export * from "./liveSessionApi";
 export * from "./parentApi";

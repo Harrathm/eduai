@@ -17,13 +17,14 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.db.session import get_db, tenant_unaware
+from app.db.session import get_db, tenant_unaware, _tenant_filter_suppressed
 from app.deps import require_admin, require_platform_admin, get_current_user, set_tenant_context
 from app.models import (
     User, Notion, ContenuNotion, ProfilAssimilationEleve,
     NotificationReorientation, HistoriqueScoreEleve,
     ChapterPathway, Matiere, NiveauEtude,
     ActionReorientation, StatutValidationProfil, SourceChangement,
+    Abonnement, PackDefinition,
 )
 from app.schemas import (
     ProfilAssimilationEleveRead, ProfilAssimilationEleveCreate,
@@ -154,7 +155,9 @@ def get_notifications_reorientation(
     current_user: User = Depends(set_tenant_context),
 ):
     """List pending reorientation notifications for a teacher."""
-    if current_user.role not in ("teacher", "admin_school", "super_admin") and current_user.id != enseignant_id:
+    from app.deps import get_user_role
+    role = get_user_role(current_user)
+    if current_user.id != enseignant_id and role not in ("admin_school", "super_admin"):
         raise HTTPException(status_code=403, detail="Accès refusé")
 
     notifications = db.query(NotificationReorientation).filter(
@@ -230,6 +233,32 @@ def record_score(
     if not db.query(ChapterPathway).filter(ChapterPathway.id == score_in.chapitre_id).first():
         raise HTTPException(status_code=404, detail="Chapter pathway not found")
 
+    with tenant_unaware():
+        eleve = db.query(User).filter(User.id == score_in.eleve_id).first()
+    if not eleve:
+        raise HTTPException(status_code=404, detail="Élève non trouvé")
+
+    if current_user.role == "teacher":
+        from app.models import StudentEnrollment, TeacherClass
+        in_class = (
+            db.query(StudentEnrollment.id)
+            .join(TeacherClass, TeacherClass.id == StudentEnrollment.class_id)
+            .filter(
+                StudentEnrollment.student_id == score_in.eleve_id,
+                StudentEnrollment.is_active == True,
+                TeacherClass.teacher_id == current_user.id,
+            )
+            .first()
+        )
+        if not in_class:
+            raise HTTPException(
+                status_code=403,
+                detail="Cet élève n'est inscrit dans aucune de vos classes",
+            )
+    elif current_user.role in ("admin_school", "pedagogical_lead"):
+        if eleve.school_id != current_user.school_id:
+            raise HTTPException(status_code=403, detail="Accès refusé: élève d'une autre école")
+
     enseignant_id = None
     if current_user.role == "teacher":
         enseignant_id = current_user.id
@@ -282,6 +311,65 @@ def trigger_evaluer_reorientation(
 # -------------------------------------------------------------------
 # GET /notions/{id}/contenu  (serve content)
 # -------------------------------------------------------------------
+def _notion_niveau(db: Session, notion_id: int):
+    """Résout Notion → Chapitre → Matière → Niveau d'étude (ou None)."""
+    notion = db.query(Notion).filter(Notion.id == notion_id).first()
+    if not notion:
+        return None
+    chapitre = db.query(ChapterPathway).filter(ChapterPathway.id == notion.chapitre_id).first()
+    if not chapitre:
+        return None
+    matiere = db.query(Matiere).filter(Matiere.id == chapitre.matiere_id).first()
+    if not matiere:
+        return None
+    return db.query(NiveauEtude).filter(NiveauEtude.id == matiere.niveau_etude_id).first()
+
+
+def _eleve_active_niveaux(user: User, db: Session) -> set:
+    """Niveaux scolaires couverts par les droits actifs de l'élève :
+    PackPurchase (école + individuel) ET fallback Abonnement/PackDefinition
+    (source de vérité E1). Le filtre tenant est supprimé car les
+    PackPurchase individuels ont school_id=NULL."""
+    from datetime import datetime, timezone
+    from app.models import PackPurchase, PackPurchaseStatus, PurchaserType, StudyPack
+
+    now = datetime.now(timezone.utc)
+    niveaux: set = set()
+    token = _tenant_filter_suppressed.set(True)
+    try:
+        if user.school_id:
+            for sp in db.query(PackPurchase).filter(
+                PackPurchase.school_id == user.school_id,
+                PackPurchase.purchaser_type == PurchaserType.SCHOOL.value,
+                PackPurchase.status == PackPurchaseStatus.ACTIVE.value,
+                PackPurchase.valid_until > now,
+            ).all():
+                pack = db.query(StudyPack).filter(StudyPack.id == sp.pack_id).first()
+                if pack:
+                    niveaux.add(pack.niveau_scolaire)
+
+        for sp in db.query(PackPurchase).filter(
+            PackPurchase.student_id == user.id,
+            PackPurchase.purchaser_type == PurchaserType.STUDENT.value,
+            PackPurchase.status == PackPurchaseStatus.ACTIVE.value,
+            PackPurchase.valid_until > now,
+        ).all():
+            pack = db.query(StudyPack).filter(StudyPack.id == sp.pack_id).first()
+            if pack:
+                niveaux.add(pack.niveau_scolaire)
+
+        for abo in db.query(Abonnement).join(PackDefinition).filter(
+            Abonnement.user_id == user.id,
+            Abonnement.statut.in_(["actif", "grace"]),
+            Abonnement.fin > now,
+        ).all():
+            if abo.pack:
+                niveaux.add(abo.pack.niveau_scolaire)
+    finally:
+        _tenant_filter_suppressed.reset(token)
+    return niveaux
+
+
 @router.get("/notions/{notion_id}/contenu")
 def get_contenu_a_servir(
     notion_id: int,
@@ -292,6 +380,19 @@ def get_contenu_a_servir(
     """Get the content to serve for a notion, given the student's level."""
     if current_user.role == "student" and current_user.id != eleve_id:
         raise HTTPException(status_code=403, detail="Accès refusé")
+
+    # SECURITY FIX #3 : fermeture du contournement ABAC — un élève ne peut
+    # servir le contenu d'une notion que si ses packs/abonnements actifs
+    # couvrent le niveau d'étude de la matière rattachée à cette notion.
+    if current_user.role == "student":
+        niveau = _notion_niveau(db, notion_id)
+        if niveau is not None:
+            covered = {_strip_accents(n or "") for n in _eleve_active_niveaux(current_user, db)}
+            if _strip_accents(niveau.nom or "") not in covered:
+                raise HTTPException(status_code=402, detail={
+                    "message": "Cette notion nécessite un pack couvrant son niveau d'étude.",
+                    "required_pack": "Basic",
+                })
 
     result = contenu_a_servir(notion_id, eleve_id, db)
     if result is None:
@@ -697,6 +798,7 @@ from app.models import (
     StudyPack, PackPurchase, PackPurchaseStatus, PackStatus, PurchaserType,
     Transaction, TransactionType, Currency, School,
     Progress, Lesson, Module,
+    Course, CourseStatus, CourseVisibility,
 )
 
 
@@ -805,6 +907,76 @@ def pathway_catalog(
     return result
 
 
+def _normalise(s: str) -> str:
+    """Normalise une chaîne (sans accents, minuscules) pour comparer catégories/niveaux."""
+    import unicodedata as _ud
+    return _ud.normalize("NFD", s or "").encode("ascii", "ignore").decode("ascii").lower().strip()
+
+
+def _published_courses_for_matiere(
+    db: Session,
+    matiere: Matiere,
+    niveau_scolaire_norm: str,
+    school_id: Optional[int],
+) -> list[dict]:
+    """Cours réellement publiés rattachés à une matière + un niveau scolaire.
+
+    Ne conserve que les cours visibles (catalogue public OU école courante) dont :
+      - Course.category correspond au nom (ou à l'ID) de la matière
+      - Course.niveau_scolaire correspond au niveau de l'élève
+      - Course.status == PUBLISHED ET Course.is_published == True
+    """
+    visible = [CourseVisibility.PUBLIC_CATALOG.value]
+    if school_id is not None:
+        visible.append(CourseVisibility.SCHOOL_ONLY.value)
+
+    # Catégories candidates : nom normalisé de la matière + ID en chaîne
+    matiere_nom_norm = _normalise(matiere.nom)
+    cat_prefixes = {matiere_nom_norm, str(matiere.id)}
+
+    courses = db.query(Course).filter(
+        Course.status == CourseStatus.PUBLISHED.value,
+        Course.is_published == True,
+        Course.visibility.in_(visible),
+        Course.category.isnot(None),
+        Course.niveau_scolaire.isnot(None),
+    ).all()
+
+    result = []
+    for c in courses:
+        if not c.category:
+            continue
+        cat_norm = _normalise(c.category)
+        if cat_norm not in cat_prefixes:
+            continue
+        cours_niv_norm = _normalise(c.niveau_scolaire)
+        if niveau_scolaire_norm and cours_niv_norm != niveau_scolaire_norm:
+            continue
+        # Si school_only : seul le courant propriétaire l'a, sinon le filtre en amont
+        result.append({
+            "id": c.id,
+            "title": c.title,
+            "category": c.category,
+            "niveau_scolaire": c.niveau_scolaire,
+            "description": c.short_description or c.description or "",
+            "thumbnail_url": c.thumbnail_url,
+            "cover_url": c.cover_url,
+            "is_free": (c.price_tokens or 0) == 0 and float(c.price_dt or 0) == 0,
+            "total_lessons": c.total_lessons or 0,
+            "total_duration_minutes": c.total_duration_minutes or 0,
+        })
+
+    # Dédupliquer par id
+    seen = set()
+    unique = []
+    for item in result:
+        if item["id"] in seen:
+            continue
+        seen.add(item["id"])
+        unique.append(item)
+    return unique
+
+
 @router.get("/mon-parcours")
 def mon_parcours(
     db: Session = Depends(get_db),
@@ -838,11 +1010,30 @@ def mon_parcours(
         if pack:
             active_niveaux.add(pack.niveau_scolaire)
 
+    # Fallback: System A (Abonnement + PackDefinition)
+    if not active_niveaux:
+        abo = db.query(Abonnement).filter(
+            Abonnement.user_id == current_user.id,
+            Abonnement.statut.in_(["actif", "grace"]),
+        ).order_by(Abonnement.created_at.desc()).first()
+        if abo and abo.pack:
+            active_niveaux.add(abo.pack.niveau_scolaire)
+
     if not active_niveaux:
         return {"message": "Aucun pack actif. Achetez un pack pour accéder à votre parcours.", "niveaux": []}
 
+    # Normalize: strip accents, lowercase — to match PackDefinition.niveau_scolaire vs NiveauEtude.nom
+    import unicodedata as _ud
+    def _norm(s):
+        n = _ud.normalize("NFD", s or "")
+        return "".join(c for c in n if _ud.category(c) != "Mn").lower().strip()
+
+    norm_active = {_norm(v): v for v in active_niveaux}
+    student_niveau_norm = _normalise(getattr(current_user, "niveau_scolaire", None) or "")
+
     with tenant_unaware():
-        niveaux = db.query(NiveauEtude).filter(NiveauEtude.nom.in_(active_niveaux)).order_by(NiveauEtude.ordre).all()
+        all_niveaux_etude = db.query(NiveauEtude).order_by(NiveauEtude.ordre).all()
+        niveaux = [ne for ne in all_niveaux_etude if _norm(ne.nom) in norm_active]
         all_matieres = db.query(Matiere).all()
         all_chapters = db.query(ChapterPathway).all()
         all_notions = db.query(Notion).all()
@@ -863,18 +1054,19 @@ def mon_parcours(
     for s in scores:
         score_map.setdefault(s.chapitre_id, []).append(s.score)
 
-    # Get student lesson progress
-    progress_records = db.query(Progress).filter(
-        Progress.user_id == current_user.id,
-    ).all()
+    # Get student lesson progress (from the `progress` table, not lesson_progress)
+    from sqlalchemy import text
+    progress_rows = db.execute(
+        text("SELECT lesson_id, status, score FROM progress WHERE user_id = :uid"),
+        {"uid": current_user.id},
+    ).fetchall()
     progress_map = {}
-    for pr in progress_records:
+    for pr in progress_rows:
         # Find which chapter this lesson belongs to
         lesson = db.query(Lesson).filter(Lesson.id == pr.lesson_id).first()
         if lesson:
             module = db.query(Module).filter(Module.id == lesson.module_id).first()
             if module:
-                # Map course to chapter via matiere/category
                 progress_map.setdefault(module.id, []).append(pr)
 
     result = []
@@ -928,11 +1120,19 @@ def mon_parcours(
                     "notions": notions_data,
                 })
 
+            # Ne garder la matière QUE s'il existe au moins un cours publié
+            courses_data = _published_courses_for_matiere(
+                db, matiere, student_niveau_norm, current_user.school_id,
+            )
+            if not courses_data:
+                continue
+
             matieres_data.append({
                 "id": matiere.id,
                 "nom": matiere.nom,
                 "chapters_count": len(chapters_data),
                 "chapters": chapters_data,
+                "courses": courses_data,
             })
 
         result.append({
@@ -1131,12 +1331,24 @@ def list_specialites(
         matiere_ids = [sm.matiere_id for sm in db.query(SpecialitePedagogiqueMatiere).filter(
             SpecialitePedagogiqueMatiere.specialite_id == s.id
         ).all()]
+        responsables = []
+        for r in db.query(ResponsablePedagogique).filter(
+            ResponsablePedagogique.specialite_id == s.id
+        ).all():
+            user = db.query(User).filter(User.id == r.user_id).first()
+            if user:
+                responsables.append({
+                    "user_id": user.id,
+                    "full_name": user.full_name,
+                    "email": user.email,
+                })
         result.append({
             "id": s.id,
             "nom": s.nom,
             "cycle_scolaire": s.cycle_scolaire,
             "ecole_id": s.ecole_id,
             "matiere_ids": matiere_ids,
+            "responsables": responsables,
         })
     return result
 
@@ -1162,6 +1374,51 @@ def create_specialite(
     db.commit()
     db.refresh(spec)
     return {"id": spec.id, "nom": spec.nom, "message": "Spécialité créée"}
+
+
+@router.put("/specialites-pedagogiques/{spec_id}")
+def update_specialite(
+    spec_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_platform_admin),
+):
+    """Met à jour une spécialité pédagogique et ses relations."""
+    spec = db.query(SpecialitePedagogique).filter(SpecialitePedagogique.id == spec_id).first()
+    if not spec:
+        raise HTTPException(status_code=404, detail="Spécialité non trouvée")
+
+    if "nom" in body:
+        spec.nom = body["nom"]
+    if "cycle_scolaire" in body:
+        spec.cycle_scolaire = body["cycle_scolaire"]
+
+    if "matiere_ids" in body:
+        db.query(SpecialitePedagogiqueMatiere).filter(
+            SpecialitePedagogiqueMatiere.specialite_id == spec_id
+        ).delete()
+        for matiere_id in body["matiere_ids"]:
+            db.add(SpecialitePedagogiqueMatiere(specialite_id=spec_id, matiere_id=matiere_id))
+
+    db.commit()
+    db.refresh(spec)
+    return {"id": spec.id, "nom": spec.nom, "message": "Spécialité mise à jour"}
+
+
+@router.delete("/specialites-pedagogiques/{spec_id}")
+def delete_specialite(
+    spec_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_platform_admin),
+):
+    """Supprime une spécialité pédagogique et toutes ses relations."""
+    spec = db.query(SpecialitePedagogique).filter(SpecialitePedagogique.id == spec_id).first()
+    if not spec:
+        raise HTTPException(status_code=404, detail="Spécialité non trouvée")
+
+    db.delete(spec)
+    db.commit()
+    return {"message": "Spécialité supprimée"}
 
 
 @router.post("/responsables-pedagogiques")

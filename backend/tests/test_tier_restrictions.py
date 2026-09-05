@@ -39,8 +39,9 @@ def test_dashboard_endpoint(client, test_db, student_token):
     resp = client.get("/api/learner/dashboard", headers=_auth_header(student_token))
     assert resp.status_code == 200
     data = resp.json()
-    assert "tier" in data
-    assert data["tier"] in ("decouverte", "excellence", "etablissement")
+    # Correction E1 : tier = tier BRUT du pack de l'Abonnement actif
+    # (pas de pack → "gratuit"), plus les paliers legacy decouverte/excellence/etablissement.
+    assert data["tier"] in ("gratuit", "basique", "basic", "silver", "golden", "decouverte", "excellence", "etablissement")
     assert "courses" in data
     assert "daily_objective" in data
     assert "features" in data

@@ -11,6 +11,7 @@ import { Button, PageSpinner, EmptyState, Modal } from "../../../components/ui";
 
 const STATUT_COLORS: Record<string, string> = {
   brouillon: "bg-gray-100 text-gray-600",
+  brouillon_ia: "bg-purple-100 text-purple-600",
   en_review: "bg-yellow-100 text-yellow-700",
   publie: "bg-green-100 text-green-700",
   rejete: "bg-red-100 text-red-600",
@@ -36,7 +37,7 @@ export default function TeacherElementsPage() {
   const [subtypeModal, setSubtypeModal] = useState<{ element: ElementPedagogique; type: string } | null>(null);
   const [filter, setFilter] = useState<string>("all");
   const [form, setForm] = useState({ titre: "", type: "texte", description: "", lecon_id: "", difficulte: "moyen" });
-  const [subtypeForm, setSubtypeForm] = useState({ contenu_html: "", url: "", duree_secondes: "" });
+  const [subtypeForm, setSubtypeForm] = useState({ corps: "", url: "", duree_secondes: "" });
 
   const showToast = (message: string, type: "success" | "error" = "success") => {
     setToast({ show: true, message, type });
@@ -86,14 +87,14 @@ export default function TeacherElementsPage() {
   const handleAddSubtype = async () => {
     if (!subtypeModal) return;
     try {
-      if (subtypeModal.type === "texte" && subtypeForm.contenu_html) {
-        await createElementTexte(subtypeModal.element.id, { contenu_html: subtypeForm.contenu_html });
+      if (subtypeModal.type === "texte" && subtypeForm.corps) {
+        await createElementTexte(subtypeModal.element.id, { corps: subtypeForm.corps });
       } else if (subtypeModal.type === "video" && subtypeForm.url) {
         await createElementVideo(subtypeModal.element.id, { url: subtypeForm.url, duree_secondes: parseInt(subtypeForm.duree_secondes || "0") });
       }
       showToast(t('teacher.elements.toasts.contentAdded'));
       setSubtypeModal(null);
-      setSubtypeForm({ contenu_html: "", url: "", duree_secondes: "" });
+      setSubtypeForm({ corps: "", url: "", duree_secondes: "" });
     } catch (e: any) {
       showToast(e.message, "error");
     }
@@ -101,7 +102,8 @@ export default function TeacherElementsPage() {
 
   const openWorkflow = async (element: ElementPedagogique) => {
     try {
-      const history = await getWorkflow(element.id);
+      const res = await getWorkflow(element.id);
+      const history = Array.isArray(res) ? res : (res as any)?.items ?? [];
       setWorkflowModal({ element, history });
     } catch (e: any) {
       showToast(e.message, "error");
@@ -132,9 +134,9 @@ export default function TeacherElementsPage() {
 
       {/* Filters */}
       <div className="flex gap-2 flex-wrap">
-        {["all", "brouillon", "en_review", "publie", "rejete"].map((f) => (
+        {["all", "brouillon", "brouillon_ia", "en_review", "publie", "rejete"].map((f) => (
           <Button key={f} variant={filter === f ? "secondary" : "ghost"} size="sm" onClick={() => setFilter(f)}>
-            {f === "all" ? t('teacher.elements.filters.all') : f === "brouillon" ? t('teacher.elements.filters.draft') : f === "en_review" ? t('teacher.elements.filters.review') : f === "publie" ? t('teacher.elements.filters.published') : t('teacher.elements.filters.rejected')}
+            {f === "all" ? t('teacher.elements.filters.all') : f === "brouillon" ? t('teacher.elements.filters.draft') : f === "brouillon_ia" ? t('teacher.elements.filters.draftIa') : f === "en_review" ? t('teacher.elements.filters.review') : f === "publie" ? t('teacher.elements.filters.published') : t('teacher.elements.filters.rejected')}
           </Button>
         ))}
       </div>
@@ -161,7 +163,7 @@ export default function TeacherElementsPage() {
                 {el.description && <p className="text-sm text-gray truncate mt-0.5">{el.description}</p>}
               </div>
               <div className="flex items-center gap-1">
-                {el.statut === "brouillon" && (
+                {(el.statut === "brouillon" || el.statut === "brouillon_ia" || el.statut === "rejete") && (
                   <Button variant="secondary" size="sm" onClick={() => handleSubmit(el.id)} title={t('teacher.elements.btn.submit')}>
                     <Send size={14} />
                   </Button>
@@ -172,9 +174,11 @@ export default function TeacherElementsPage() {
                 <Button variant="ghost" size="sm" onClick={() => openWorkflow(el)} title="Workflow">
                   <Clock size={14} />
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => setEditModal(el)} title={t('teacher.elements.btn.edit')}>
-                  <Edit2 size={14} />
-                </Button>
+                {(el.statut === "brouillon" || el.statut === "brouillon_ia" || el.statut === "rejete") && (
+                  <Button variant="ghost" size="sm" onClick={() => setEditModal(el)} title={t('teacher.elements.btn.edit')}>
+                    <Edit2 size={14} />
+                  </Button>
+                )}
               </div>
             </div>
           ))}
@@ -210,7 +214,7 @@ export default function TeacherElementsPage() {
       <Modal open={!!subtypeModal} onClose={() => setSubtypeModal(null)} title={subtypeModal ? `${t('teacher.elements.modal.addContent')} ${subtypeModal.type}` : ''}>
         <div className="space-y-3">
           {subtypeModal?.type === "texte" && (
-            <textarea value={subtypeForm.contenu_html} onChange={(e) => setSubtypeForm({ ...subtypeForm, contenu_html: e.target.value })}
+            <textarea value={subtypeForm.corps} onChange={(e) => setSubtypeForm({ ...subtypeForm, corps: e.target.value })}
               placeholder={t('teacher.elements.fields.contenuHtml')} className="w-full border rounded-xl px-3 py-2 text-sm h-32" />
           )}
           {subtypeModal?.type === "video" && (
@@ -242,11 +246,11 @@ export default function TeacherElementsPage() {
                 {workflowModal.history.map((w) => (
                   <div key={w.id} className="flex items-center gap-2 text-sm p-2 bg-gray/5 rounded-lg">
                     <Clock size={12} className="text-gray" />
-                    <span className="text-gray">{w.from_statut}</span>
+                    <span className="text-gray">{w.ancien_statut}</span>
                     <span className="text-navy">→</span>
-                    <span className={`font-medium ${w.to_statut === "publie" ? "text-green-600" : w.to_statut === "rejete" ? "text-red-500" : "text-blue-600"}`}>{w.to_statut}</span>
-                    {w.commentaire && <span className="text-gray text-xs italic">"{w.commentaire}"</span>}
-                    <span className="ml-auto text-xs text-gray">{new Date(w.created_at).toLocaleDateString("fr")}</span>
+                    <span className={`font-medium ${w.nouveau_statut === "publie" ? "text-green-600" : w.nouveau_statut === "rejete" ? "text-red-500" : "text-blue-600"}`}>{w.nouveau_statut}</span>
+                    {w.commentaires && <span className="text-gray text-xs italic">"{w.commentaires}"</span>}
+                    <span className="ml-auto text-xs text-gray">{new Date(w.created_at || "").toLocaleDateString("fr")}</span>
                   </div>
                 ))}
               </div>

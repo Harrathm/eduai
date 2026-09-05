@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from datetime import datetime, timezone
@@ -7,7 +7,11 @@ from typing import Optional, List
 
 from app.db import get_db
 from app.auth import get_current_user
-from app.models import User, TeacherClass, ClassCourseAccess, StudentEnrollment, Course, School
+from app.models import (
+    User, TeacherClass, ClassCourseAccess, ClassParcoursAccess, StudentEnrollment, Course, School,
+    CourseEnrollment, QuizAttempt, Quiz, Lesson, Module, Abonnement, PackDefinition,
+    Parcours, Message, MessageType,
+)
 from app.schemas import (
     TeacherClassCreate, TeacherClassUpdate, TeacherClassRead,
     ClassCourseAccessRead, StudentEnrollmentRead,
@@ -46,6 +50,9 @@ def _serialize_tc(tc: TeacherClass, db: Session) -> dict:
     courses_count = db.query(func.count(ClassCourseAccess.id)).filter(
         ClassCourseAccess.class_id == tc.id, ClassCourseAccess.is_active == True
     ).scalar() or 0
+    parcours_count = db.query(func.count(ClassParcoursAccess.id)).filter(
+        ClassParcoursAccess.class_id == tc.id, ClassParcoursAccess.is_active == True
+    ).scalar() or 0
     students_count = db.query(func.count(StudentEnrollment.id)).filter(
         StudentEnrollment.class_id == tc.id, StudentEnrollment.is_active == True
     ).scalar() or 0
@@ -64,12 +71,38 @@ def _serialize_tc(tc: TeacherClass, db: Session) -> dict:
         "created_at": tc.created_at,
         "updated_at": tc.updated_at,
         "courses_count": courses_count,
+        "parcours_count": parcours_count,
         "students_count": students_count,
     }
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# TEACHER-FACING ENDPOINTS  (/api/teacher/classes)
+# TEACHER-FACING ENDPOINTS  (/api/teacher)
+# ═══════════════════════════════════════════════════════════════════════
+
+@teacher_router.get("/courses")
+def list_my_teacher_courses(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_require_teacher),
+):
+    """Teacher: list courses authored by the current user."""
+    courses = db.query(Course).filter(Course.author_id == current_user.id).order_by(Course.created_at.desc()).all()
+    result = []
+    for c in courses:
+        result.append({
+            "id": c.id,
+            "title": c.title,
+            "description": c.description,
+            "status": c.status.value if hasattr(c.status, "value") else c.status,
+            "category_cible": c.category_cible,
+            "niveau_scolaire": c.niveau_scolaire,
+            "visibility": c.visibility,
+        })
+    return result
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# TEACHER CLASSES  (/api/teacher/classes)
 # ═══════════════════════════════════════════════════════════════════════
 
 @teacher_router.get("/classes", response_model=List[TeacherClassRead])
@@ -252,6 +285,109 @@ def remove_course_from_class(
     return {"ok": True, "action": "removed"}
 
 
+# ─── Teacher Class → Parcours ────────────────────────────────────────
+
+class AssignParcoursRequest(BaseModel):
+    parcours_id: int
+
+
+@teacher_router.get("/classes/{class_id}/parcours")
+def list_class_parcours(
+    class_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_require_teacher),
+):
+    """Teacher: list parcours assigned to a class."""
+    _own_class_or_403(db, class_id, current_user.id)
+    accesses = db.query(ClassParcoursAccess).filter(
+        ClassParcoursAccess.class_id == class_id,
+        ClassParcoursAccess.is_active == True,
+    ).all()
+    result = []
+    for a in accesses:
+        parcours = db.query(Parcours).filter(Parcours.id == a.parcours_id).first()
+        result.append({
+            "id": a.id,
+            "class_id": a.class_id,
+            "parcours_id": a.parcours_id,
+            "parcours_titre": parcours.titre if parcours else None,
+            "parcours_matiere": parcours.matiere if parcours else None,
+            "assigned_at": a.assigned_at.isoformat() if a.assigned_at else None,
+            "is_active": a.is_active,
+        })
+    return result
+
+
+@teacher_router.post("/classes/{class_id}/parcours")
+def assign_parcours_to_class(
+    class_id: int,
+    body: AssignParcoursRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_require_teacher),
+):
+    """Teacher: assign a parcours to a class. Only the teacher's own parcours can be assigned."""
+    _own_class_or_403(db, class_id, current_user.id)
+    parcours = db.query(Parcours).filter(Parcours.id == body.parcours_id).first()
+    if not parcours:
+        raise HTTPException(status_code=404, detail="Parcours not found")
+    if parcours.auteur_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only assign your own parcours")
+    existing = db.query(ClassParcoursAccess).filter(
+        ClassParcoursAccess.class_id == class_id,
+        ClassParcoursAccess.parcours_id == body.parcours_id,
+    ).first()
+    if existing:
+        if not existing.is_active:
+            existing.is_active = True
+            db.commit()
+            db.refresh(existing)
+        return {
+            "id": existing.id,
+            "class_id": existing.class_id,
+            "parcours_id": existing.parcours_id,
+            "parcours_titre": parcours.titre,
+            "parcours_matiere": parcours.matiere,
+            "assigned_at": existing.assigned_at.isoformat() if existing.assigned_at else None,
+            "is_active": existing.is_active,
+        }
+    access = ClassParcoursAccess(
+        class_id=class_id,
+        parcours_id=body.parcours_id,
+    )
+    db.add(access)
+    db.commit()
+    db.refresh(access)
+    return {
+        "id": access.id,
+        "class_id": access.class_id,
+        "parcours_id": access.parcours_id,
+        "parcours_titre": parcours.titre,
+        "parcours_matiere": parcours.matiere,
+        "assigned_at": access.assigned_at.isoformat() if access.assigned_at else None,
+        "is_active": access.is_active,
+    }
+
+
+@teacher_router.delete("/classes/{class_id}/parcours/{parcours_id}")
+def remove_parcours_from_class(
+    class_id: int,
+    parcours_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_require_teacher),
+):
+    """Teacher: remove a parcours from a class."""
+    _own_class_or_403(db, class_id, current_user.id)
+    access = db.query(ClassParcoursAccess).filter(
+        ClassParcoursAccess.class_id == class_id,
+        ClassParcoursAccess.parcours_id == parcours_id,
+    ).first()
+    if not access:
+        raise HTTPException(status_code=404, detail="Parcours not assigned to this class")
+    access.is_active = False
+    db.commit()
+    return {"ok": True, "action": "removed"}
+
+
 # ─── Teacher Class → Students ────────────────────────────────────────
 
 @teacher_router.get("/students/search")
@@ -395,6 +531,223 @@ def remove_student_from_class(
     enroll.is_active = False
     db.commit()
     return {"ok": True, "action": "removed"}
+
+
+# ─── Teacher Class → Messaging ───────────────────────────────────────
+
+class ClassMessageRequest(BaseModel):
+    subject: str = Field(..., min_length=1, max_length=255)
+    body: str = Field(..., min_length=1)
+    student_id: Optional[int] = None
+
+
+@teacher_router.post("/classes/{class_id}/message")
+def send_class_message(
+    class_id: int,
+    body: ClassMessageRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_require_teacher),
+):
+    """Teacher: send a message to all active students of one of my classes,
+    or to a single targeted student of that class."""
+    tc = _own_class_or_403(db, class_id, current_user.id)
+    if not tc.school_id:
+        raise HTTPException(status_code=400, detail="Class has no school attached")
+
+    subject = body.subject.strip()
+    message_body = body.body.strip()
+    if not subject or not message_body:
+        raise HTTPException(status_code=422, detail="Subject and body must not be empty")
+
+    if body.student_id is not None:
+        enrolled = db.query(StudentEnrollment).filter(
+            StudentEnrollment.class_id == class_id,
+            StudentEnrollment.student_id == body.student_id,
+            StudentEnrollment.is_active == True,
+        ).first()
+        if not enrolled:
+            raise HTTPException(status_code=404, detail="Student not enrolled in this class")
+        recipient_ids = [body.student_id]
+    else:
+        enrollments = db.query(StudentEnrollment).filter(
+            StudentEnrollment.class_id == class_id,
+            StudentEnrollment.is_active == True,
+        ).all()
+        recipient_ids = [e.student_id for e in enrollments]
+        if not recipient_ids:
+            raise HTTPException(status_code=400, detail="No active students in this class")
+
+    messages = [
+        Message(
+            school_id=tc.school_id,
+            sender_id=current_user.id,
+            receiver_id=sid,
+            type=MessageType.DIRECT,
+            subject=subject,
+            body=message_body,
+            target_audience="students",
+        )
+        for sid in recipient_ids
+    ]
+    db.add_all(messages)
+    db.commit()
+
+    return {
+        "ok": True,
+        "class_id": class_id,
+        "sent": len(messages),
+        "student_ids": recipient_ids,
+        "targeted_only": body.student_id is not None,
+    }
+
+
+TIER_ORDER = {"Gratuit": 0, "Basic": 1, "Silver": 2, "Golden": 3}
+
+
+@teacher_router.get("/classes/{class_id}/students/progress")
+def get_class_students_progress(
+    class_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_require_teacher),
+):
+    """Teacher: get enriched student progress data for a class, including ABAC pack status."""
+    _own_class_or_403(db, class_id, current_user.id)
+
+    # 1. Get courses assigned to this class
+    class_courses = db.query(ClassCourseAccess).filter(
+        ClassCourseAccess.class_id == class_id,
+        ClassCourseAccess.is_active == True,
+    ).all()
+    course_ids = [cca.course_id for cca in class_courses]
+
+    # 2. Get active students in this class
+    enrollments = db.query(StudentEnrollment).filter(
+        StudentEnrollment.class_id == class_id,
+        StudentEnrollment.is_active == True,
+    ).all()
+    student_ids = [e.student_id for e in enrollments]
+
+    if not student_ids:
+        return []
+
+    # 3. Bulk-fetch course enrollments for these students + courses
+    course_enrollments = []
+    if course_ids and student_ids:
+        course_enrollments = db.query(CourseEnrollment).filter(
+            CourseEnrollment.student_id.in_(student_ids),
+            CourseEnrollment.course_id.in_(course_ids),
+        ).all()
+
+    # Build lookup: student_id → list of progress_percent
+    student_progress = {}
+    for ce in course_enrollments:
+        student_progress.setdefault(ce.student_id, []).append(ce.progress_percent or 0)
+
+    # 4. Bulk-fetch quiz attempts for these students via quizzes in the class's courses
+    # Quiz → Lesson → Module → course_id
+    quiz_ids = []
+    if course_ids:
+        quizzes = db.query(Quiz.id).join(Lesson, Quiz.lesson_id == Lesson.id).join(
+            Module, Lesson.module_id == Module.id
+        ).filter(Module.course_id.in_(course_ids)).all()
+        quiz_ids = [q[0] for q in quizzes]
+
+    last_quiz = {}
+    if quiz_ids and student_ids:
+        attempts = db.query(QuizAttempt).filter(
+            QuizAttempt.quiz_id.in_(quiz_ids),
+            QuizAttempt.student_id.in_(student_ids),
+            QuizAttempt.status == "completed",
+        ).order_by(QuizAttempt.completed_at.desc()).all()
+        for a in attempts:
+            if a.student_id not in last_quiz:
+                last_quiz[a.student_id] = {
+                    "score_percent": a.score_percent,
+                    "passed": a.passed,
+                    "completed_at": a.completed_at.isoformat() if a.completed_at else None,
+                }
+
+    # 5. Bulk-fetch active abonnements (packs) for students
+    student_pack = {}
+    if student_ids:
+        now = datetime.now(timezone.utc)
+        active_abos = db.query(Abonnement).filter(
+            Abonnement.user_id.in_(student_ids),
+            Abonnement.statut == "actif",
+            Abonnement.fin > now,
+        ).all()
+        for abo in active_abos:
+            pack = db.query(PackDefinition).filter(PackDefinition.id == abo.pack_id).first()
+            if pack:
+                student_pack[abo.user_id] = {
+                    "tier": pack.tier,
+                    "nom": pack.nom,
+                    "fin": abo.fin.isoformat() if abo.fin else None,
+                }
+
+    # 6. Check for expired abonnements
+    if student_ids:
+        now = datetime.now(timezone.utc)
+        expired_abos = db.query(Abonnement).filter(
+            Abonnement.user_id.in_(student_ids),
+            Abonnement.fin <= now,
+        ).order_by(Abonnement.fin.desc()).all()
+        for abo in expired_abos:
+            if abo.user_id not in student_pack:
+                pack = db.query(PackDefinition).filter(PackDefinition.id == abo.pack_id).first()
+                student_pack[abo.user_id] = {
+                    "tier": pack.tier if pack else None,
+                    "nom": pack.nom if pack else None,
+                    "fin": abo.fin.isoformat() if abo.fin else None,
+                    "expired": True,
+                }
+
+    # 7. Build response
+    result = []
+    for enroll in enrollments:
+        student = db.query(User).filter(User.id == enroll.student_id).first()
+        progresses = student_progress.get(enroll.student_id, [])
+        avg_progress = round(sum(progresses) / len(progresses)) if progresses else 0
+        quiz_data = last_quiz.get(enroll.student_id)
+        pack_data = student_pack.get(enroll.student_id)
+
+        # Determine ABAC blocking status
+        pack_status = "ok"
+        pack_label = ""
+        pack_expired = False
+        if pack_data:
+            pack_expired = pack_data.get("expired", False)
+            tier = pack_data.get("tier", "Gratuit")
+            pack_label = pack_data.get("nom", tier)
+            if pack_expired:
+                pack_status = "expired"
+            elif tier == "Gratuit" and avg_progress >= 80:
+                pack_status = "quota_exceeded"
+        else:
+            pack_status = "none"
+            pack_label = "Aucun pack"
+
+        # Courses enrolled count
+        enrolled_courses_count = len(progresses)
+
+        result.append({
+            "student_id": enroll.student_id,
+            "student_name": student.full_name if student else None,
+            "student_email": student.email if student else None,
+            "progress_percent": avg_progress,
+            "courses_enrolled": enrolled_courses_count,
+            "total_class_courses": len(course_ids),
+            "last_quiz_score": quiz_data["score_percent"] if quiz_data else None,
+            "last_quiz_passed": quiz_data["passed"] if quiz_data else None,
+            "last_quiz_at": quiz_data["completed_at"] if quiz_data else None,
+            "pack_tier": pack_data["tier"] if pack_data else None,
+            "pack_label": pack_label,
+            "pack_status": pack_status,
+            "pack_expiry": pack_data["fin"] if pack_data else None,
+        })
+
+    result.sort(key=lambda s: s["student_name"] or "")
+    return result
 
 
 # ═══════════════════════════════════════════════════════════════════════

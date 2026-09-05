@@ -16,6 +16,7 @@ from app.deps import (
     require_admin,
     require_super_admin,
     require_pedagogical_any,
+    get_user_role,
 )
 from app.models import (
     User, ElementPedagogique, ElementTexte, ElementVideo, ElementImage,
@@ -53,10 +54,22 @@ def _check_element_school_scope(element: ElementPedagogique, current_user: User,
 # Workflow valid transitions
 VALID_TRANSITIONS = {
     "brouillon": "en_review",
+    "brouillon_ia": "en_review",
     "en_review": ["publie", "rejete"],
     "rejete": "en_review",
     "publie": "brouillon",
 }
+
+
+def _require_element_writable(element: ElementPedagogique, current_user: User):
+    """Block subtype writes on published elements (except admins who must demote first)."""
+    role = get_user_role(current_user)
+    is_admin = role in ("super_admin", "pedagogical_admin")
+    if element.statut == "publie" and not is_admin:
+        raise HTTPException(
+            status_code=403,
+            detail="Cannot modify content on a published element. Demote it to draft first.",
+        )
 
 
 # ============================================================
@@ -125,11 +138,25 @@ def create_element(
 def get_element(
     element_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(set_tenant_context),
+    current_user: User = Depends(get_current_user),
 ):
     element = db.query(ElementPedagogique).filter(ElementPedagogique.id == element_id).first()
     if not element:
         raise HTTPException(status_code=404, detail="Element not found")
+
+    from app.deps import get_user_role
+    role = get_user_role(current_user)
+    is_staff = role in ("super_admin", "pedagogical_admin", "pedagogical_lead", "admin_school")
+    is_author = element.auteur_id == current_user.id
+
+    if not is_staff:
+        if role in ("student", "user"):
+            if element.statut != "publie":
+                raise HTTPException(status_code=403, detail="Access denied")
+        elif role == "teacher":
+            if element.statut != "publie" and not is_author:
+                raise HTTPException(status_code=403, detail="Access denied")
+
     return element
 
 
@@ -143,9 +170,38 @@ def update_element(
     element = db.query(ElementPedagogique).filter(ElementPedagogique.id == element_id).first()
     if not element:
         raise HTTPException(status_code=404, detail="Element not found")
-    if element.auteur_id and element.auteur_id != current_user.id:
-        if current_user.role not in ("admin_school", "super_admin", "pedagogical_admin"):
-            raise HTTPException(status_code=403, detail="Only the author or an admin can modify")
+    is_admin = current_user.role in ("admin_school", "super_admin", "pedagogical_admin")
+    is_author = element.auteur_id == current_user.id
+    if not is_admin and not is_author:
+        raise HTTPException(status_code=403, detail="Only the author or an admin can modify")
+    if is_author and not is_admin:
+        if element.statut not in ("brouillon", "brouillon_ia", "rejete"):
+            raise HTTPException(status_code=403, detail=f"Cannot edit element in '{element.statut}' status. Only drafts, AI drafts, and rejected elements can be edited.")
+    for field, value in element_update.model_dump(exclude_unset=True).items():
+        setattr(element, field, value)
+    element.updated_at = utcnow()
+    db.commit()
+    db.refresh(element)
+    return element
+
+
+@router.patch("/elements/{element_id}", response_model=ElementPedagogiqueRead)
+def patch_element(
+    element_id: int,
+    element_update: ElementPedagogiqueUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_teacher_or_admin),
+):
+    element = db.query(ElementPedagogique).filter(ElementPedagogique.id == element_id).first()
+    if not element:
+        raise HTTPException(status_code=404, detail="Element not found")
+    is_admin = current_user.role in ("admin_school", "super_admin", "pedagogical_admin")
+    is_author = element.auteur_id == current_user.id
+    if not is_admin and not is_author:
+        raise HTTPException(status_code=403, detail="Only the author or an admin can modify")
+    if is_author and not is_admin:
+        if element.statut not in ("brouillon", "brouillon_ia", "rejete"):
+            raise HTTPException(status_code=403, detail=f"Cannot edit element in '{element.statut}' status. Only drafts, AI drafts, and rejected elements can be edited.")
     for field, value in element_update.model_dump(exclude_unset=True).items():
         setattr(element, field, value)
     element.updated_at = utcnow()
@@ -198,7 +254,7 @@ def submit_element(
         raise HTTPException(status_code=404, detail="Element not found")
     if element.auteur_id != current_user.id:
         raise HTTPException(status_code=403, detail="Only the author can submit")
-    if element.statut not in ("brouillon", "rejete"):
+    if element.statut not in ("brouillon", "brouillon_ia", "rejete"):
         raise HTTPException(status_code=400, detail=f"Cannot submit from status '{element.statut}'")
 
     _transition_statut(element, "en_review", current_user.id, commentaires or "Soumis pour review", db)
@@ -218,7 +274,7 @@ def validate_element(
     if not element:
         raise HTTPException(status_code=404, detail="Element not found")
     _check_element_school_scope(element, current_user, db)
-    if element.statut != "en_review":
+    if element.statut not in ("en_review", "brouillon_ia"):
         raise HTTPException(status_code=400, detail=f"Cannot validate from status '{element.statut}'")
 
     _transition_statut(element, "publie", current_user.id, commentaires or "Validé", db)
@@ -238,7 +294,7 @@ def reject_element(
     if not element:
         raise HTTPException(status_code=404, detail="Element not found")
     _check_element_school_scope(element, current_user, db)
-    if element.statut != "en_review":
+    if element.statut not in ("en_review", "brouillon_ia"):
         raise HTTPException(status_code=400, detail=f"Cannot reject from status '{element.statut}'")
 
     _transition_statut(element, "rejete", current_user.id, commentaires, db)
@@ -266,6 +322,39 @@ def list_workflow(
 # PROMOTION LOCALE → GLOBALE
 # ============================================================
 
+def _copy_subtype_content(db: Session, source: ElementPedagogique, target: ElementPedagogique) -> None:
+    """Duplicate the subtype payload (texte/video/image/quiz/pdf) onto the global copy."""
+    if source.type == "texte":
+        src = db.query(ElementTexte).filter(ElementTexte.element_id == source.id).first()
+        if src:
+            db.add(ElementTexte(element_id=target.id, corps=src.corps))
+    elif source.type == "video":
+        src = db.query(ElementVideo).filter(ElementVideo.element_id == source.id).first()
+        if src:
+            db.add(ElementVideo(
+                element_id=target.id, url=src.url,
+                duree_secondes=src.duree_secondes, thumbnail_url=src.thumbnail_url,
+            ))
+    elif source.type == "image":
+        src = db.query(ElementImage).filter(ElementImage.element_id == source.id).first()
+        if src:
+            db.add(ElementImage(element_id=target.id, url=src.url, alt_text=src.alt_text))
+    elif source.type == "quiz":
+        src = db.query(ElementQuiz).filter(ElementQuiz.element_id == source.id).first()
+        if src:
+            db.add(ElementQuiz(
+                element_id=target.id, questions_json=src.questions_json,
+                score_reussite=src.score_reussite,
+            ))
+    elif source.type == "pdf":
+        src = db.query(ElementPdf).filter(ElementPdf.element_id == source.id).first()
+        if src:
+            db.add(ElementPdf(
+                element_id=target.id, url=src.url,
+                pages=src.pages, taille_octets=src.taille_octets,
+            ))
+
+
 @router.post("/elements/{element_id}/promote-global", response_model=ElementPedagogiqueRead)
 def promote_global(
     element_id: int,
@@ -290,21 +379,36 @@ def promote_global(
         "metadonnees": element.metadonnees,
     }
 
+    global_copy = ElementPedagogique(
+        type=element.type,
+        titre=element.titre,
+        description=element.description,
+        matiere_id=element.matiere_id,
+        niveau_etude_id=element.niveau_etude_id,
+        difficulte=element.difficulte,
+        metadonnees=json.loads(json.dumps(element.metadonnees)) if element.metadonnees else None,
+        auteur_id=current_user.id,
+        statut="publie",
+        est_global=True,
+        est_libre=element.est_libre,
+    )
+    db.add(global_copy)
+    db.flush()
+
+    _copy_subtype_content(db, element, global_copy)
+
     promotion = ContentPromotion(
         element_source_id=element.id,
+        element_promoted_id=global_copy.id,
         parcours_destination_id=parcours_destination_id,
         snapshot_json=snapshot,
         effectuee_par_id=current_user.id,
     )
     db.add(promotion)
 
-    element.est_global = True
-    element.updated_at = utcnow()
-
-    _transition_statut(element, "publie", current_user.id, "Promu au contenu global", db)
     db.commit()
-    db.refresh(element)
-    return element
+    db.refresh(global_copy)
+    return global_copy
 
 
 # ============================================================
@@ -321,6 +425,10 @@ def get_texte(element_id: int, db: Session = Depends(get_db), current_user: User
 
 @router.post("/elements/{element_id}/texte", response_model=ElementTexteRead)
 def create_texte(element_id: int, body: ElementTexteCreate, db: Session = Depends(get_db), current_user: User = Depends(require_teacher_or_admin)):
+    element = db.query(ElementPedagogique).filter(ElementPedagogique.id == element_id).first()
+    if not element:
+        raise HTTPException(status_code=404, detail="Element not found")
+    _require_element_writable(element, current_user)
     existing = db.query(ElementTexte).filter(ElementTexte.element_id == element_id).first()
     if existing:
         raise HTTPException(status_code=409, detail="Texte already exists for this element")
@@ -341,6 +449,10 @@ def get_video(element_id: int, db: Session = Depends(get_db), current_user: User
 
 @router.post("/elements/{element_id}/video", response_model=ElementVideoRead)
 def create_video(element_id: int, body: ElementVideoCreate, db: Session = Depends(get_db), current_user: User = Depends(require_teacher_or_admin)):
+    element = db.query(ElementPedagogique).filter(ElementPedagogique.id == element_id).first()
+    if not element:
+        raise HTTPException(status_code=404, detail="Element not found")
+    _require_element_writable(element, current_user)
     existing = db.query(ElementVideo).filter(ElementVideo.element_id == element_id).first()
     if existing:
         raise HTTPException(status_code=409, detail="Video already exists for this element")
@@ -361,6 +473,10 @@ def get_image(element_id: int, db: Session = Depends(get_db), current_user: User
 
 @router.post("/elements/{element_id}/image", response_model=ElementImageRead)
 def create_image(element_id: int, body: ElementImageCreate, db: Session = Depends(get_db), current_user: User = Depends(require_teacher_or_admin)):
+    element = db.query(ElementPedagogique).filter(ElementPedagogique.id == element_id).first()
+    if not element:
+        raise HTTPException(status_code=404, detail="Element not found")
+    _require_element_writable(element, current_user)
     existing = db.query(ElementImage).filter(ElementImage.element_id == element_id).first()
     if existing:
         raise HTTPException(status_code=409, detail="Image already exists for this element")
@@ -381,6 +497,10 @@ def get_quiz(element_id: int, db: Session = Depends(get_db), current_user: User 
 
 @router.post("/elements/{element_id}/quiz", response_model=ElementQuizRead)
 def create_quiz(element_id: int, body: ElementQuizCreate, db: Session = Depends(get_db), current_user: User = Depends(require_teacher_or_admin)):
+    element = db.query(ElementPedagogique).filter(ElementPedagogique.id == element_id).first()
+    if not element:
+        raise HTTPException(status_code=404, detail="Element not found")
+    _require_element_writable(element, current_user)
     existing = db.query(ElementQuiz).filter(ElementQuiz.element_id == element_id).first()
     if existing:
         raise HTTPException(status_code=409, detail="Quiz already exists for this element")
@@ -401,6 +521,10 @@ def get_pdf(element_id: int, db: Session = Depends(get_db), current_user: User =
 
 @router.post("/elements/{element_id}/pdf", response_model=ElementPdfRead)
 def create_pdf(element_id: int, body: ElementPdfCreate, db: Session = Depends(get_db), current_user: User = Depends(require_teacher_or_admin)):
+    element = db.query(ElementPedagogique).filter(ElementPedagogique.id == element_id).first()
+    if not element:
+        raise HTTPException(status_code=404, detail="Element not found")
+    _require_element_writable(element, current_user)
     existing = db.query(ElementPdf).filter(ElementPdf.element_id == element_id).first()
     if existing:
         raise HTTPException(status_code=409, detail="PDF already exists for this element")

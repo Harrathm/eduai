@@ -131,8 +131,30 @@ def debit_dt(
 
     Raises InsufficientCreditsError if DT balance < amount.
     When commit=False, caller is responsible for committing the transaction.
+
+    SECURITY FIX #5 : verrou SELECT ... FOR UPDATE sur toutes les lignes du
+    ledger DT_PURCHASED de l'utilisateur AVANT le contrôle de solde.
+    Sans ce verrou, deux requêtes concurrentes lisaient le même solde,
+    passaient toutes deux le contrôle puis débitaient → double-spend
+    (un seul cours payé pour deux achats). Même pattern que consume_credits().
+    SQLite ignore FOR UPDATE (dialect), PostgreSQL/MySQL posent le verrou.
     """
+    from sqlalchemy import select
+
     amount = Decimal(str(amount))
+
+    # Step 1 : verrouiller les lignes du ledger DT de cet utilisateur.
+    lock_stmt = (
+        select(WalletTransaction.id)
+        .where(
+            WalletTransaction.user_id == user_id,
+            WalletTransaction.pool == WalletPool.DT_PURCHASED,
+        )
+        .with_for_update()
+    )
+    db.execute(lock_stmt)
+
+    # Step 2 : solde calculé depuis les lignes désormais verrouillées.
     current = Decimal(str(get_dt_balance(db, user_id)))
     if current < amount:
         raise InsufficientCreditsError(required=amount, available=current)

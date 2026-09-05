@@ -47,22 +47,16 @@ def get_daily_objective(user: User, db: Session) -> dict:
 # ──────────────────────────────────────────────────────────
 
 def _get_guided_path(user: User, db: Session) -> dict:
-    enrollments = db.query(CourseEnrollment).filter(
-        CourseEnrollment.student_id == user.id
-    ).all()
-
     courses = []
-    for e in enrollments:
-        course = db.query(Course).filter(Course.id == e.course_id).first()
-        if course and course.status == "published":
-            progress = _get_course_progress(user, course, db)
-            courses.append({
-                "id": course.id,
-                "title": course.title,
-                "niveau_scolaire": course.niveau_scolaire,
-                "progress_pct": progress,
-                "priority": "guided",
-            })
+    for item in _get_enrolled_courses_batch(user, db):
+        course = item["course"]
+        courses.append({
+            "id": course.id,
+            "title": course.title,
+            "niveau_scolaire": course.niveau_scolaire,
+            "progress_pct": item["progress_pct"],
+            "priority": "guided",
+        })
 
     courses.sort(key=lambda c: c["progress_pct"])
 
@@ -143,25 +137,20 @@ def _get_discovery_objective(user: User, db: Session, today) -> dict:
 # ──────────────────────────────────────────────────────────
 
 def _get_adaptive_path(user: User, db: Session) -> dict:
-    enrollments = db.query(CourseEnrollment).filter(
-        CourseEnrollment.student_id == user.id
-    ).all()
-
     courses = []
-    for e in enrollments:
-        course = db.query(Course).filter(Course.id == e.course_id).first()
-        if course and course.status == "published":
-            progress = _get_course_progress(user, course, db)
-            matiere = course.matiere or course.title
-            courses.append({
-                "id": course.id,
-                "title": course.title,
-                "niveau_scolaire": course.niveau_scolaire,
-                "matiere": matiere,
-                "progress_pct": progress,
-                "priority": "adaptive",
-                "action": "review" if progress < 50 else "practice",
-            })
+    for item in _get_enrolled_courses_batch(user, db):
+        course = item["course"]
+        progress = item["progress_pct"]
+        matiere = course.category or course.title
+        courses.append({
+            "id": course.id,
+            "title": course.title,
+            "niveau_scolaire": course.niveau_scolaire,
+            "matiere": matiere,
+            "progress_pct": progress,
+            "priority": "adaptive",
+            "action": "review" if progress < 50 else "practice",
+        })
 
     matieres = {}
     for c in courses:
@@ -194,19 +183,12 @@ def _get_excellence_objective(user: User, db: Session, today) -> dict:
             "estimated_minutes": 0,
         }
 
-    enrollments = db.query(CourseEnrollment).filter(
-        CourseEnrollment.student_id == user.id
-    ).all()
-
-    for e in enrollments:
-        course = db.query(Course).filter(Course.id == e.course_id).first()
-        if not course or course.status != "published":
-            continue
-
-        progress = _get_course_progress(user, course, db)
+    for item in _get_enrolled_courses_batch(user, db):
+        course = item["course"]
+        progress = item["progress_pct"]
         if progress < 70:
             completed_lesson_ids = [lp.lesson_id for lp in db.query(LessonProgress.lesson_id).filter(
-                LessonProgress.enrollment_id == e.id,
+                LessonProgress.enrollment_id == item["enrollment_id"],
                 LessonProgress.status == "completed",
             ).all()]
 
@@ -222,7 +204,7 @@ def _get_excellence_objective(user: User, db: Session, today) -> dict:
                     "lesson_id": unfinished.id,
                     "lesson_title": unfinished.title,
                     "course_title": course.title,
-                    "message": f"Exercices ciblés : complétez « {unfinished.title} » pour renforcer {course.matiere or course.title}",
+                    "message": f"Exercices ciblés : complétez « {unfinished.title} » pour renforcer {course.category or course.title}",
                     "estimated_minutes": 20,
                 }
 
@@ -239,24 +221,18 @@ def _get_excellence_objective(user: User, db: Session, today) -> dict:
 # ──────────────────────────────────────────────────────────
 
 def _get_curriculum_path(user: User, db: Session) -> dict:
-    enrollments = db.query(CourseEnrollment).filter(
-        CourseEnrollment.student_id == user.id
-    ).all()
-
     courses = []
-    for e in enrollments:
-        course = db.query(Course).filter(Course.id == e.course_id).first()
-        if course and course.status == "published":
-            progress = _get_course_progress(user, course, db)
-            courses.append({
-                "id": course.id,
-                "title": course.title,
-                "niveau_scolaire": course.niveau_scolaire,
-                "matiere": course.matiere or "",
-                "progress_pct": progress,
-                "priority": "curriculum",
-                "aligned": True,
-            })
+    for item in _get_enrolled_courses_batch(user, db):
+        course = item["course"]
+        courses.append({
+            "id": course.id,
+            "title": course.title,
+            "niveau_scolaire": course.niveau_scolaire,
+            "matiere": course.category or "",
+            "progress_pct": item["progress_pct"],
+            "priority": "curriculum",
+            "aligned": True,
+        })
 
     return {
         "tier": "etablissement",
@@ -267,17 +243,11 @@ def _get_curriculum_path(user: User, db: Session) -> dict:
 
 
 def _get_establissement_objective(user: User, db: Session, today) -> dict:
-    enrollments = db.query(CourseEnrollment).filter(
-        CourseEnrollment.student_id == user.id
-    ).all()
-
-    for e in enrollments:
-        course = db.query(Course).filter(Course.id == e.course_id).first()
-        if not course or course.status != "published":
-            continue
+    for item in _get_enrolled_courses_batch(user, db):
+        course = item["course"]
 
         completed_lesson_ids = [lp.lesson_id for lp in db.query(LessonProgress.lesson_id).filter(
-            LessonProgress.enrollment_id == e.id,
+            LessonProgress.enrollment_id == item["enrollment_id"],
             LessonProgress.status == "completed",
         ).all()]
 
@@ -293,7 +263,7 @@ def _get_establissement_objective(user: User, db: Session, today) -> dict:
                 "lesson_id": unfinished.id,
                 "lesson_title": unfinished.title,
                 "course_title": course.title,
-                "message": f"Programme établissement : « {unfinished.title} » ({course.matiere or course.title})",
+                "message": f"Programme établissement : « {unfinished.title} » ({course.category or course.title})",
                 "estimated_minutes": 25,
             }
 
@@ -309,23 +279,48 @@ def _get_establissement_objective(user: User, db: Session, today) -> dict:
 # UTILITAIRES
 # ──────────────────────────────────────────────────────────
 
-def _get_course_progress(user: User, course: Course, db: Session) -> float:
-    total_lessons = db.query(Lesson).join(Module).filter(
-        Module.course_id == course.id
-    ).count()
-    if total_lessons == 0:
-        return 0.0
+def _get_enrolled_courses_batch(user: User, db: Session) -> list:
+    """
+    Retourne les cours inscrits (publiés) de l'élève avec leur progression.
+    Batch : 4 requêtes au total au lieu de 4 par cours (élimine le N+1).
+    """
+    enrollments = db.query(CourseEnrollment).filter(
+        CourseEnrollment.student_id == user.id
+    ).all()
+    if not enrollments:
+        return []
 
-    enrollment = db.query(CourseEnrollment).filter(
-        CourseEnrollment.student_id == user.id,
-        CourseEnrollment.course_id == course.id,
-    ).first()
-    if not enrollment:
-        return 0.0
+    enrollment_ids = [e.id for e in enrollments]
+    course_ids = [e.course_id for e in enrollments]
 
-    completed_lessons = db.query(LessonProgress).filter(
-        LessonProgress.enrollment_id == enrollment.id,
+    course_map = {
+        c.id: c for c in db.query(Course).filter(Course.id.in_(course_ids)).all()
+    }
+
+    lesson_rows = db.query(Module.course_id, func.count(Lesson.id)).join(
+        Lesson, Lesson.module_id == Module.id
+    ).filter(Module.course_id.in_(course_ids)).group_by(Module.course_id).all()
+    lesson_counts = dict(lesson_rows)
+
+    progress_rows = db.query(LessonProgress.enrollment_id, func.count(LessonProgress.id)).filter(
+        LessonProgress.enrollment_id.in_(enrollment_ids),
         LessonProgress.status == "completed",
-    ).count()
+    ).group_by(LessonProgress.enrollment_id).all()
+    completed_counts = dict(progress_rows)
 
-    return round((completed_lessons / total_lessons) * 100, 1)
+    results = []
+    for e in enrollments:
+        course = course_map.get(e.course_id)
+        if not course or course.status != "published":
+            continue
+        total = lesson_counts.get(course.id, 0)
+        done = completed_counts.get(e.id, 0)
+        progress = round((done / total) * 100, 1) if total > 0 else 0.0
+        results.append({
+            "course": course,
+            "enrollment_id": e.id,
+            "total_lessons": total,
+            "lessons_completed": done,
+            "progress_pct": progress,
+        })
+    return results

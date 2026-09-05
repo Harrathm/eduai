@@ -3,8 +3,13 @@ import { Search, Plus, Minus, DollarSign, Coins, RefreshCw, ChevronLeft, Chevron
 import { adminUsers, adminAnalytics, adminTransactions } from "../../../api";
 import type { WalletEntry, GlobalStats } from "../../../api";
 import { Button, Modal, EmptyState } from "../../../components/ui";
+import { useAuthStore } from "../../../store/authStore";
 
 export default function FinanceCenter() {
+  const { user } = useAuthStore();
+  // Fix #5/#7 — Hide wallet adjustment buttons for admin_school (non-platform admins).
+  // Backend requires require_platform_admin for addWallet/deductWallet — a 403 would occur.
+  const isPlatformAdmin = user?.roles?.some((r: string) => r === "super_admin" || r === "pedagogical_admin") ?? false;
   const [wallets, setWallets] = useState<WalletEntry[]>([]);
   const [stats, setStats] = useState<GlobalStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -162,14 +167,16 @@ export default function FinanceCenter() {
                   <td className="px-5 py-4 text-end text-gray text-sm">{formatNum(w.total_dt_spent)} DT</td>
                   <td className="px-5 py-4 text-end text-gray text-sm">{formatNum(w.total_tokens_spent)} TKN</td>
                   <td className="px-5 py-4 text-end">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => openModal(w, "add")} title="Add funds">
-                        <Plus className="w-4 h-4 text-green-600" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => openModal(w, "deduct")} title="Deduct funds">
-                        <Minus className="w-4 h-4 text-red-500" />
-                      </Button>
-                    </div>
+                    {isPlatformAdmin && (
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => openModal(w, "add")} title="Add funds">
+                          <Plus className="w-4 h-4 text-green-600" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => openModal(w, "deduct")} title="Deduct funds">
+                          <Minus className="w-4 h-4 text-red-500" />
+                        </Button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}

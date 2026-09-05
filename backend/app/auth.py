@@ -16,7 +16,7 @@ from app.core.security import verify_password, get_password_hash
 from app.core.config import get_settings
 from app.core.validation import validate_password_strength
 from app.audit import log_security_event
-from app.schemas import Token, UserRead, UserCreate
+from app.schemas import Token, UserRead, UserCreate, RegisterSchoolRequest, VerifyEmailRequest
 from app.models import SubscriptionPlan, SchoolType, UserRole, User
 
 settings = get_settings()
@@ -96,11 +96,48 @@ def _issue_token_pair(user: User, db: Session) -> dict:
 # ---------------------------------------------------------------------------
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
 
 
 def _get_user_by_id(db: Session, user_id: int):
     from app.models import User
     return db.query(User).filter(User.id == user_id).first()
+
+
+# Rôles plateforme : ne sont pas bloqués par l'état de LEUR école de rattachement
+_PLATFORM_ADMIN_ROLES = {"super_admin", "pedagogical_admin"}
+
+
+def _get_user_role_for_school_check(user: User) -> str:
+    return (getattr(user, "active_context_role", None) or user.role or "").lower()
+
+
+def _enforce_school_active(user: User, db: Session) -> None:
+    """SECURITY FIX #2 — bloque les membres d'une école désactivée (403).
+
+    - Appelé depuis login() et get_current_user().
+    - Les super_admin/pedagogical_admin ne sont PAS concernés : ils administrent
+      la plateforme entière et doivent garder accès même si leur école de
+      rattachement est désactivée.
+    """
+    if getattr(user, "school_id", None) is None:
+        return
+    if _get_user_role_for_school_check(user) in _PLATFORM_ADMIN_ROLES:
+        return
+
+    from app.models import School
+    school = db.query(School).filter(School.id == user.school_id).first()
+    # École introuvable en base → situation incohérente, on refuse aussi.
+    if school is None or school.is_active is False:
+        log_security_event("inactive_school_access_attempt", {
+            "user_id": user.id,
+            "school_id": user.school_id,
+            "endpoint_context": "auth",
+        }, severity="WARNING")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Votre école est désactivée. Contactez l'administration.",
+        )
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
@@ -127,6 +164,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
             detail="Account disabled",
         )
 
+    # SECURITY FIX #2 : une école désactivée bloque l'accès de tous ses membres.
+    _enforce_school_active(user, db)
+
     # --- Apply active_role from JWT claim (context switcher support) ---
     active_role_claim = payload.get("active_role")
     if active_role_claim:
@@ -151,9 +191,48 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     return user
 
 
+async def get_current_user_optional(
+    token: str = Depends(oauth2_scheme_optional),
+    db: Session = Depends(get_db),
+):
+    """Returns the current user if a valid token is present, None otherwise."""
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        user_id: int = int(payload.get("sub"))
+        token_type: str = payload.get("type", "access")
+        if token_type != "access":
+            return None
+    except Exception:
+        return None
+    user = _get_user_by_id(db, user_id)
+    if user is None or user.is_active is False:
+        return None
+    return user
+
+
 # ---------------------------------------------------------------------------
 # Registration endpoints
 # ---------------------------------------------------------------------------
+
+# M1 FIX — rôles créables via l'inscription publique.
+PUBLIC_REGISTRATION_ROLES = ("student", "teacher", "parent")
+
+# M2 FIX — alphabet du code d'invitation: 32 caractères sans I/1/O/0
+# (évite les ambiguïtés de lecture papier). Code à 6 caractères.
+_INVITE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+
+
+def _generate_invitation_code(db: Session) -> str:
+    """M2 FIX — génère un code d'invitation unique (6 caractères alphanumériques)
+    pour un nouvel élève. Le code est requis par POST /parents/me/enfants/lier."""
+    for _ in range(20):
+        code = "".join(secrets.choice(_INVITE_ALPHABET) for _ in range(6))
+        if not db.query(User).filter(User.invitation_code == code).first():
+            return code
+    raise RuntimeError("Unable to generate a unique invitation code")
+
 
 @router.post("/register", response_model=Token)
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
@@ -165,24 +244,48 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
     school = None
     domain = user_in.school_domain or (user_in.school_name.lower().replace(" ", "-") if user_in.school_name else None)
 
+    # SECURITY FIX: Look up existing school only — never auto-create.
+    # Schools must be pre-provisioned by a super_admin.
     if domain:
         school = db.query(School).filter(School.domain == domain).first()
 
+    # Fallback: try matching by slug derived from school_name
     if not school and user_in.school_name:
         slug = domain or user_in.school_name.lower().replace(" ", "-")
-        existing_slug = db.query(School).filter(School.slug == slug).first()
-        if existing_slug:
-            slug = f"{slug}-{existing_slug.id}"
-        school = School(name=user_in.school_name, domain=domain, slug=slug)
-        db.add(school)
-        db.flush()
+        school = db.query(School).filter(School.slug == slug).first()
 
     if not school:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="School name is required. Please provide the name of your school.",
+            detail="École inconnue. Veuillez vérifier le nom ou contacter l'administration.",
         )
-    role = "student"
+
+    # SECURITY: Refuse registration into a deactivated school
+    if school.is_active is False:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cette école est désactivée. Contactez l'administration.",
+        )
+    # M1 FIX — plus de rôle forcé à "student": le payload peut demander
+    # student / teacher / parent. "teacher" est routé vers le pipeline
+    # d'approbation existant (TeacherRegistration PENDING) pour ne pas
+    # contourner la validation admin_school. Tout autre rôle => 422.
+    requested_role = (user_in.role or "student").strip().lower()
+    if requested_role not in PUBLIC_REGISTRATION_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Rôle non autorisé à l'inscription publique. Rôles possibles: student, teacher, parent.",
+        )
+    if requested_role == "teacher":
+        # L'inscription enseignant reste soumise à approbation admin_school:
+        # elle passe exclusivement par /auth/teacher-register
+        # (TeacherRegistration PENDING). Créer un teacher actif ici
+        # contournerait la validation de l'école.
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Les enseignants doivent s'inscrire via /auth/teacher-register (approbation obligatoire).",
+        )
+    role = requested_role
     ok, err = validate_password_strength(user_in.password)
     if not ok:
         raise HTTPException(status_code=422, detail=err)
@@ -193,10 +296,22 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
         hashed_password=get_password_hash(user_in.password),
         role=role,
         niveau_scolaire=user_in.niveau_scolaire,
+        # M2 FIX — tout nouvel élève reçoit un code d'invitation parental
+        invitation_code=_generate_invitation_code(db) if role == "student" else None,
     )
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+
+    # Modèle Freemium : attache automatiquement l'Abonnement "Gratuit"
+    # (PackDefinition.tier == "gratuit") correspondant au niveau de l'élève.
+    # Le quota serveur (3 leçons complétées / trimestre) est enforceé dans learner.py.
+    try:
+        from app.services.student_tier import ensure_free_abonnement
+        ensure_free_abonnement(new_user, db)
+        db.commit()
+    except Exception:
+        db.rollback()
 
     from app.services.wallet import add_credits
     from app.models import WalletPool
@@ -205,14 +320,73 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
         expires_at=datetime.now(timezone.utc) + timedelta(days=30),
     )
 
-    return _issue_token_pair(new_user, db)
+    # FIX #6 — token de vérification email : stocké sur le compte et renvoyé
+    # dans la réponse (posture non bloquante : le compte reste actif, la
+    # vérification est prouvée via POST /auth/verify-email).
+    import secrets as _secrets
+    from app.audit import log_security_event
+    verification_token = _secrets.token_urlsafe(32)
+    new_user.email_verification_token = verification_token
+    db.commit()
+    db.refresh(new_user)
+    log_security_event("email_verification_token_issued", {"user_id": new_user.id})
+
+    tokens = _issue_token_pair(new_user, db)
+    return {**tokens, "email_verification_token": verification_token}
+
+
+@router.post("/verify-email")
+def verify_email(body: VerifyEmailRequest, db: Session = Depends(get_db)):
+    """FIX #6 — vérifie l'email d'un utilisateur via le token reçu à l'inscription.
+
+    Non bloquant par design : un compte jamais vérifié reste utilisable, mais
+    email_verified passe à True et le token est consommé (single-use).
+    """
+    from app.models import User
+
+    if not body.token:
+        raise HTTPException(status_code=400, detail="Token manquant")
+
+    user = db.query(User).filter(User.email_verification_token == body.token).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="Token de vérification invalide ou déjà utilisé")
+
+    user.email_verified = True
+    user.email_verification_token = None
+    db.commit()
+
+    from app.audit import log_security_event
+    log_security_event("email_verified", {"user_id": user.id})
+
+    return {"verified": True, "email": user.email}
+
+
+@router.get("/my-invitation-code")
+def my_invitation_code(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """M2 FIX — l'élève consulte son code d'invitation parental.
+
+    Le code est transmis par l'élève à son parent pour autoriser la liaison
+    POST /api/parents/me/enfants/lier. Généré à la volée si absent
+    (comptes élèves créés avant le déploiement de la colonne).
+    """
+    if current_user.role != "student":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Seuls les comptes élèves possèdent un code d'invitation.",
+        )
+    if not current_user.invitation_code:
+        current_user.invitation_code = _generate_invitation_code(db)
+        db.commit()
+    return {"invitation_code": current_user.invitation_code}
 
 
 @router.post("/register-school", response_model=Token)
-def register_school(body: "RegisterSchoolRequest", db: Session = Depends(get_db)):
+def register_school(body: RegisterSchoolRequest, db: Session = Depends(get_db)):
     """Public school registration — creates a school with pending_validation=True."""
     from app.models import User, School, SchoolType, UserRole
-    from app.schemas import RegisterSchoolRequest
 
     existing = db.query(User).filter(User.email == body.email).first()
     if existing:
@@ -398,6 +572,9 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is deactivated. Contact your administrator.")
+
+    # SECURITY FIX #2 : refus du login si l'école de l'utilisateur est désactivée
+    _enforce_school_active(user, db)
 
     # Initialize active_context_role from roles list (backward compat)
     user_roles = user.roles if user.roles else [user.role]
@@ -610,6 +787,38 @@ def refresh_token(body: RefreshTokenRequest, db: Session = Depends(get_db)):
     return _issue_token_pair(user, db)
 
 
+class LogoutRequest(BaseModel):
+    refresh_token: Optional[str] = None
+
+
+@router.post("/logout")
+def logout(
+    body: Optional[LogoutRequest] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Révoque côté serveur les refresh tokens de l'utilisateur (correction M1).
+
+    TOUS les refresh tokens actifs de l'utilisateur sont invalidés →
+    plus aucune session ne peut être rafraîchie après le logout.
+    Le champ optionnel `refresh_token` est accepté pour compatibilité API.
+    """
+    from app.models import RefreshToken
+
+    revoked_count = db.query(RefreshToken).filter(
+        RefreshToken.user_id == current_user.id,
+        RefreshToken.revoked == False,
+    ).update({"revoked": True})
+    db.commit()
+
+    log_security_event("logout_revoked_refresh_tokens", {
+        "user_id": current_user.id,
+        "revoked_count": revoked_count,
+    })
+
+    return {"message": "Déconnexion effectuée.", "revoked_sessions": revoked_count}
+
+
 # ---------------------------------------------------------------------------
 # Profile endpoints
 # ---------------------------------------------------------------------------
@@ -633,6 +842,48 @@ def complete_onboarding(current_user: User = Depends(get_current_user), db: Sess
     current_user.onboarding_complete = True
     db.commit()
     return {"onboarding_complete": True}
+
+
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str
+
+
+@router.put("/me/password")
+def change_password(
+    body: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Change le mot de passe d'un utilisateur CONNECTÉ (correction M2).
+
+    - Vérifie l'ancien mot de passe.
+    - Valide la force du nouveau.
+    - Révoque tous les refresh tokens : les autres sessions doivent se
+      ré-authentifier après un changement de mot de passe.
+    """
+    if not verify_password(body.old_password, current_user.hashed_password):
+        log_security_event("password_change_failed_wrong_old", {"user_id": current_user.id}, severity="WARNING")
+        raise HTTPException(status_code=400, detail="Ancien mot de passe incorrect.")
+
+    if verify_password(body.new_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Le nouveau mot de passe doit être différent de l'ancien.")
+
+    ok, err = validate_password_strength(body.new_password)
+    if not ok:
+        raise HTTPException(status_code=422, detail=err)
+
+    from app.models import RefreshToken
+    current_user.hashed_password = get_password_hash(body.new_password)
+    db.query(RefreshToken).filter(
+        RefreshToken.user_id == current_user.id,
+        RefreshToken.revoked == False,
+    ).update({"revoked": True})
+    db.commit()
+
+    log_security_event("password_changed", {"user_id": current_user.id})
+
+    return {"message": "Mot de passe modifié avec succès."}
 
 
 @router.get("/schools/search")

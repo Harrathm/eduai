@@ -66,6 +66,7 @@ class AIFactoryService:
         self._api_key = api_key
         self._client: Optional[OpenAI] = None
         self._rag_service = None
+        self._last_rag_sources: list = []
 
     @property
     def client(self) -> OpenAI:
@@ -78,11 +79,16 @@ class AIFactoryService:
             from app.ai.rag_service import RAGService
             if self._rag_service is None:
                 self._rag_service = RAGService()
-            docs = self._rag_service.retrieve_context(school_id, query, k=k)
+            retrieval = self._rag_service.retrieve_with_sources(school_id, query, k=k)
+            docs = retrieval["contexts"]
             if docs:
-                logger.info(f"RAG retrieved {len(docs)} chunks, total {sum(len(d) for d in docs)} chars")
+                logger.info(
+                    f"RAG retrieved {len(docs)} chunks from {len(retrieval['sources'])} sources, "
+                    f"total {sum(len(d) for d in docs)} chars"
+                )
                 for i, doc in enumerate(docs[:3]):
                     logger.info(f"  chunk[{i}]: {doc[:150]}...")
+                self._last_rag_sources = retrieval["sources"]
                 return "\n\n".join(docs)
             else:
                 logger.warning(f"RAG returned 0 chunks for school_id={school_id}, query={query[:100]}")
@@ -549,7 +555,7 @@ Description: {lesson_description}"""
                     "course_title": course_title,
                     "generated_at": datetime.now(timezone.utc).isoformat(),
                 },
-                est_global=False,
+                est_global=True,
                 est_libre=False,
             )
             db.add(texte_element)
@@ -558,7 +564,7 @@ Description: {lesson_description}"""
             # Crée le contenu texte associé
             texte_content = ElementTexte(
                 element_id=texte_element.id,
-                contenu=lesson_content,
+                corps=lesson_content,
             )
             db.add(texte_content)
             elements_created.append({
@@ -582,7 +588,7 @@ Description: {lesson_description}"""
                     "questions_count": len(quiz_data.get("questions", [])),
                     "generated_at": datetime.now(timezone.utc).isoformat(),
                 },
-                est_global=False,
+                est_global=True,
                 est_libre=False,
             )
             db.add(quiz_element)
@@ -594,13 +600,13 @@ Description: {lesson_description}"""
                 "questions_count": len(quiz_data.get("questions", [])),
             })
 
-        # 3. Élément Image (prompt)
+        # 3. Element Image (prompt)
         image_prompt = media_prompts.get("image_prompt", "") if isinstance(media_prompts, dict) else ""
         if image_prompt:
             image_element = ElementPedagogique(
                 type="image",
                 titre=f"{lesson_title} - Illustration",
-                description=f"Image générée par IA pour: {lesson_title}",
+                description=f"Image generee par IA pour: {lesson_title}",
                 auteur_id=author_id,
                 statut="brouillon_ia",
                 difficulte="moyen",
@@ -609,24 +615,31 @@ Description: {lesson_description}"""
                     "image_prompt": image_prompt,
                     "generated_at": datetime.now(timezone.utc).isoformat(),
                 },
-                est_global=False,
+                est_global=True,
                 est_libre=False,
             )
             db.add(image_element)
             db.flush()
+            # Create ElementImage sub-model with prompt-based placeholder URL
+            image_sub = ElementImage(
+                element_id=image_element.id,
+                url=f"ai-prompt://{image_prompt[:100]}",
+                alt_text=f"Prompt: {image_prompt[:200]}",
+            )
+            db.add(image_sub)
             elements_created.append({
                 "type": "image",
                 "id": image_element.id,
                 "titre": image_element.titre,
             })
 
-        # 4. Élément Vidéo (prompt)
+        # 4. Element Video (prompt)
         video_prompt = media_prompts.get("video_prompt", "") if isinstance(media_prompts, dict) else ""
         if video_prompt:
             video_element = ElementPedagogique(
                 type="video",
-                titre=f"{lesson_title} - Vidéo",
-                description=f"Vidéo générée par IA pour: {lesson_title}",
+                titre=f"{lesson_title} - Video",
+                description=f"Video generee par IA pour: {lesson_title}",
                 auteur_id=author_id,
                 statut="brouillon_ia",
                 difficulte="moyen",
@@ -635,11 +648,18 @@ Description: {lesson_description}"""
                     "video_prompt": video_prompt,
                     "generated_at": datetime.now(timezone.utc).isoformat(),
                 },
-                est_global=False,
+                est_global=True,
                 est_libre=False,
             )
             db.add(video_element)
             db.flush()
+            # Create ElementVideo sub-model with prompt-based placeholder URL
+            video_sub = ElementVideo(
+                element_id=video_element.id,
+                url=f"ai-prompt://{video_prompt[:100]}",
+                duree_secondes=0,
+            )
+            db.add(video_sub)
             elements_created.append({
                 "type": "video",
                 "id": video_element.id,

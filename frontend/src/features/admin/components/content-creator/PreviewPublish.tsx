@@ -1,7 +1,8 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { useMemo } from "react";
-import { Check, Loader2, Save, BookOpen, FileText, Puzzle, Image, Sparkles } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Check, Loader2, Save, BookOpen, FileText, Puzzle, Image, Sparkles, Download } from "lucide-react";
 import { Button } from "../../../../components/ui";
+import { exportAIFactoryPdf } from "../../../../utils/exportAIFactoryPdf";
 import type { AIFactoryBundle, AIPreviewInfo } from "../../../../api";
 
 type Props = {
@@ -18,6 +19,18 @@ type Props = {
 export function PreviewPublish({ bundle, previewInfo, publishing, publishResult, onPublish, onBack, onReset, onPreviewLesson }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const hasGeneratedLessons = Object.keys(bundle.lessons || {}).length > 0;
+
+  const handleExportPdf = () => {
+    setExportingPdf(true);
+    try {
+      exportAIFactoryPdf(bundle);
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
   const basePath = useMemo(() => {
     if (location.pathname.startsWith("/dashboard/school")) return "/dashboard/school";
     return "/dashboard/admin";
@@ -36,7 +49,7 @@ export function PreviewPublish({ bundle, previewInfo, publishing, publishResult,
               <span className="text-xs text-gray">{previewInfo.total_modules} modules · {previewInfo.total_lessons} lessons</span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col items-end gap-2">
             {publishResult ? (
               <div className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-xl text-sm font-medium">
                 <Check className="w-4 h-4" /> Published as Draft
@@ -53,6 +66,17 @@ export function PreviewPublish({ bundle, previewInfo, publishing, publishResult,
                 {publishing ? "Publishing..." : "Save as Draft"}
               </Button>
             )}
+            {/* Export PDF groupé — toutes les leçons générées du batch courant */}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleExportPdf}
+              disabled={!hasGeneratedLessons || exportingPdf}
+              title={hasGeneratedLessons ? "Exporter toutes les leçons en PDF" : "Aucune leçon générée"}
+            >
+              <Download className="w-4 h-4" />
+              {exportingPdf ? "Génération du PDF..." : "Exporter en PDF"}
+            </Button>
           </div>
         </div>
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { parentAPI, DashboardData } from "../../../api";
+import { parentAPI, ParentDashboardData } from "../../../api";
 import ParentMessaging from "./ParentMessaging";
 import { Wallet, Package, Users } from "lucide-react";
 import { tokenStorage } from "../../../utils/tokenStorage";
@@ -9,10 +9,11 @@ import { Button, Spinner } from "../../../components/ui";
 
 export default function ParentDashboardPage() {
   const { t } = useTranslation();
-  const [data, setData] = useState<DashboardData | null>(null);
+  const [data, setData] = useState<ParentDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [lierEmail, setLierEmail] = useState("");
+  const [lierCode, setLierCode] = useState("");
   const [lierLoading, setLierLoading] = useState(false);
   const [lierMsg, setLierMsg] = useState("");
   const token = tokenStorage.getToken() || "";
@@ -26,13 +27,14 @@ export default function ParentDashboardPage() {
 
   const handleLier = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!lierEmail.trim()) return;
+    if (!lierEmail.trim() || !lierCode.trim()) return;
     setLierLoading(true);
     setLierMsg("");
     try {
-      await parentAPI.lierEleve(lierEmail);
+      await parentAPI.lierEleve(lierEmail, lierCode);
       setLierMsg(t('parent.linkSuccess'));
       setLierEmail("");
+      setLierCode("");
       const refreshed = await parentAPI.getDashboard();
       setData(refreshed);
     } catch (e: unknown) {
@@ -86,10 +88,10 @@ export default function ParentDashboardPage() {
                   <div className="text-sm text-gray-500">{enfant.niveau_scolaire || t('parent.notDefined')}</div>
                 </Link>
                 <div className="flex items-center gap-2">
-                  <Link to={`/dashboard/parent/enfant/${enfant.eleve_id}/wallet`} className="p-2 text-gray-400 hover:text-orange rounded-lg hover:bg-orange/5 transition-colors" title={t('parent.wallet')}>
+                  <Link to={`/dashboard/parent/enfant/${enfant.eleve_id}/wallet`} className="p-2 text-gray-400 hover:text-orange rounded-lg hover:bg-orange/5 transition-colors" title={t('parent.wallet.title')}>
                     <Wallet className="w-4 h-4" />
                   </Link>
-                  <Link to={`/dashboard/parent/enfant/${enfant.eleve_id}/pack`} className="p-2 text-gray-400 hover:text-navy rounded-lg hover:bg-navy/5 transition-colors" title={t('parent.pack')}>
+                  <Link to={`/dashboard/parent/enfant/${enfant.eleve_id}/pack`} className="p-2 text-gray-400 hover:text-navy rounded-lg hover:bg-navy/5 transition-colors" title={t('parent.pack.title')}>
                     <Package className="w-4 h-4" />
                   </Link>
                   <div className="text-end ms-2">
@@ -105,13 +107,22 @@ export default function ParentDashboardPage() {
 
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-black/5">
         <h2 className="text-lg font-medium text-navy mb-4">{t('parent.linkChild')}</h2>
-        <form onSubmit={handleLier} className="flex gap-3">
+        <form onSubmit={handleLier} className="flex flex-col sm:flex-row gap-3">
           <input
             type="email"
             value={lierEmail}
             onChange={(e) => setLierEmail(e.target.value)}
             placeholder={t('parent.studentEmailPlaceholder')}
             className="flex-1 px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-orange"
+            required
+          />
+          <input
+            type="text"
+            value={lierCode}
+            onChange={(e) => setLierCode(e.target.value.toUpperCase())}
+            placeholder="Code d'invitation (6 caractères)"
+            maxLength={12}
+            className="w-full sm:w-56 px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-orange uppercase tracking-widest"
             required
           />
           <Button

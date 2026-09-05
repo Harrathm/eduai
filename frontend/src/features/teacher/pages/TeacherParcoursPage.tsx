@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from "../../../store/authStore";
-import { BookOpen, Plus, ChevronDown, ChevronRight, Edit2, FileText, Layers, GraduationCap } from "lucide-react";
+import { BookOpen, Plus, ChevronDown, ChevronRight, Edit2, FileText, Layers, GraduationCap, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import { Button, Modal } from "../../../components/ui";
 import {
-  listParcours, createParcours, updateParcours,
-  listChapitres, createChapitre, updateChapitre,
-  listLecons, createLecon, updateLecon,
-  listParagraphes, createParagraphe, updateParagraphe,
+  listParcours, createParcours, updateParcours, deleteParcours,
+  listChapitres, createChapitre, updateChapitre, deleteChapitre, demoteChapitre,
+  listLecons, createLecon, updateLecon, deleteLecon, promoteLecon,
+  listParagraphes, createParagraphe, updateParagraphe, deleteParagraphe,
   type Parcours, type Chapitre, type Lecon, type Paragraphe,
 } from "../../../api";
+import { ALL_NIVEAUX } from "../../admin/constants/cycles";
 
 type TreeItem = {
   parcours: Parcours;
@@ -25,6 +26,8 @@ export default function TeacherParcoursPage() {
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
   const [editItem, setEditItem] = useState<{ type: string; item: any } | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
+  const [confirmDelete, setConfirmDelete] = useState<{ type: string; id: number; name: string } | null>(null);
+  const [demoteTarget, setDemoteTarget] = useState<{ chapitreId: number; chapitres: Chapitre[] } | null>(null);
 
   const showToast = (message: string, type: "success" | "error" = "success") => {
     setToast({ show: true, message, type });
@@ -88,7 +91,7 @@ export default function TeacherParcoursPage() {
         if (item.id) {
           await updateParcours(item.id, form);
         } else {
-          await createParcours({ ...form, matiere: form.matiere || "General", niveau_scolaire: form.niveau_scolaire || "1ere annee" });
+          await createParcours({ ...form, matiere: form.matiere || "General", niveau_scolaire: form.niveau_scolaire || "Bac Sciences Expérimentales" });
         }
       } else if (type === "chapitre") {
         if (item.id) {
@@ -114,6 +117,54 @@ export default function TeacherParcoursPage() {
       load();
     } catch (e: any) {
       showToast(e.message, "error");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
+    try {
+      if (confirmDelete.type === "parcours") await deleteParcours(confirmDelete.id);
+      else if (confirmDelete.type === "chapitre") await deleteChapitre(confirmDelete.id);
+      else if (confirmDelete.type === "lecon") await deleteLecon(confirmDelete.id);
+      else if (confirmDelete.type === "paragraphe") await deleteParagraphe(confirmDelete.id);
+      showToast(t('teacher.parcours.toasts.deleted'));
+      setConfirmDelete(null);
+      load();
+    } catch (e: any) {
+      showToast(e.message, "error");
+      setConfirmDelete(null);
+    }
+  };
+
+  const handlePromote = async (leconId: number) => {
+    try {
+      await promoteLecon(leconId);
+      showToast(t('teacher.parcours.toasts.promoted'));
+      load();
+    } catch (e: any) {
+      showToast(e.message, "error");
+    }
+  };
+
+  const openDemote = (chapitreId: number, siblings: Chapitre[]) => {
+    const targets = siblings.filter((c) => c.id !== chapitreId);
+    if (targets.length === 0) {
+      showToast(t('teacher.parcours.toasts.noTargetChapitre'), "error");
+      return;
+    }
+    setDemoteTarget({ chapitreId, chapitres: targets });
+  };
+
+  const handleDemote = async (targetChapitreId: number) => {
+    if (!demoteTarget) return;
+    try {
+      await demoteChapitre(demoteTarget.chapitreId, targetChapitreId);
+      showToast(t('teacher.parcours.toasts.demoted'));
+      setDemoteTarget(null);
+      load();
+    } catch (e: any) {
+      showToast(e.message, "error");
+      setDemoteTarget(null);
     }
   };
 
@@ -161,6 +212,9 @@ export default function TeacherParcoursPage() {
                 <Button onClick={(e) => { e.stopPropagation(); openEdit("parcours", item.parcours); }} variant="ghost" size="sm" className="p-1">
                   <Edit2 size={14} />
                 </Button>
+                <Button onClick={(e) => { e.stopPropagation(); setConfirmDelete({ type: "parcours", id: item.parcours.id, name: item.parcours.titre }); }} variant="ghost" size="sm" className="p-1 text-red-400 hover:text-red-600">
+                  <Trash2 size={14} />
+                </Button>
               </div>
 
               {/* Chapitres */}
@@ -174,6 +228,14 @@ export default function TeacherParcoursPage() {
                         <span className="flex-1 text-sm">{chap.titre}</span>
                         <Button onClick={(e) => { e.stopPropagation(); openEdit("chapitre", chap); }} variant="ghost" size="sm" className="p-1">
                           <Edit2 size={12} />
+                        </Button>
+                        {item.chapitres.length > 1 && (
+                          <Button onClick={(e) => { e.stopPropagation(); openDemote(chap.id, item.chapitres); }} variant="ghost" size="sm" className="p-1 text-orange-500 hover:text-orange-700">
+                            <ArrowDown size={12} />
+                          </Button>
+                        )}
+                        <Button onClick={(e) => { e.stopPropagation(); setConfirmDelete({ type: "chapitre", id: chap.id, name: chap.titre }); }} variant="ghost" size="sm" className="p-1 text-red-400 hover:text-red-600">
+                          <Trash2 size={12} />
                         </Button>
                       </div>
 
@@ -189,6 +251,12 @@ export default function TeacherParcoursPage() {
                                 <Button onClick={(e) => { e.stopPropagation(); openEdit("lecon", lec); }} variant="ghost" size="sm" className="p-1">
                                   <Edit2 size={12} />
                                 </Button>
+                                <Button onClick={(e) => { e.stopPropagation(); handlePromote(lec.id); }} variant="ghost" size="sm" className="p-1 text-orange-500 hover:text-orange-700">
+                                  <ArrowUp size={12} />
+                                </Button>
+                                <Button onClick={(e) => { e.stopPropagation(); setConfirmDelete({ type: "lecon", id: lec.id, name: lec.titre }); }} variant="ghost" size="sm" className="p-1 text-red-400 hover:text-red-600">
+                                  <Trash2 size={12} />
+                                </Button>
                               </div>
 
                               {/* Paragraphes */}
@@ -197,10 +265,13 @@ export default function TeacherParcoursPage() {
                                   {lec.paragraphes.map((para) => (
                                     <div key={para.id} className="p-2 flex items-center gap-2 text-sm hover:bg-gray/5">
                                       <FileText size={12} className="text-purple-500" />
-                                      <span className="flex-1">{para.titre}</span>
-                                        <Button onClick={() => openEdit("paragraphe", para)} variant="ghost" size="sm" className="p-1">
-                                          <Edit2 size={10} />
-                                        </Button>
+                                      <span className="flex-1">{para.contenu?.substring(0, 50) || "..."}</span>
+                                      <Button onClick={() => openEdit("paragraphe", para)} variant="ghost" size="sm" className="p-1">
+                                        <Edit2 size={10} />
+                                      </Button>
+                                      <Button onClick={() => setConfirmDelete({ type: "paragraphe", id: para.id, name: "" })} variant="ghost" size="sm" className="p-1 text-red-400 hover:text-red-600">
+                                        <Trash2 size={10} />
+                                      </Button>
                                     </div>
                                   ))}
                                   <Button onClick={() => openCreate("paragraphe", lec.id)} variant="ghost" size="sm" className="ml-2 mt-1 flex items-center gap-1">
@@ -227,7 +298,39 @@ export default function TeacherParcoursPage() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Delete Confirmation Modal */}
+      {confirmDelete && (
+        <Modal open={!!confirmDelete} onClose={() => setConfirmDelete(null)} title={t('teacher.parcours.modal.confirmDelete')}>
+          <p className="text-sm text-gray mb-4">
+            {t('teacher.parcours.modal.deleteMessage', { name: confirmDelete.name })}
+          </p>
+          <div className="flex gap-2 mt-4 justify-end">
+            <Button onClick={() => setConfirmDelete(null)} variant="ghost" size="md">{t('teacher.parcours.btn.cancel')}</Button>
+            <Button onClick={handleDelete} variant="primary" size="md" className="bg-red-500 hover:bg-red-600">{t('teacher.parcours.btn.delete')}</Button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Demote Target Selection Modal */}
+      {demoteTarget && (
+        <Modal open={!!demoteTarget} onClose={() => setDemoteTarget(null)} title={t('teacher.parcours.modal.selectTarget')}>
+          <p className="text-sm text-gray mb-4">{t('teacher.parcours.modal.demoteMessage')}</p>
+          <div className="space-y-2">
+            {demoteTarget.chapitres.map((ch) => (
+              <button key={ch.id} onClick={() => handleDemote(ch.id)}
+                className="w-full text-left px-4 py-3 rounded-xl border border-black/5 hover:bg-gray/5 flex items-center gap-3 transition-colors">
+                <Layers size={14} className="text-blue-500" />
+                <span className="text-sm">{ch.titre}</span>
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2 mt-4 justify-end">
+            <Button onClick={() => setDemoteTarget(null)} variant="ghost" size="md">{t('teacher.parcours.btn.cancel')}</Button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Edit/Create Modal */}
       {editItem && (
         <Modal open={!!editItem} onClose={() => setEditItem(null)} title={`${editItem.item.id ? t('teacher.parcours.modal.editTitle') : t('teacher.parcours.modal.createTitle')} ${editItem.type}`}>
           <div className="space-y-3">
@@ -237,8 +340,17 @@ export default function TeacherParcoursPage() {
               <>
                 <input value={form.matiere || ""} onChange={(e) => setForm({ ...form, matiere: e.target.value })}
                   placeholder={t('teacher.parcours.fields.subject')} className="w-full border rounded-xl px-3 py-2 text-sm" />
-                <input value={form.niveau_scolaire || ""} onChange={(e) => setForm({ ...form, niveau_scolaire: e.target.value })}
-                  placeholder={t('teacher.parcours.fields.level')} className="w-full border rounded-xl px-3 py-2 text-sm" />
+                <select value={form.niveau_scolaire || ""} onChange={(e) => setForm({ ...form, niveau_scolaire: e.target.value })}
+                  className="w-full border rounded-xl px-3 py-2 text-sm">
+                  <option value="">-- Choisir un niveau --</option>
+                  {ALL_NIVEAUX.map((g) => (
+                    <optgroup key={g.group} label={g.group}>
+                      {g.items.map((n) => (
+                        <option key={n} value={n}>{n}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
                 <textarea value={form.description || ""} onChange={(e) => setForm({ ...form, description: e.target.value })}
                   placeholder={t('teacher.parcours.fields.description')} className="w-full border rounded-xl px-3 py-2 text-sm h-20" />
               </>

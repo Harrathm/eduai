@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { ArrowLeft, Eye, EyeOff, Copy, Archive, Save, GripVertical, Plus, AlertCircle, LayoutGrid } from "lucide-react";
 import { Button, Input } from "../../../../components/ui";
 import { pathwayApi } from "../../../../api";
+import { CYCLE_NIVEAUX, CYCLE_LABELS } from "../../constants/cycles";
 import { useAuthStore } from "../../../../store/authStore";
 import type { Chapter } from "../../hooks/useCourseEditor";
 
@@ -36,6 +37,24 @@ export function CourseSidebar({
   const categoryCible = course.category_cible || "Scolaire";
   const isScolaire = categoryCible === "Scolaire";
   const [matieres, setMatieres] = useState<{id: number; nom: string}[]>([]);
+
+  const detectCycle = (niveau: string): string => {
+    if (!niveau) return "";
+    for (const [cycle, niveaux] of Object.entries(CYCLE_NIVEAUX)) {
+      if (niveaux.includes(niveau)) return cycle;
+    }
+    return "";
+  };
+
+  const [cycleScolaire, setCycleScolaire] = useState(() => detectCycle(course.niveau_scolaire || ""));
+
+  const handleCycleChange = (newCycle: string) => {
+    const allowed = CYCLE_NIVEAUX[newCycle] || [];
+    if (!allowed.includes(course.niveau_scolaire || "")) {
+      onCourseFieldChange("niveau_scolaire", "");
+    }
+    setCycleScolaire(newCycle);
+  };
 
   useEffect(() => {
     if (isScolaire && course.niveau_scolaire) {
@@ -147,12 +166,30 @@ export function CourseSidebar({
           </div>
           {isScolaire && (
             <div>
-              <label className="block text-xs font-medium mb-1">Niveau scolaire *</label>
-              <input value={course.niveau_scolaire || ""} onChange={e => onCourseFieldChange("niveau_scolaire", e.target.value)}
-                className="w-full px-2 py-1 text-sm border rounded" placeholder="Ex: 3ème année secondaire" />
+              <label className="block text-xs font-medium mb-1">Cycle scolaire *</label>
+              <select value={cycleScolaire} onChange={e => handleCycleChange(e.target.value)}
+                className="w-full px-2 py-1 text-sm border rounded">
+                <option value="">-- Choisir un cycle --</option>
+                {Object.entries(CYCLE_LABELS).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
             </div>
           )}
         </div>
+        {isScolaire && (
+          <div>
+            <label className="block text-xs font-medium mb-1">Niveau scolaire *</label>
+            <select value={course.niveau_scolaire || ""} onChange={e => onCourseFieldChange("niveau_scolaire", e.target.value)}
+              disabled={!cycleScolaire}
+              className="w-full px-2 py-1 text-sm border rounded disabled:opacity-50 disabled:bg-gray-100">
+              <option value="">{cycleScolaire ? "-- Choisir un niveau --" : "-- Sélectionner un cycle d'abord --"}</option>
+              {(CYCLE_NIVEAUX[cycleScolaire] || []).map(n => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+          </div>
+        )}
         {isScolaire && (
           <div>
             <label className="block text-xs font-medium mb-1">Matière (catégorie) *</label>

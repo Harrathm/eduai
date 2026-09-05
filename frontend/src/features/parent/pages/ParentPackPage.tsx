@@ -57,7 +57,9 @@ export default function ParentPackPage() {
     try {
       const [enfantsRes, aboRes, packsRes] = await Promise.all([
         fetch("/api/parents/me/enfants", { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("/api/abonnements/mes-abonnements", { headers: { Authorization: `Bearer ${token}` } }),
+        // Écart#2 FIX — demander les abonnements de l'ENFANT consulté
+        // (sans eleve_id l'API renvoyait ceux du parent, toujours vides).
+        fetch(`/api/abonnements/mes-abonnements?eleve_id=${childId}`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch("/api/abonnements/packs", { headers: { Authorization: `Bearer ${token}` } }),
       ]);
       if (enfantsRes.ok) {

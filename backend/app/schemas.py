@@ -20,6 +20,14 @@ class UserCreate(BaseModel):
     school_domain: Optional[str] = None
     school_id: Optional[int] = None
     niveau_scolaire: Optional[str] = None
+    # M1 FIX — rôle demandé à l'inscription publique (student | teacher | parent).
+    # Absent => "student" (comportement historique préservé).
+    role: Optional[str] = None
+
+
+class VerifyEmailRequest(BaseModel):
+    """FIX #6 — payload de POST /auth/verify-email."""
+    token: str
 
 
 class UserRead(BaseModel):
@@ -34,6 +42,7 @@ class UserRead(BaseModel):
     subscription_plan: Optional[str] = None
     language: Optional[str] = "fr"
     onboarding_complete: Optional[bool] = False
+    email_verified: Optional[bool] = False
     token_balance: Optional[int] = 0
     dt_balance: Optional[float] = 0.0
     is_approved: Optional[bool] = True
@@ -61,6 +70,8 @@ class Token(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str
+    # FIX #6 — renvoyé par /auth/register (affichage dev / envoi email côté client)
+    email_verification_token: Optional[str] = None
 
 
 class TokenData(BaseModel):
@@ -380,7 +391,7 @@ class AIQuery(BaseModel):
 
 class AIResult(BaseModel):
     answer: str
-    sources: list[str] = []
+    sources: list[dict] = []
     conversation_id: Optional[int] = None
 
 
@@ -776,6 +787,18 @@ class ClassCourseAccessRead(BaseModel):
     course_id: int
     course_title: Optional[str] = None
     assigned_at: Optional[datetime] = None
+    is_active: bool
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ClassParcoursAccessRead(BaseModel):
+    id: int
+    class_id: int
+    parcours_id: int
+    parcours_titre: Optional[str] = None
+    parcours_matiere: Optional[str] = None
+    assigned_at: Optional[str] = None
     is_active: bool
 
     model_config = ConfigDict(from_attributes=True)
@@ -1441,4 +1464,55 @@ class LicenceAssignationRead(BaseModel):
     affecte_par_id: Optional[int] = None
     date_affectation: Optional[datetime] = None
     desaffecte_a: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ─── Live Sessions ─────────────────────────────────────────
+
+class LiveSessionCreate(BaseModel):
+    class_id: int
+    title: str
+    description: Optional[str] = None
+    scheduled_at: datetime
+    duration_minutes: int = 60
+
+
+class LiveSessionUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    scheduled_at: Optional[datetime] = None
+    duration_minutes: Optional[int] = None
+    status: Optional[str] = None
+
+
+class LiveSessionRead(BaseModel):
+    id: int
+    teacher_id: int
+    class_id: int
+    school_id: Optional[int] = None
+    title: str
+    description: Optional[str] = None
+    scheduled_at: datetime
+    duration_minutes: int
+    status: str
+    meeting_url: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    teacher_name: Optional[str] = None
+    class_name: Optional[str] = None
+    attendance_count: int = 0
+    students_count: int = 0
+    model_config = ConfigDict(from_attributes=True)
+
+
+class LiveAttendanceRead(BaseModel):
+    id: int
+    live_session_id: int
+    student_id: int
+    student_name: Optional[str] = None
+    student_email: Optional[str] = None
+    joined_at: Optional[datetime] = None
+    left_at: Optional[datetime] = None
+    duration_seconds: Optional[int] = None
+    is_active: bool
     model_config = ConfigDict(from_attributes=True)

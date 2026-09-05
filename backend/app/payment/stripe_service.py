@@ -38,7 +38,7 @@ def create_checkout_session(
     school_id: int,
     success_url: str = "http://localhost:5173/success",
     cancel_url: str = "http://localhost:5173/pricing",
-) -> stripe.CheckoutSession:
+) -> stripe.checkout.Session:
     s = get_stripe()
 
     price_data = PRICES.get(plan_key, PRICES["basic"])
@@ -105,7 +105,7 @@ def construct_webhook_event(
 def create_customer_portal_session(
     school_id: int,
     return_url: str = "http://localhost:5173/settings",
-) -> stripe.BillingPortal.Session:
+) -> stripe.billing_portal.Session:
     s = get_stripe()
     return s.billing_portal.Session.create(
         customer=f"school_{school_id}",

@@ -4,6 +4,7 @@ Endpoints:
   - GET  /pedagogical/courses/pending
   - PUT  /pedagogical/courses/{id}/review
   - GET  /pedagogical/reports/curriculum-coverage
+  - GET  /pedagogical/curriculum-coverage
   - GET  /pedagogical/reports
   - PUT  /pedagogical/reports/{id}/resolve
   - GET  /pedagogical/escalations
@@ -21,7 +22,8 @@ from app.db import get_db
 from app.deps import require_pedagogical_admin
 from app.models import (
     Course, User, School, AIContentReport, PedagogicalEscalation, ClassRoom,
-    LessonProgress, Enrollment,
+    LessonProgress, Enrollment, Matiere, NiveauEtude, ChapterPathway, Notion,
+    ContenuNotion,
 )
 from app.auth import get_current_user
 from app.services.course_lifecycle import can_transition_status
@@ -148,8 +150,78 @@ def curriculum_coverage(
 
 
 # ---------------------------------------------------------------------------
-# 6. Gestion des signalements de contenu IA
+# 5b. Couverture détaillée du programme (chapitre → notion)
 # ---------------------------------------------------------------------------
+
+def _strip_accents(s: str) -> str:
+    import unicodedata
+    return "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn")
+
+
+@router.get("/curriculum-coverage")
+def curriculum_coverage_detail(
+    niveau_scolaire: Optional[str] = None,
+    matiere: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_pedagogical_admin),
+):
+    """Couverture détaillée du programme officiel : arbre Chapitre → Notion → is_covered."""
+    from sqlalchemy.orm import joinedload
+
+    q = db.query(Matiere).options(
+        joinedload(Matiere.niveau_etude),
+        joinedload(Matiere.chapitres).joinedload(ChapterPathway.notions).joinedload(Notion.contenus),
+    )
+
+    if niveau_scolaire:
+        target = _strip_accents(niveau_scolaire.lower())
+        niveaux = db.query(NiveauEtude).all()
+        matched_ids = [n.id for n in niveaux if target in _strip_accents(n.nom.lower())]
+        if matched_ids:
+            q = q.filter(Matiere.niveau_etude_id.in_(matched_ids))
+
+    if matiere:
+        target = _strip_accents(matiere.lower())
+        matieres = q.all()
+        matieres = [m for m in matieres if target in _strip_accents(m.nom.lower())]
+    else:
+        matieres = q.all()
+
+    results = []
+    for m in matieres:
+        chapitres_out = []
+        for ch in sorted(m.chapitres, key=lambda c: c.ordre):
+            notions_out = []
+            for no in sorted(ch.notions, key=lambda n: n.ordre):
+                published = [c for c in no.contenus if c.statut_pedagogique == "a"]
+                notions_out.append({
+                    "id": no.id,
+                    "nom": no.nom,
+                    "is_covered": len(published) > 0,
+                    "contenus_count": len(no.contenus),
+                    "published_count": len(published),
+                })
+            chapitres_out.append({
+                "id": ch.id,
+                "nom": ch.nom,
+                "ordre": ch.ordre,
+                "notions": notions_out,
+                "total_notions": len(notions_out),
+                "covered_notions": sum(1 for n in notions_out if n["is_covered"]),
+            })
+        total_notions = sum(ch["total_notions"] for ch in chapitres_out)
+        covered = sum(ch["covered_notions"] for ch in chapitres_out)
+        results.append({
+            "niveau": m.niveau_etude.nom,
+            "matiere": m.nom,
+            "matiere_id": m.id,
+            "chapitres": chapitres_out,
+            "total_notions": total_notions,
+            "covered_notions": covered,
+            "coverage_pct": round(covered / total_notions * 100, 1) if total_notions else 0,
+        })
+
+    return {"niveau_scolaire": niveau_scolaire, "matiere": matiere, "matieres": results}
 
 @router.post("/ai/reports")
 def create_ai_report(

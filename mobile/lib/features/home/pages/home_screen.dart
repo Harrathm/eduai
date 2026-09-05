@@ -4,6 +4,8 @@ import '../../assignments/pages/assignments_screen.dart';
 import '../../ai_tutor/pages/ai_tutor_stream_screen.dart';
 import '../../gamification/pages/gamification_screen.dart';
 import '../../pack/pages/mon_pack_screen.dart';
+import '../../wallet/pages/wallet_screen.dart';
+import '../../catalog/pages/catalog_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});

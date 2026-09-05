@@ -4,12 +4,11 @@ import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../../../store/authStore";
 import apiClient from "../../../utils/apiClient";
 import { Button } from "@/components/ui";
+import { CYCLE_NIVEAUX, CYCLE_LABELS } from "../../admin/constants/cycles";
 
-const NIVEAUX = [
-  "1ère année", "2ème année", "3ème année", "4ème année", "5ème année", "6ème année",
-  "7ème année", "8ème année", "9ème année",
-  "1ère année secondaire", "2ème année secondaire", "3ème année secondaire", "4ème année secondaire"
-];
+const NIVEAUX = Object.entries(CYCLE_NIVEAUX).flatMap(([key, items]) =>
+  items.map((n) => ({ cycle: CYCLE_LABELS[key] || key, name: n }))
+);
 
 export default function OnboardingPage() {
   const { t, i18n } = useTranslation();
@@ -34,7 +33,7 @@ export default function OnboardingPage() {
       if (token) {
         await apiClient.put(`/auth/me/language?language=${language}`);
         if (niveau) {
-          await apiClient.put("/users/me", { niveau_scolaire: niveau });
+          await apiClient.put("/api/users/me", { niveau_scolaire: niveau });
         }
         await apiClient.put("/auth/me/onboarding-complete");
         if (user) setUser({ ...user, language, niveau_scolaire: niveau, onboarding_complete: true } as any);
@@ -92,12 +91,12 @@ export default function OnboardingPage() {
             <div className="grid grid-cols-2 gap-2 mb-8 max-h-80 overflow-y-auto">
               {NIVEAUX.map((n) => (
                 <Button
-                  key={n}
-                  variant={niveau === n ? "primary" : "ghost"}
+                  key={n.name}
+                  variant={niveau === n.name ? "primary" : "ghost"}
                   size="md"
-                  onClick={() => setNiveau(n)}
+                  onClick={() => setNiveau(n.name)}
                 >
-                  {n}
+                  {n.name}
                 </Button>
               ))}
             </div>

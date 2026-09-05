@@ -18,6 +18,7 @@ export interface Abonnement {
   status: string;
   tier: string;
   price_paid: number;
+  matieres_config?: { matieres?: number[] } | null;
 }
 
 export interface PackDefinition {
@@ -45,8 +46,13 @@ export const abonnementApi = {
 
   listPacks: () => api.get<PackDefinition[]>("/api/abonnements/packs"),
 
-  purchasePack: (packId: number, options?: { matieres?: number[] }) =>
-    api.post<any>(`/api/abonnements/packs/${packId}/purchase`, { matieres: options?.matieres }),
+  // Écart#1 FIX — un parent doit fournir eleve_id (bénéficiaire enfant),
+  // sinon le backend répond 400 (routers/abonnements.py:200-205).
+  purchasePack: (packId: number, options?: { matieres?: number[]; eleveId?: number }) =>
+    api.post<any>(`/api/abonnements/packs/${packId}/purchase`, {
+      matieres: options?.matieres,
+      ...(options?.eleveId != null ? { eleve_id: options.eleveId } : {}),
+    }),
 
   listMyAbonnements: () => api.get<Abonnement[]>("/api/abonnements/mes-abonnements"),
 

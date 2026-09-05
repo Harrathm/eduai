@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.models import (
     BadgeDefinition, StudentBadge, StudentStreak, StudentRanking,
     User, HistoriqueScoreEleve, ProfilAssimilationEleve, ChapterPathway, Matiere,
+    StatutValidationProfil,
 )
 from app.services.student_tier import get_student_tier
 

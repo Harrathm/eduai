@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from app.auth import get_current_user
 from app.db import get_db
 from sqlalchemy import text, func
-from app.deps import require_admin, get_user_role, require_active_subscription
+from app.deps import require_admin, require_course_writer, get_user_role, require_active_subscription
 from app.services.course_lifecycle import can_transition_status
 from app.audit import log_admin_action
 
@@ -265,11 +265,15 @@ def _serialize_course(db: Session, course: Course, include_chapters: bool = Fals
     return data
 
 
-def _can_access_course(admin: User, course: Course) -> bool:
-    role = get_user_role(admin)
+def _can_access_course(user: User, course: Course) -> bool:
+    role = get_user_role(user)
     if role == "super_admin":
         return True
-    return course.school_id == admin.school_id
+    if role == "pedagogical_admin":
+        return True
+    if role == "teacher":
+        return course.author_id == user.id
+    return course.school_id == user.school_id
 
 
 # ---- Routes ----
@@ -308,7 +312,7 @@ def list_courses(
 
 
 @router.get("/{course_id}")
-def get_course(course_id: int, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+def get_course(course_id: int, db: Session = Depends(get_db), admin: User = Depends(require_course_writer)):
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -358,7 +362,7 @@ def create_course(data: CourseCreate, db: Session = Depends(get_db), admin: User
 
 
 @router.patch("/{course_id}")
-def update_course(course_id: int, data: CourseUpdate, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+def update_course(course_id: int, data: CourseUpdate, db: Session = Depends(get_db), admin: User = Depends(require_course_writer)):
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -403,13 +407,20 @@ def publish_course(
     price_tokens: int = Query(0, ge=0),
     price_dt: float = Query(0.0, ge=0),
     db: Session = Depends(get_db),
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_course_writer),
 ):
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
     if not _can_access_course(admin, course):
         raise HTTPException(status_code=403, detail="Access denied")
+
+    allowed_statuses = ("approved_local", "approved_for_b2b")
+    if getattr(course, "pedagogical_status", None) not in allowed_statuses:
+        raise HTTPException(
+            status_code=403,
+            detail="Le cours doit être validé par la modération avant d'être publié.",
+        )
 
     errors = _validate_publish(course, db)
     if errors:
@@ -428,7 +439,7 @@ def publish_course(
 
 
 @router.post("/{course_id}/submit-for-review")
-def submit_for_review(course_id: int, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+def submit_for_review(course_id: int, db: Session = Depends(get_db), admin: User = Depends(require_course_writer)):
     """Soumet un cours pour review pédagogique (draft → pending_review)."""
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
@@ -447,7 +458,7 @@ def submit_for_review(course_id: int, db: Session = Depends(get_db), admin: User
 
 
 @router.post("/{course_id}/unpublish")
-def unpublish_course(course_id: int, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+def unpublish_course(course_id: int, db: Session = Depends(get_db), admin: User = Depends(require_course_writer)):
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -558,7 +569,7 @@ def reorder_chapters(
     course_id: int,
     body: dict,
     db: Session = Depends(get_db),
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_course_writer),
 ):
     order = body.get("order", [])
     course = db.query(Course).filter(Course.id == course_id).first()
@@ -578,7 +589,7 @@ def reorder_chapters(
 
 
 @router.get("/{course_id}/preview")
-def preview_course(course_id: int, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+def preview_course(course_id: int, db: Session = Depends(get_db), admin: User = Depends(require_course_writer)):
     """Admin preview of any course (draft/published) with full chapter/lesson tree."""
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
@@ -694,7 +705,7 @@ def course_analytics(course_id: int, db: Session = Depends(get_db), admin: User 
 # ---- Chapter Management (nested under course) ----
 
 @router.get("/{course_id}/chapters")
-def list_chapters(course_id: int, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+def list_chapters(course_id: int, db: Session = Depends(get_db), admin: User = Depends(require_course_writer)):
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -706,7 +717,7 @@ def list_chapters(course_id: int, db: Session = Depends(get_db), admin: User = D
 
 
 @router.post("/{course_id}/chapters")
-def create_chapter(course_id: int, data: ChapterCreate, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+def create_chapter(course_id: int, data: ChapterCreate, db: Session = Depends(get_db), admin: User = Depends(require_course_writer)):
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -731,7 +742,7 @@ def create_chapter(course_id: int, data: ChapterCreate, db: Session = Depends(ge
 
 
 @router.get("/{course_id}/chapters/{chapter_id}")
-def get_chapter(course_id: int, chapter_id: int, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+def get_chapter(course_id: int, chapter_id: int, db: Session = Depends(get_db), admin: User = Depends(require_course_writer)):
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -745,7 +756,7 @@ def get_chapter(course_id: int, chapter_id: int, db: Session = Depends(get_db), 
 
 
 @router.patch("/{course_id}/chapters/{chapter_id}")
-def update_chapter(course_id: int, chapter_id: int, data: ChapterUpdate, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+def update_chapter(course_id: int, chapter_id: int, data: ChapterUpdate, db: Session = Depends(get_db), admin: User = Depends(require_course_writer)):
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -767,7 +778,7 @@ def update_chapter(course_id: int, chapter_id: int, data: ChapterUpdate, db: Ses
 
 
 @router.delete("/{course_id}/chapters/{chapter_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_chapter(course_id: int, chapter_id: int, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+def delete_chapter(course_id: int, chapter_id: int, db: Session = Depends(get_db), admin: User = Depends(require_course_writer)):
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")

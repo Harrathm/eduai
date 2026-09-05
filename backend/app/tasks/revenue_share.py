@@ -66,10 +66,11 @@ def calculate_monthly_teacher_revenue(
     logger.info("Revenue Share: %d partner(s) trouvé(s): %s", len(partners), partner_ids)
 
     # 2. IDs des élèves ayant un abonnement actif ou en grace pendant le mois cible
+    #    Tier insensible à la casse (packs stockés lowercase : basique/silver/golden)
     premium_student_ids = set(
         row[0] for row in db.query(Abonnement.user_id).join(PackDefinition).filter(
             Abonnement.statut.in_(["actif", "grace"]),
-            PackDefinition.tier.in_(["Basic", "Silver", "Golden"]),
+            func.lower(PackDefinition.tier).in_(["basic", "basique", "silver", "golden"]),
             Abonnement.debut < month_end,
             or_(
                 Abonnement.fin >= target_month,

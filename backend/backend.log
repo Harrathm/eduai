@@ -1,0 +1,38 @@
+CORS: Development - 8 origins: ['http://127.0.0.1:5173', 'http://127.0.0.1:3000', 'http://127.0.0.1:5174', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:3000', 'http://127.0.0.1:5175', 'http://localhost:5173']
+INFO:     127.0.0.1:63389 - "GET /api/admin/dashboard HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63393 - "OPTIONS /api/admin/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50565 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50565 - "OPTIONS /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50565 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50565 - "OPTIONS /api/admin/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57948 - "OPTIONS /api/admin/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50565 - "GET /api/admin/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57948 - "GET /api/admin/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63548 - "OPTIONS /api/admin/wallets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49848 - "OPTIONS /api/admin/stats/global HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54422 - "OPTIONS /api/admin/wallets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54503 - "OPTIONS /api/admin/stats/global HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54422 - "GET /api/admin/wallets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54422 - "GET /api/admin/stats/global HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60659 - "GET /api/admin/wallets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50991 - "GET /api/admin/stats/global HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50991 - "OPTIONS /api/admin/users?_t=1777657781547 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60659 - "OPTIONS /api/admin/users?_t=1777657781548 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60659 - "GET /api/admin/users?_t=1777657781548 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50991 - "GET /api/admin/users?_t=1777657781547 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55467 - "OPTIONS /api/admin/courses HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55915 - "OPTIONS /api/admin/courses HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55467 - "GET /api/admin/courses HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:55915 - "GET /api/admin/courses HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:51395 - "GET /api/admin/courses HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:61087 - "OPTIONS /api/admin/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61087 - "OPTIONS /api/admin/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61087 - "OPTIONS /api/admin/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61087 - "OPTIONS /api/admin/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61087 - "GET /api/admin/messages HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:57464 - "GET /api/admin/messages HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:50887 - "GET /api/admin/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56856 - "GET /api/admin/messages HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:62106 - "GET /api/admin/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49893 - "OPTIONS /api/admin/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49893 - "POST /api/admin/messages HTTP/1.1" 500 Internal Server Error

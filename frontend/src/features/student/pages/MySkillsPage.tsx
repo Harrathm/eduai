@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { BookOpen, Zap, ExternalLink } from "lucide-react";
-import { catalogApi } from "../../../api";
+import { enrollmentApi } from "../../../api";
 import { PageWrapper } from "../../../components/ui";
 
 interface EnrolledFormation {
@@ -24,8 +24,8 @@ export default function MySkillsPage() {
   const fetchEnrolled = async () => {
     setLoading(true);
     try {
-      const data = await catalogApi.myCourses();
-      const list = Array.isArray(data) ? data : (data as any).items || [];
+      const data = await enrollmentApi.myCourses();
+      const list = Array.isArray(data) ? data : (data.items || []);
       const softSkills = list.filter(
         (c: any) => c.category === "soft_skills" || c.category?.startsWith("soft_")
       );

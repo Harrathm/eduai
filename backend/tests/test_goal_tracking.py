@@ -22,6 +22,7 @@ from app.main import app
 from app.models import (
     User, School, LearningGoal, ClassroomEnrollment, ClassRoom,
     StudyPack, PackPurchase, PackPurchaseStatus, PurchaserType,
+    PackDefinition, Abonnement,
     GoalHorizon, GoalStatus, GoalMetricType, GoalSource,
 )
 from app.core.security import get_password_hash
@@ -60,24 +61,27 @@ def test_db(_base_session):
     db.add_all([admin, student_exc, student_dec])
     db.commit()
 
-    pack = StudyPack(
-        name="Excellence 2eme",
+    # Correction E1 : le palier "excellence" provient désormais d'un Abonnement
+    # actif sur un pack payant (source de vérité unique) — plus de PackPurchase.
+    pack = PackDefinition(
+        nom="Basique 2eme",
+        tier="Basique",
         niveau_scolaire="2eme_secondaire",
-        price=100,
-        status="published", owner_type="school", school_id=school.id,
+        prix_tnd=100,
+        est_actif=True,
     )
     db.add(pack)
     db.commit()
 
-    purchase = PackPurchase(
-        pack_id=pack.id, student_id=student_exc.id,
-        purchaser_type="student",
-        status=PackPurchaseStatus.ACTIVE.value,
-        valid_from=datetime.now(timezone.utc),
-        valid_until=datetime.now(timezone.utc) + timedelta(days=365),
-        amount_paid=100.0,
+    now = datetime.now(timezone.utc)
+    abo = Abonnement(
+        user_id=student_exc.id,
+        pack_id=pack.id,
+        statut="actif",
+        debut=now - timedelta(days=10),
+        fin=now + timedelta(days=365),
     )
-    db.add(purchase)
+    db.add(abo)
     db.commit()
 
     yield db, school, admin, student_exc, student_dec

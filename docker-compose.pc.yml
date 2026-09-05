@@ -1,0 +1,43 @@
+# Déploiement local PC — backend + frontend en Docker,
+# se branchant sur le PostgreSQL HÔTE existant (port 5432, DB "eduai").
+# Ne crée PAS de conteneur postgres (évite le conflit de port 5432)
+# et conserve les données existantes de la base `eduai`.
+#
+# Lancement :  docker compose -f docker-compose.pc.yml up -d --build
+# Exposition : ngrok  http  80        (tunnel unique, nginx proxy /api -> backend)
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: eduai-backend-pc
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      # `host.docker.internal` = machine hôte (Docker Desktop Windows)
+      - DATABASE_URL=postgresql+pg8000://postgres:gill4264@host.docker.internal:5432/eduai
+      - ENVIRONMENT=development
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+    extra_hosts:
+      # Assure la résolution de host.docker.internal sur toutes les plateformes
+      - "host.docker.internal:host-gateway"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: eduai-frontend-pc
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend

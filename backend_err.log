@@ -1,0 +1,32 @@
+INFO:     Started server process [6888]
+INFO:     Waiting for application startup.
+2026-05-02 06:43:45,033 - app.main - INFO - Starting EDUAI Learning Backend...
+2026-05-02 06:43:45,692 - app.main - INFO - Database tables created
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2026-05-02 12:37:21,212 - app.main - INFO - Request 2b05b62b-5443-4451-9e5e-7599317d4f7e: GET /api/admin/courses/20
+2026-05-02 12:37:21,377 - app.main - INFO - Response 2b05b62b-5443-4451-9e5e-7599317d4f7e: 401
+2026-05-02 12:37:32,357 - app.main - INFO - Request 59aefb5f-b096-4a4b-ad72-007a3d9ebb77: GET /api/admin/courses/20
+2026-05-02 12:37:32,392 - app.main - INFO - Response 59aefb5f-b096-4a4b-ad72-007a3d9ebb77: 401
+2026-05-02 12:37:42,403 - app.main - INFO - Request e650fd39-73dd-4b41-8aab-e07240fd3f3f: POST /api/auth/login
+2026-05-02 12:37:42,410 - app.main - INFO - Response e650fd39-73dd-4b41-8aab-e07240fd3f3f: 404
+2026-05-02 12:38:36,520 - app.main - INFO - Request c1e64742-1094-45c3-bf1b-3a91196bed84: POST /auth/login
+2026-05-02 12:38:36,529 - app.auth - WARNING - LOGIN ATTEMPT: email=admin@eduai.tn
+2026-05-02 12:38:36,867 - app.auth - WARNING - USER FOUND: None
+2026-05-02 12:38:36,873 - app.main - INFO - Response c1e64742-1094-45c3-bf1b-3a91196bed84: 401
+2026-05-02 12:39:43,979 - app.main - INFO - Request 167f09f4-8157-4fee-98da-93f024e740ca: POST /auth/login
+2026-05-02 12:39:43,982 - app.auth - WARNING - LOGIN ATTEMPT: email=admin@eduai.tn
+2026-05-02 12:39:43,986 - app.auth - WARNING - USER FOUND: None
+2026-05-02 12:39:43,988 - app.main - INFO - Response 167f09f4-8157-4fee-98da-93f024e740ca: 401
+2026-05-02 12:40:37,386 - app.main - INFO - Request 09e06062-ea27-471b-8364-a9cd7b9e5e85: POST /auth/login
+2026-05-02 12:40:37,392 - app.auth - WARNING - LOGIN ATTEMPT: email=admin@eduai.platform
+2026-05-02 12:40:37,488 - app.auth - WARNING - USER FOUND: <app.models.User object at 0x000001A18B3CF380>
+2026-05-02 12:40:37,952 - app.main - INFO - Response 09e06062-ea27-471b-8364-a9cd7b9e5e85: 200
+2026-05-02 12:40:57,610 - app.main - INFO - Request 6c1e8c8c-8039-4cf6-9809-3ff1e66b9cde: GET /api/admin/courses
+2026-05-02 12:40:57,705 - app.main - INFO - Response 6c1e8c8c-8039-4cf6-9809-3ff1e66b9cde: 200
+2026-05-02 12:41:10,205 - app.main - INFO - Request deb8e378-1923-4cf5-806b-b72078549417: GET /api/admin/courses/20
+2026-05-02 12:41:10,246 - app.main - INFO - Response deb8e378-1923-4cf5-806b-b72078549417: 404
+2026-05-02 12:41:33,030 - app.main - INFO - Request dde2d912-8227-4798-9d04-f020a4599c15: GET /api/admin/courses/1
+2026-05-02 12:41:33,042 - app.main - INFO - Response dde2d912-8227-4798-9d04-f020a4599c15: 404
+2026-05-02 12:42:06,999 - app.main - INFO - Request 53a0c7b2-372c-43e9-8d43-3f5f56af6a5c: GET /api/admin/courses/1
+2026-05-02 12:42:07,015 - app.main - INFO - Response 53a0c7b2-372c-43e9-8d43-3f5f56af6a5c: 404

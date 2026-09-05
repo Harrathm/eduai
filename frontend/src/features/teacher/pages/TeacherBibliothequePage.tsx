@@ -39,7 +39,7 @@ export default function TeacherBibliothequePage() {
     if (!query.trim()) return;
     setLoading(true);
     try {
-      const { items } = await searchElements(query);
+      const { items } = await searchElements({ q: query.trim() });
       setResults(items);
     } catch (e: any) {
       showToast(e.message, "error");

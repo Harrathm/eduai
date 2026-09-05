@@ -1,5 +1,8 @@
 """Courses API endpoints"""
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Query
+
+logger = logging.getLogger(__name__)
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional
@@ -11,6 +14,7 @@ from app.auth import get_current_user
 from app.deps import set_tenant_context, check_school_access, require_teacher_or_admin, get_user_role
 from app.models import User, Course, Module, Lesson, CourseEnrollment
 from app.models import UserRole, CourseStatus, Transaction, TransactionType, Currency
+from app.services.course_access import has_course_access
 
 VALID_CATEGORY_CIBLE = {"Scolaire", "Soft_Skill", "Teacher_Training"}
 
@@ -140,7 +144,7 @@ def get_course(
     db: Session = Depends(get_db),
     current_user: User = Depends(set_tenant_context),
 ):
-    """Get course by ID"""
+    """Get course by ID — checks pack access for students."""
     course = db.query(Course).filter(
         Course.id == course_id,
         Course.school_id == current_user.school_id
@@ -148,6 +152,17 @@ def get_course(
     
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
+
+    role = get_user_role(current_user)
+    # Students must have pack-based access
+    if role in ("STUDENT", "USER"):
+        if not has_course_access(current_user, course, db):
+            tag = getattr(course, "tag_pack_requis", "Basic") or "Basic"
+            raise HTTPException(
+                status_code=402,
+                detail=f"Accès requis : ce cours nécessite un abonnement {tag}. "
+                       f"Veuillez souscrire à un pack pour y accéder.",
+            )
     
     return course
 
@@ -173,6 +188,15 @@ def create_course(
     return course
 
 
+def _can_write_course(user: User, course: Course) -> bool:
+    role = get_user_role(user)
+    if role in ("super_admin", "pedagogical_admin"):
+        return True
+    if role == "teacher":
+        return course.author_id == user.id
+    return course.school_id == user.school_id
+
+
 @router.put("/{course_id}", response_model=CourseRead)
 def update_course(
     course_id: int,
@@ -185,10 +209,13 @@ def update_course(
         Course.id == course_id,
         Course.school_id == current_user.school_id,
     ).first()
-    
+
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
-    
+
+    if not _can_write_course(current_user, course):
+        raise HTTPException(status_code=403, detail="Seul l'auteur du cours ou un administrateur peut le modifier")
+
     check_school_access(current_user, course.school_id)
 
     _validate_course_abac_fields(current_user, course_update, is_update=True)
@@ -298,10 +325,13 @@ def create_module(
         Course.id == course_id,
         Course.school_id == current_user.school_id,
     ).first()
-    
+
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
-    
+
+    if not _can_write_course(current_user, course):
+        raise HTTPException(status_code=403, detail="Seul l'auteur du cours ou un administrateur peut le modifier")
+
     module = Module(
         **module_in.model_dump(),
         course_id=course_id,
@@ -332,10 +362,13 @@ def create_lesson(
         Course.id == module.course_id,
         Course.school_id == current_user.school_id,
     ).first()
-    
+
     if not course:
-        raise HTTPException(status_code=403, detail="Not authorized")
-    
+        raise HTTPException(status_code=404, detail="Module not found in your school")
+
+    if not _can_write_course(current_user, course):
+        raise HTTPException(status_code=403, detail="Seul l'auteur du cours ou un administrateur peut le modifier")
+
     lesson = Lesson(
         **lesson_in.model_dump(),
         module_id=module_id,
@@ -677,6 +710,7 @@ def publish_version(
 ):
     """
     Publie une version de cours.
+    - Exige une validation pédagogique préalable (approved_local / approved_for_b2b).
     - Désactive toutes les autres versions du même cours source
     - Active la version publiée (is_active_version=True)
     - Met à jour le statut et la date de publication
@@ -688,6 +722,16 @@ def publish_version(
 
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
+
+    allowed_statuses = ("approved_local", "approved_for_b2b")
+    if getattr(course, "pedagogical_status", None) not in allowed_statuses:
+        raise HTTPException(
+            status_code=403,
+            detail="Le cours doit être validé par la modération avant d'être publié.",
+        )
+
+    if not _can_write_course(current_user, course):
+        raise HTTPException(status_code=403, detail="Seul l'auteur du cours ou un administrateur peut publier ses versions")
 
     check_school_access(current_user, course.school_id)
 
@@ -713,10 +757,7 @@ def publish_version(
     course.is_active_version = True
     course.status = "published"
     course.is_published = True
-    course.pedagogical_status = "approved_local"
     course.published_at = datetime.now(timezone.utc)
-    course.validated_by = current_user.id
-    course.validated_at = datetime.now(timezone.utc)
 
     db.commit()
 
@@ -747,6 +788,9 @@ def rollback_to_version(
 
     if not current_course:
         raise HTTPException(status_code=404, detail="Current version not found")
+
+    if not _can_write_course(current_user, current_course):
+        raise HTTPException(status_code=403, detail="Seul l'auteur du cours ou un administrateur peut effectuer un rollback")
 
     check_school_access(current_user, current_course.school_id)
 

@@ -2,17 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuthStore } from "../../../store/authStore";
 import { Button } from "../../../components/ui";
-
-const NIVEAUX = [
-  { group: "Primaire", items: ["1ère année","2ème année","3ème année","4ème année","5ème année","6ème année"] },
-  { group: "Préparatoire", items: ["7ème de base","8ème de base","9ème de base"] },
-  { group: "Secondaire", items: [
-    "1ère année secondaire",
-    "2ème année sciences","2ème année lettres","2ème année technologie de l'informatique","2ème année économie et services",
-    "3ème année lettres","3ème année mathématiques","3ème année sciences expérimentales","3ème année économie et gestion","3ème année sciences de l'informatique","3ème année sciences techniques",
-    "4ème année lettres","4ème année mathématiques","4ème année sciences expérimentales","4ème année économie et gestion","4ème année sciences de l'informatique","4ème année sciences techniques",
-  ] },
-];
+import { ALL_NIVEAUX } from "../../admin/constants/cycles";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
@@ -20,10 +10,13 @@ export default function RegisterPage() {
   const [fullName, setFullName] = useState("");
   const [schoolName, setSchoolName] = useState("");
   const [niveauScolaire, setNiveauScolaire] = useState("");
-  const [role, setRole] = useState<"student" | "teacher">("student");
+  const [role, setRole] = useState<"student" | "teacher" | "parent">("student");
   const [trialMode, setTrialMode] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const { register, registerTrialTeacher, registerTeacher, isLoading, error } = useAuthStore();
+  // FIX #6 — interstitiel de vérification email (token renvoyé par /auth/register)
+  const [verifyToken, setVerifyToken] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState(false);
+  const { register, registerTrialTeacher, registerTeacher, verifyEmail, isLoading, error } = useAuthStore();
   const navigate = useNavigate();
   const [stats, setStats] = useState<{ teachers: number; courses: number }>({ teachers: 0, courses: 0 });
 
@@ -87,6 +80,15 @@ export default function RegisterPage() {
     setSchoolNotFound(false);
   };
 
+  const navigateAfterRegister = () => {
+    const userStr = localStorage.getItem("user");
+    const user = userStr ? JSON.parse(userStr) : null;
+    const r = user?.role?.toUpperCase();
+    if (r === "SUPER_ADMIN") navigate("/dashboard/admin");
+    else if (r === "ADMIN_SCHOOL") navigate("/dashboard/school");
+    else navigate("/dashboard");
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -108,22 +110,69 @@ export default function RegisterPage() {
       return;
     }
 
-    if (role === "student" && !schoolName.trim()) {
+    if ((role === "student" || role === "parent") && !schoolName.trim()) {
       setSchoolNotFound(true);
       return;
     }
     setSchoolNotFound(false);
 
-    const success = await register(email, password, fullName, schoolName, role === "student" ? niveauScolaire : undefined);
+    const success = await register(
+      email, password, fullName, schoolName,
+      role === "student" ? niveauScolaire : undefined,
+      role,
+    );
     if (success) {
-      const userStr = localStorage.getItem("user");
-      const user = userStr ? JSON.parse(userStr) : null;
-      const r = user?.role?.toUpperCase();
-      if (r === "SUPER_ADMIN") navigate("/dashboard/admin");
-      else if (r === "ADMIN_SCHOOL") navigate("/dashboard/school");
-      else navigate("/dashboard");
+      // FIX #6 : si l'API a renvoyé un token de vérification, on propose la
+      // vérification immédiate (mode démo — en production il serait envoyé par
+      // email). Le compte reste utilisable sans vérifier.
+      const { verificationToken } = useAuthStore.getState();
+      if (verificationToken) {
+        setVerifyToken(verificationToken);
+        return;
+      }
+      navigateAfterRegister();
     }
   };
+
+  const handleVerifyNow = async () => {
+    setVerifying(true);
+    await verifyEmail(verifyToken || undefined);
+    setVerifying(false);
+    navigateAfterRegister();
+  };
+
+  if (verifyToken) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-cream">
+        <div className="bg-white rounded-3xl p-10 shadow-sm border border-black/5 max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-[300] text-navy mb-2">Compte créé</h2>
+          <p className="text-gray text-sm mb-6">
+            Un email de vérification a été envoyé à <strong>{email}</strong>.
+            Votre compte est déjà actif — la vérification est optionnelle.
+          </p>
+          <div className="bg-cream-m rounded-xl p-4 mb-6 text-start">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-gray mb-1">
+              Token de vérification (mode démo)
+            </p>
+            <code className="text-xs break-all text-navy">{verifyToken}</code>
+          </div>
+          <div className="flex gap-3 justify-center">
+            <Button type="button" variant="ghost" onClick={navigateAfterRegister} className="px-6 py-3 rounded-xl text-sm font-semibold">
+              Continuer sans vérifier
+            </Button>
+            <Button type="button" variant="primary" loading={verifying} onClick={handleVerifyNow} className="px-6 py-3 rounded-xl font-semibold">
+              Vérifier maintenant
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (submitted) {
     return (
@@ -213,7 +262,7 @@ export default function RegisterPage() {
               </div>
             )}
 
-            {/* Role selector */}
+            {/* Role selector — M1 FIX: Parent ajouté à l'inscription publique */}
             <div className="flex gap-2 mb-6 p-1 bg-cream-m rounded-xl">
               <Button
                 type="button"
@@ -238,6 +287,18 @@ export default function RegisterPage() {
                 }`}
               >
                 Enseignant
+              </Button>
+              <Button
+                type="button"
+                onClick={() => { setRole("parent"); setTrialMode(false); }}
+                variant="ghost"
+                className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                  role === "parent"
+                    ? "bg-white text-navy shadow-sm"
+                    : "text-gray hover:text-navy"
+                }`}
+              >
+                Parent
               </Button>
             </div>
 
@@ -285,7 +346,7 @@ export default function RegisterPage() {
                 />
               </div>
 
-              {role === "student" && (
+              {(role === "student" || role === "parent") && (
                 <div>
                   <label className="block text-xs font-semibold text-gray tracking-wide uppercase mb-2">
                     Nom de l'école
@@ -295,11 +356,15 @@ export default function RegisterPage() {
                     value={schoolName}
                     onChange={(e) => setSchoolName(e.target.value)}
                     className="w-full px-5 py-3 bg-cream-m rounded-xl border border-black/5 focus:border-orange focus:outline-none transition-colors"
-                    placeholder="Nom de votre école (existent ou non)"
+                    placeholder={role === "parent" ? "École de votre enfant" : "Nom de votre école (existante ou non)"}
                     required
                     autoComplete="off"
                   />
-                  <p className="text-xs text-gray mt-1">Si votre école n'est pas dans le système, elle sera créée automatiquement</p>
+                  <p className="text-xs text-gray mt-1">
+                    {role === "parent"
+                      ? "Doit être l'école où est scolarisé votre enfant (obligatoire pour pouvoir le rattacher)"
+                      : "Si votre école n'est pas dans le système, elle sera créée automatiquement"}
+                  </p>
                 </div>
               )}
 
@@ -315,7 +380,7 @@ export default function RegisterPage() {
                     required
                   >
                     <option value="">Sélectionnez votre niveau</option>
-                    {NIVEAUX.map((g) => (
+                    {ALL_NIVEAUX.map((g) => (
                       <optgroup key={g.group} label={g.group}>
                         {g.items.map((n) => (
                           <option key={n} value={n}>{n}</option>

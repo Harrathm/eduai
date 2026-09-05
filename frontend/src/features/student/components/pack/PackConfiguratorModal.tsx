@@ -1,8 +1,9 @@
 import { Fragment, useState, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal, Button, Spinner } from "../../../../components/ui";
-import { CheckCircle, ArrowLeft, Loader2 } from "lucide-react";
+import { CheckCircle, ArrowLeft, Loader2, User } from "lucide-react";
 import { api } from "../../../../utils/apiClient";
+import { useAuthStore } from "../../../../store/authStore";
 
 interface Pack {
   id: number;
@@ -17,11 +18,18 @@ interface MatiereOption {
   nom: string;
 }
 
+interface EnfantOption {
+  eleve_id: number;
+  full_name: string;
+}
+
 interface PackConfiguratorModalProps {
   isOpen: boolean;
   onClose: () => void;
   pack: Pack;
   userNiveau: string | null;
+  /** Écart#1 FIX — enfant bénéficiaire imposé par la page parente (optionnel). */
+  eleveId?: number | null;
 }
 
 const TIER_LABELS: Record<string, string> = { basique: "Basique", silver: "Silver", golden: "Golden" };
@@ -31,11 +39,16 @@ const TIER_DESC: Record<string, string> = {
   golden: "Acces illimite a toutes les matieres + Soft Skills",
 };
 
-export function PackConfiguratorModal({ isOpen, onClose, pack, userNiveau }: PackConfiguratorModalProps) {
+export function PackConfiguratorModal({ isOpen, onClose, pack, userNiveau, eleveId = null }: PackConfiguratorModalProps) {
   const { t } = useTranslation();
+  const { user } = useAuthStore();
+  const isParent = user?.role === "parent";
+  const needsChildPicker = isParent && eleveId == null;
   const [step, setStep] = useState<"matieres" | "confirm" | "success">("matieres");
   const [langues, setLangues] = useState<MatiereOption[]>([]);
   const [specialites, setSpecialites] = useState<MatiereOption[]>([]);
+  const [enfants, setEnfants] = useState<EnfantOption[]>([]);
+  const [selEleve, setSelEleve] = useState<number>(eleveId ?? 0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,6 +78,11 @@ export function PackConfiguratorModal({ isOpen, onClose, pack, userNiveau }: Pac
   useEffect(() => {
     if (!isOpen) return;
     resetState();
+    if (needsChildPicker) {
+      api.get<{ enfants: EnfantOption[] }>("/api/parents/me/enfants")
+        .then((d) => setEnfants(d.enfants || []))
+        .catch(() => setEnfants([]));
+    }
     if (isGolden) {
       setStep("confirm");
       return;
@@ -93,6 +111,8 @@ export function PackConfiguratorModal({ isOpen, onClose, pack, userNiveau }: Pac
   };
 
   const allSelected = (): boolean => {
+    // Écart#1 FIX — le parent doit choisir l'enfant bénéficiaire
+    if (isParent && !selEleve) return false;
     if (isGolden) return true;
     if (!selLangue1 || !selSpec1) return false;
     if (maxLangues >= 2 && !selLangue2) return false;
@@ -106,7 +126,11 @@ export function PackConfiguratorModal({ isOpen, onClose, pack, userNiveau }: Pac
     setError(null);
     try {
       const matieres = isGolden ? undefined : getSelectedIds();
-      await api.post(`/api/abonnements/packs/${pack.id}/purchase`, { matieres });
+      // Écart#1 FIX — eleve_id inclus dans le payload quand l'acheteur est un parent
+      await api.post(`/api/abonnements/packs/${pack.id}/purchase`, {
+        matieres,
+        ...(isParent && selEleve ? { eleve_id: selEleve } : {}),
+      });
       setStep("success");
     } catch (err: any) {
       setError(err.message || t("packConfig.purchaseError"));
@@ -159,6 +183,29 @@ export function PackConfiguratorModal({ isOpen, onClose, pack, userNiveau }: Pac
                 </Fragment>
               );
             })}
+          </div>
+        )}
+
+        {/* Écart#1 FIX — sélecteur d'enfant bénéficiaire pour les parents */}
+        {isParent && !eleveId && (
+          <div className="bg-orange/5 border border-orange/20 rounded-2xl p-4">
+            <label className="flex items-center gap-2 text-sm font-semibold text-navy mb-2">
+              <User className="w-4 h-4 text-orange" /> Enfant bénéficiaire
+            </label>
+            {enfants.length === 0 ? (
+              <p className="text-xs text-gray-500">Aucun enfant rattaché à votre compte. Liez d'abord un enfant depuis votre espace parent.</p>
+            ) : (
+              <select
+                value={selEleve}
+                onChange={(e) => setSelEleve(Number(e.target.value))}
+                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm text-navy bg-white focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy transition-colors"
+              >
+                <option value={0}>-- Choisir l'enfant --</option>
+                {enfants.map((e) => (
+                  <option key={e.eleve_id} value={e.eleve_id}>{e.full_name}</option>
+                ))}
+              </select>
+            )}
           </div>
         )}
 

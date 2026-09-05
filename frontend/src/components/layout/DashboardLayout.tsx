@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../../store/authStore";
 import WalletWidget from "../WalletWidget";
 import LanguageSelector from "../LanguageSelector";
+import UpsellModal, { setUpsellHandler } from "../UpsellModal";
 
 const getAdminNav = (t: (key: string) => string): NavItem[] => [
   { to: "/dashboard/admin", label: t("admin.sidebar.dashboard"), icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3a1 1 0 001-1V10", end: true },
@@ -13,7 +14,9 @@ const getAdminNav = (t: (key: string) => string): NavItem[] => [
   { to: "/dashboard/admin/teacher-catalog", label: t("admin.sidebar.teacherCatalog"), icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" },
   { to: "/dashboard/admin/courses", label: t("admin.sidebar.courses"), icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253M13 18.747l2-2m0 0c1.666-1.669 3.716-1.668 5.396 0l2.214 2.214c1.665 1.668 1.665 4.22 0 5.876l-2.214 2.214c-.56.56-1.292.84-2.088.84H9.708c-.796 0-1.528-.28-2.088-.84l-2.214-2.214c-1.666-1.656-1.666-4.208 0-5.876l2.214-2.214z" },
   { to: "/dashboard/admin/review-pedago", label: t("admin.sidebar.reviewPedago"), icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" },
+  { to: "/dashboard/admin/library-review", label: t("admin.sidebar.libraryReview"), icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253M13 18.747l2-2m0 0c1.666-1.669 3.716-1.668 5.396 0l2.214 2.214c1.665 1.668 1.665 4.22 0 5.876l-2.214 2.214c-.56.56-1.292.84-2.088.84H9.708c-.796 0-1.528-.28-2.088-.84l-2.214-2.214c-1.666-1.656-1.666-4.208 0-5.876l2.214-2.214z" },
   { to: "/dashboard/admin/arborescence", label: t("admin.sidebar.arborescence"), icon: "M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" },
+  { to: "/dashboard/admin/curriculum-coverage", label: t("admin.sidebar.curriculumCoverage"), icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4", roles: ["SUPER_ADMIN", "PEDAGOGICAL_ADMIN"] },
   { to: "/dashboard/admin/publication-status", label: t("admin.sidebar.publicationStatus"), icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" },
   { to: "/dashboard/admin/finance", label: t("admin.sidebar.finance"), icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" },
   { to: "/dashboard/admin/analytics", label: t("admin.sidebar.analytics"), icon: "M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" },
@@ -34,6 +37,8 @@ const getTeacherNav = (t: (key: string) => string): NavItem[] => [
   { to: "/dashboard", label: t("teacher.sidebar.dashboard"), icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3a1 1 0 001-1V10", end: true },
   { to: "/dashboard/teacher/learning", label: t("teacher.sidebar.myCourses"), icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253M13 18.747l2-2m0 0c1.666-1.669 3.716-1.668 5.396 0l2.214 2.214c1.665 1.668 1.665 4.22 0 5.876l-2.214 2.214c-.56.56-1.292.84-2.088.84H9.708c-.796 0-1.528-.28-2.088-.84l-2.214-2.214c-1.666-1.656-1.666-4.208 0-5.876l2.214-2.214z" },
   { to: "/dashboard/teacher/classroom", label: t("teacher.sidebar.myClasses"), icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" },
+  { to: "/dashboard/teacher/suivi-pedagogique", label: t("teacher.sidebar.suiviPedagogique"), icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" },
+  { to: "/dashboard/teacher/live-sessions", label: t("teacher.sidebar.liveSessions"), icon: "M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" },
   { to: "/dashboard/teacher/ai-studio", label: t("teacher.sidebar.aiStudio"), icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" },
   { to: "/dashboard/teacher/wallet", label: t("teacher.sidebar.wallet"), icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" },
   { to: "/dashboard/teacher/sales", label: t("teacher.sidebar.revenue"), icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" },
@@ -57,6 +62,7 @@ interface NavItem {
   label: string;
   icon: string;
   end?: boolean;
+  roles?: string[];
 }
 
 const getStudentNav = (t: (key: string) => string): NavItem[] => [
@@ -75,10 +81,12 @@ const getStudentNav = (t: (key: string) => string): NavItem[] => [
 
 const getNavItems = (role?: string, t?: (key: string) => string) => {
   const r = role?.toUpperCase();
-  if (r === "SUPER_ADMIN" || r === "ADMIN_SCHOOL" || r === "PEDAGOGICAL_ADMIN" || r === "PEDAGOGICAL_LEAD") return getAdminNav(t || ((k: string) => k));
-  if (r === "TEACHER") return getTeacherNav(t || ((k: string) => k));
-  if (r === "PARENT") return getParentNav(t || ((k: string) => k));
-  return null;
+  let items: NavItem[] | null = null;
+  if (r === "SUPER_ADMIN" || r === "ADMIN_SCHOOL" || r === "PEDAGOGICAL_ADMIN" || r === "PEDAGOGICAL_LEAD") items = getAdminNav(t || ((k: string) => k));
+  else if (r === "TEACHER") items = getTeacherNav(t || ((k: string) => k));
+  else if (r === "PARENT") items = getParentNav(t || ((k: string) => k));
+  if (!items) return null;
+  return items.filter((item) => !item.roles || (r && item.roles.includes(r)));
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -97,6 +105,7 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
+  const [upsell, setUpsell] = useState<{ isOpen: boolean; message?: string; requiredPack?: string }>({ isOpen: false });
   const dropdownRef = useRef<HTMLDivElement>(null);
   
   // Use activeRole for navigation, fallback to role
@@ -118,6 +127,17 @@ export default function DashboardLayout() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Enregistre le handler global : l'intercepteur 402 d'apiClient appelle
+  // triggerUpsell() → ouvre l'UpsellModal sur toutes les pages du dashboard.
+  useEffect(() => {
+    setUpsellHandler((message, requiredPack) =>
+      setUpsell({ isOpen: true, message, requiredPack })
+    );
+    return () => setUpsellHandler(() => {});
+  }, []);
+
+  const closeUpsell = () => setUpsell((s) => ({ ...s, isOpen: false }));
 
   const handleLogout = () => {
     logout();
@@ -294,6 +314,14 @@ export default function DashboardLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Modal d'upsell globale — déclenchée par les erreurs 402 (ABAC) via apiClient */}
+      <UpsellModal
+        isOpen={upsell.isOpen}
+        onClose={closeUpsell}
+        message={upsell.message}
+        requiredPack={upsell.requiredPack}
+      />
     </div>
   );
 }

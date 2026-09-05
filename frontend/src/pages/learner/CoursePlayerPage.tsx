@@ -20,10 +20,26 @@ const learnerAPI = {
 import { jsPDF } from "jspdf";
 import DOMPurify from "dompurify";
 import { tokenStorage } from "../../utils/tokenStorage";
+// Correction E2 : /learn/* est hors DashboardLayout → l'UpsellModal globale n'est pas
+// montée. On monte une instance locale et on enregistre le handler global au montage,
+// pour que tout 402 (ABAC ou quota Freemium) sur ces routes déclenche la modale d'upsell.
+import UpsellModal, { setUpsellHandler, triggerUpsell } from "../../components/UpsellModal";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "";
 
 function getToken() { return tokenStorage.getToken(); }
+
+function extractUpsell(detail: any): { message?: string; requiredPack?: string } | null {
+  if (!detail) return null;
+  if (typeof detail === "object") {
+    if (detail.message || detail.required_pack) {
+      return { message: detail.message, requiredPack: detail.required_pack };
+    }
+    return null;
+  }
+  if (/pack|abonnement|premium/i.test(detail)) return { message: detail };
+  return null;
+}
 
 async function apiFetch(path: string, options: RequestInit = {}) {
   const token = getToken();
@@ -37,7 +53,19 @@ async function apiFetch(path: string, options: RequestInit = {}) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || `Erreur ${res.status}`);
+    const detail = err.detail;
+    // 402 structuré (ABAC / Freemium) → déclenche l'UpsellModal enregistrée
+    if (res.status === 402) {
+      const upsell = extractUpsell(detail);
+      triggerUpsell(
+        upsell?.message ?? (typeof detail === "string" ? detail : "Contenu premium requis."),
+        upsell?.requiredPack,
+      );
+    }
+    const msg = typeof detail === "string"
+      ? detail
+      : detail?.message ?? `Erreur ${res.status}`;
+    throw new Error(msg);
   }
   return res.json();
 }
@@ -73,10 +101,25 @@ export default function CoursePlayerPage() {
   const [quizSubmitting, setQuizSubmitting] = useState(false);
   const [certificate, setCertificate] = useState<any>(null);
   const [certLoading, setCertLoading] = useState(false);
+  // Correction E2 : instance locale de l'UpsellModal pour les routes /learn/*
+  const [upsell, setUpsell] = useState<{ isOpen: boolean; message?: string; requiredPack?: string }>({ isOpen: false });
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  useEffect(() => { if (courseId) { loadCourse(); loadSyllabus(); } }, [courseId]);
+  useEffect(() => {
+    if (courseId) { loadCourse(); loadSyllabus(); }
+  }, [courseId]);
   useEffect(() => { if (lessonId && !loading) { loadLessonContent(); } }, [lessonId, loading]);
+
+  // Correction E2 : enregistre le handler global au montage (apiFetch → triggerUpsell),
+  // et déregistre au démontage (comme DashboardLayout.tsx).
+  useEffect(() => {
+    setUpsellHandler((message, requiredPack) =>
+      setUpsell({ isOpen: true, message, requiredPack })
+    );
+    return () => setUpsellHandler(() => {});
+  }, []);
+
+  const closeUpsell = () => setUpsell((s) => ({ ...s, isOpen: false }));
 
   const loadCourse = async () => {
     try {
@@ -601,6 +644,14 @@ export default function CoursePlayerPage() {
           </div>
         )}
       </main>
+
+      {/* Correction E2 : UpsellModal montée sur /learn/* — déclenchée par les 402 d'apiFetch */}
+      <UpsellModal
+        isOpen={upsell.isOpen}
+        onClose={closeUpsell}
+        message={upsell.message}
+        requiredPack={upsell.requiredPack}
+      />
     </div>
   );
 }

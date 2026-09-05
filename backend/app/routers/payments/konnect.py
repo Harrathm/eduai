@@ -146,6 +146,9 @@ async def konnect_webhook(request: Request, db: Session = Depends(get_db)):
         if not KonnectClient.verify_webhook_signature(body, signature, settings.konnect_webhook_secret):
             logger.warning("Konnect webhook: invalid signature")
             raise HTTPException(status_code=403, detail="Signature invalide")
+    elif settings.is_production:
+        logger.error("Konnect webhook rejected: HMAC secret not configured in production")
+        raise HTTPException(status_code=403, detail="Webhook non autorise: HMAC secret manquant")
 
     try:
         payload = await request.json()
@@ -235,9 +238,11 @@ def credit_child_wallet(
     # Verify child exists and is in same school
     child = db.query(User).filter(User.id == eleve_id).first()
     if not child:
-        raise HTTPException(status_code=404, detail="Élève introuvable")
+        raise HTTPException(status_code=404, detail="Eleve introuvable")
+    if current_user.school_id is None or child.school_id is None:
+        raise HTTPException(status_code=403, detail="Acces interdit: school affiliation cannot be verified")
     if child.school_id != current_user.school_id:
-        raise HTTPException(status_code=403, detail="Accès interdit")
+        raise HTTPException(status_code=403, detail="Acces interdit")
 
     if body.amount_tnd <= 0:
         raise HTTPException(status_code=400, detail="Le montant doit être supérieur à 0")

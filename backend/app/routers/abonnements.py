@@ -14,7 +14,7 @@ from sqlalchemy import and_
 
 from app.db import get_db
 from app.auth import get_current_user
-from app.deps import set_tenant_context, require_admin, require_super_admin
+from app.deps import set_tenant_context, require_admin, require_super_admin, get_user_role
 from app.models import (
     User, PackDefinition, Abonnement,
     CompteFamille, FamilleEnfant,
@@ -171,24 +171,73 @@ def purchase_pack(
     db: Session = Depends(get_db),
     current_user: User = Depends(set_tenant_context),
 ):
-    """Purchase a pack with selected matieres."""
+    """Purchase a pack with selected matieres.
+
+    If the buyer is a parent and provides `eleve_id`, the pack is attributed
+    to the child and the family discount (remise_pct) is applied to the price.
+    """
     pack = db.query(PackDefinition).filter(PackDefinition.id == pack_id).first()
     if not pack:
         raise HTTPException(status_code=404, detail="Pack not found")
 
+    matieres = body.get("matieres")
+    eleve_id = body.get("eleve_id")
+
+    # SECURITY FIX #4 : gate RBAC strict — seuls les élèves (pour eux-mêmes)
+    # et les parents (pour un enfant lié, eleve_id requis) peuvent souscrire.
+    # Un teacher/admin ne doit jamais pouvoir créer d'Abonnement étudiant
+    # pour lui-même (corruption de l'ABAC basé sur Abonnement/PackDefinition).
+    buyer_role = get_user_role(current_user)
+    if buyer_role not in ("student", "parent"):
+        raise HTTPException(
+            status_code=403,
+            detail="Seuls les élèves ou les parents peuvent souscrire à un abonnement",
+        )
+
+    # Determine beneficiary and apply family discount
+    beneficiary_id = current_user.id
+    remise_pct = 0.0
+    if buyer_role == "parent":
+        if not eleve_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Un parent doit fournir eleve_id pour souscrire pour son enfant",
+            )
+        from app.models import ParentEnfant
+        link = db.query(ParentEnfant).filter(
+            ParentEnfant.parent_user_id == current_user.id,
+            ParentEnfant.eleve_id == eleve_id,
+        ).first()
+        if not link:
+            raise HTTPException(status_code=403, detail="Cet eleve n est pas lie a votre compte parent")
+        beneficiary_id = eleve_id
+        # Lookup family discount
+        cf = db.query(CompteFamille).filter(CompteFamille.parent_id == current_user.id).first()
+        if cf:
+            fe = db.query(FamilleEnfant).filter(
+                FamilleEnfant.compte_famille_id == cf.id,
+                FamilleEnfant.eleve_id == eleve_id,
+            ).first()
+            if fe:
+                remise_pct = fe.remise_pct
+    elif eleve_id and eleve_id != current_user.id:
+        # Un élève ne peut souscrire QUE pour lui-même (jamais pour un tiers)
+        raise HTTPException(
+            status_code=403,
+            detail="Un eleve ne peut souscrire que pour lui-meme",
+        )
+
     existing = db.query(Abonnement).filter(
-        Abonnement.user_id == current_user.id,
+        Abonnement.user_id == beneficiary_id,
         Abonnement.statut.in_(["actif", "grace"]),
     ).first()
     if existing:
         raise HTTPException(status_code=409, detail="You already have an active subscription")
 
-    matieres = body.get("matieres")
-
     now = utcnow()
     duration_days = 90 if pack.tier != "gratuit" else 365
     abonnement = Abonnement(
-        user_id=current_user.id,
+        user_id=beneficiary_id,
         pack_id=pack.id,
         statut="actif",
         debut=now,
@@ -196,6 +245,73 @@ def purchase_pack(
         matieres_config={"matieres": matieres} if matieres else None,
     )
     db.add(abonnement)
+    db.flush()
+
+    # Debit wallet of the buyer (parent) with family discount applied
+    price = float(pack.prix_tnd or 0)
+    final_price = round(price * (1 - remise_pct / 100), 3) if remise_pct > 0 else price
+    if final_price > 0:
+        from app.services.wallet import debit_dt, InsufficientCreditsError
+        from decimal import Decimal
+        try:
+            debit_dt(
+                db, current_user.id, Decimal(str(final_price)),
+                source="abonnement",
+                reason=f"Achat pack {pack.nom} (remise {remise_pct}%)" if remise_pct else f"Achat pack {pack.nom}",
+                commit=False,
+            )
+        except InsufficientCreditsError:
+            raise HTTPException(
+                status_code=402,
+                detail=f"Solde insuffisant. Prix: {final_price} TND"
+                + (f" (remise famille {remise_pct}% appliquee)" if remise_pct else ""),
+            )
+
+    # Auto-enroll beneficiary in published courses matching selected matieres + niveau.
+    # matieres_config contient des IDs de la table Matiere → on les résout en noms
+    # normalisés (sans accents, minuscules) pour les comparer à Course.category
+    # qui stocke le nom libre (ex: "Mathématiques").
+    if matieres:
+        from app.models import Course, CourseEnrollment, Matiere
+        from app.services.course_access import _normalize_niveau
+
+        beneficiary = db.query(User).filter(User.id == beneficiary_id).first()
+        niveau = beneficiary.niveau_scolaire if beneficiary else None
+        if niveau:
+            # 1. Résout les IDs → noms de matières normalisés (tolère les noms bruts)
+            ids = [m for m in matieres if isinstance(m, int) or str(m).strip().isdigit()]
+            names = [m for m in matieres if isinstance(m, str) and not m.strip().isdigit()]
+            if ids:
+                names.extend(m.nom for m in db.query(Matiere).filter(Matiere.id.in_(ids)).all())
+            allowed = {_normalize_niveau(n) for n in names}
+            niveau_norm = _normalize_niveau(niveau)
+
+            # 2. Candidats : cours publiés du niveau de l'élève, filtrés en Python
+            #    sur la catégorie normalisée (SQL ne peut pas normaliser les accents).
+            candidates = db.query(Course).filter(
+                Course.status == "published",
+                Course.niveau_scolaire.isnot(None),
+                Course.category.isnot(None),
+            ).all()
+            enrolled_count = 0
+            for course in candidates:
+                if _normalize_niveau(course.niveau_scolaire) != niveau_norm:
+                    continue
+                if _normalize_niveau(course.category) not in allowed:
+                    continue
+                existing_enrollment = db.query(CourseEnrollment).filter(
+                    CourseEnrollment.student_id == beneficiary_id,
+                    CourseEnrollment.course_id == course.id,
+                ).first()
+                if not existing_enrollment:
+                    db.add(CourseEnrollment(
+                        student_id=beneficiary_id,
+                        course_id=course.id,
+                    ))
+                    enrolled_count += 1
+            if enrolled_count:
+                db.flush()
+
     db.commit()
     db.refresh(abonnement)
     return {
@@ -205,6 +321,8 @@ def purchase_pack(
         "debut": abonnement.debut.isoformat(),
         "fin": abonnement.fin.isoformat(),
         "matieres_config": abonnement.matieres_config,
+        "remise_pct": remise_pct,
+        "price_paid": final_price,
     }
 
 
@@ -331,13 +449,36 @@ def subscribe(
 
 @router.get("/abonnements/mes-abonnements")
 def my_abonnements(
+    eleve_id: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(set_tenant_context),
 ):
+    """Abonnements de l'utilisateur courant.
+
+    Écart#2 FIX — un parent qui consulte la page pack d'un enfant doit voir
+    les abonnements de l'ENFANT (portés par user_id=eleve_id), pas les siens
+    (toujours vides). Avec eleve_id + rôle parent, on vérifie le lien
+    ParentEnfant puis on renvoie les abonnements de l'enfant.
+    """
     _apply_scheduled_tier_changes(db)
 
+    target_user_id = current_user.id
+    if eleve_id is not None and get_user_role(current_user) == "parent":
+        from app.models import ParentEnfant
+
+        link = db.query(ParentEnfant).filter(
+            ParentEnfant.parent_user_id == current_user.id,
+            ParentEnfant.eleve_id == eleve_id,
+        ).first()
+        if not link:
+            raise HTTPException(
+                status_code=403,
+                detail="Cet eleve n'est pas rattache a votre compte parent.",
+            )
+        target_user_id = eleve_id
+
     items = db.query(Abonnement).filter(
-        Abonnement.user_id == current_user.id
+        Abonnement.user_id == target_user_id
     ).order_by(Abonnement.created_at.desc()).all()
 
     result = []
@@ -352,6 +493,7 @@ def my_abonnements(
             "grace_fin": ab.grace_fin.isoformat() if ab.grace_fin else None,
             "scheduled_tier": ab.scheduled_tier,
             "scheduled_effective_date": ab.scheduled_effective_date.isoformat() if ab.scheduled_effective_date else None,
+            "matieres_config": ab.matieres_config,
             "created_at": ab.created_at.isoformat() if ab.created_at else None,
             "updated_at": ab.updated_at.isoformat() if ab.updated_at else None,
             "pack": None,
@@ -380,12 +522,34 @@ def change_tier(
         Abonnement.user_id == current_user.id,
         Abonnement.statut.in_(["actif", "grace"]),
     ).first()
-    if not active_abo:
-        raise HTTPException(status_code=404, detail="No active subscription found")
 
     new_pack = db.query(PackDefinition).filter(PackDefinition.id == body.target_pack_id).first()
     if not new_pack:
         raise HTTPException(status_code=404, detail="Target pack not found")
+
+    # Aucun abonnement actif (ex: pack invalidé) → on en crée un nouveau directement
+    if not active_abo:
+        previous = db.query(Abonnement).filter(
+            Abonnement.user_id == current_user.id,
+        ).order_by(Abonnement.created_at.desc()).first()
+        now = utcnow()
+        duration_days = 90 if new_pack.tier != "gratuit" else 365
+        new_abo = Abonnement(
+            user_id=current_user.id,
+            pack_id=new_pack.id,
+            statut="actif",
+            debut=now,
+            fin=now + timedelta(days=duration_days),
+            matieres_config=previous.matieres_config if previous else None,
+        )
+        db.add(new_abo)
+        db.commit()
+        db.refresh(new_abo)
+        return {
+            "message": "New subscription created",
+            "abonnement_id": new_abo.id,
+            "new_tier": new_pack.tier,
+        }
 
     if active_abo.pack:
         niveau = active_abo.pack.niveau_scolaire
