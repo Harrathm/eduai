@@ -1019,30 +1019,11 @@
         "homework": "Homework",
         "lesson": "Lesson",
         "lesson_plan": "Lesson Plan",
+        "lessonPlan": "Lesson Plan",
         "outline": "Annual Outline",
         "quiz": "Quiz",
         "summary": "Summary"
       }
-    },
-    "learning": {
-      "title": "My",
-      "titleSuffix": "Learning",
-      "description": "Your created courses and the available catalog",
-      "myCourses": "My Created Courses",
-      "noCoursesYet": "You haven't created any courses yet",
-      "searchPlaceholder": "Search for a training...",
-      "allCategories": "All categories",
-      "pedagogy": "Pedagogy",
-      "technology": "Technology",
-      "management": "Management",
-      "loading": "Loading...",
-      "noTrainingsFound": "No training found",
-      "modules": "modules",
-      "min": "min",
-      "free": "Free",
-      "tokens": "tokens",
-      "dt": "DT",
-      "viewCourse": "View course"
     },
     "elements": {
       "title": "Pedagogical",
@@ -1054,9 +1035,13 @@
       "filters": {
         "all": "All",
         "brouillon": "Draft",
+        "draft": "Draft",
         "en_review": "In Review",
+        "review": "In Review",
         "publie": "Published",
-        "rejete": "Rejected"
+        "published": "Published",
+        "rejete": "Rejected",
+        "rejected": "Rejected"
       },
       "toasts": {
         "created": "Element created",
@@ -1074,18 +1059,26 @@
       },
       "modal": {
         "createTitle": "New Element",
+        "newElement": "New Element",
         "editTitle": "Edit",
+        "edit": "Edit",
         "addContentTitle": "Add content",
-        "workflowTitle": "Workflow"
+        "addContent": "Add content",
+        "workflowTitle": "Workflow",
+        "workflow": "Workflow"
       },
       "fields": {
         "title": "Title",
         "description": "Description (optional)",
         "lessonId": "Lesson ID (optional)",
+        "leconId": "Associated Lesson",
         "difficulty": "Difficulty",
         "htmlContent": "HTML Content",
+        "contenuHtml": "HTML Content",
         "videoUrl": "Video URL",
+        "urlVideo": "Video URL",
         "duration": "Duration (seconds)",
+        "duree": "Duration (seconds)",
         "quizSoon": "Quiz form coming soon"
       },
       "difficulty": {
@@ -1204,6 +1197,7 @@
     },
     "parcours": {
       "title": "Pathways",
+      "titleSuffix": "Educational",
       "subtitle": "Create and manage your educational pathways",
       "newParcours": "New Pathway",
       "loading": "Loading...",
@@ -1261,6 +1255,13 @@
       "notifiedOn": "Notified on",
       "expiredSilence": "Expired (silence = accepted)",
       "deadline": "Deadline:",
+      "labels": {
+        "profile": "Profile #",
+        "student": "Student #",
+        "notified": "Notified on",
+        "expired": "Expired (silence = accepted)",
+        "deadline": "Deadline:"
+      },
       "btn": {
         "confirm": "Confirm",
         "cancel": "Cancel"
@@ -1284,7 +1285,8 @@
       "kpi": {
         "totalSales": "Total sales",
         "totalRevenue": "Total revenue",
-        "avgPerSale": "Average per sale"
+        "avgPerSale": "Average per sale",
+        "averagePerSale": "Average per sale"
       },
       "historyTitle": "Sales History",
       "loading": "Loading...",
@@ -1295,6 +1297,7 @@
         "amountPaid": "Amount paid",
         "commission": "Commission",
         "revenue": "Your revenue",
+        "yourRevenue": "Your revenue",
         "date": "Date"
       },
       "error": "Connection error"
@@ -1318,7 +1321,8 @@
         "subscription": "Subscription",
         "school": "School",
         "purchased": "Purchased",
-        "dt_purchased": "DT Purchased"
+        "dt_purchased": "DT Purchased",
+        "dtPurchased": "DT Purchased"
       }
     },
     "classroom": {
@@ -1330,6 +1334,9 @@
       "loading": "Loading...",
       "noClasses": "No classes",
       "createFirst": "Create a class",
+      "createClass": "Create a class",
+      "classNamePlaceholder": "Class name...",
+      "courses": "courses",
       "students": "students",
       "coursesCount": "courses",
       "selectClass": "Select a class to view details",
@@ -1358,20 +1365,30 @@
       "title": "My",
       "titleSuffix": "Learning",
       "subtitle": "Your created courses and available catalog",
+      "description": "Your created courses and available catalog",
       "myCourses": "My Created Courses",
       "noCourses": "You haven't created any courses yet",
+      "noCoursesYet": "You haven't created any courses yet",
       "searchPlaceholder": "Search training...",
+      "allCategories": "All categories",
       "categories": {
         "all": "All categories",
         "pedagogie": "Pedagogy",
         "technologie": "Technology",
         "gestion": "Management"
       },
+      "pedagogy": "Pedagogy",
+      "technology": "Technology",
+      "management": "Management",
       "loading": "Loading...",
       "noResults": "No training found",
+      "noTrainingsFound": "No training found",
       "modules": "modules",
       "minutes": "min",
+      "min": "min",
       "free": "Free",
+      "tokens": "tokens",
+      "dt": "DT",
       "viewCourse": "View course"
     }
   },

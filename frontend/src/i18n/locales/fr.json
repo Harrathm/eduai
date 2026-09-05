@@ -1019,30 +1019,11 @@
         "homework": "Devoir",
         "lesson": "Leçon",
         "lesson_plan": "Plan de leçon",
+        "lessonPlan": "Plan de leçon",
         "outline": "Plan annuel",
         "quiz": "Quiz",
         "summary": "Résumé"
       }
-    },
-    "learning": {
-      "title": "Mon",
-      "titleSuffix": "Apprentissage",
-      "description": "Vos cours créés et le catalogue disponible",
-      "myCourses": "Mes Cours Créés",
-      "noCoursesYet": "Vous n'avez pas encore créé de cours",
-      "searchPlaceholder": "Rechercher une formation...",
-      "allCategories": "Toutes catégories",
-      "pedagogy": "Pédagogie",
-      "technology": "Technologie",
-      "management": "Gestion",
-      "loading": "Chargement...",
-      "noTrainingsFound": "Aucune formation trouvée",
-      "modules": "modules",
-      "min": "min",
-      "free": "Gratuit",
-      "tokens": "tokens",
-      "dt": "DT",
-      "viewCourse": "Voir le cours"
     },
     "elements": {
       "title": "Éléments",
@@ -1054,9 +1035,13 @@
       "filters": {
         "all": "Tous",
         "brouillon": "Brouillon",
+        "draft": "Brouillon",
         "en_review": "En Review",
+        "review": "En Review",
         "publie": "Publié",
-        "rejete": "Rejeté"
+        "published": "Publié",
+        "rejete": "Rejeté",
+        "rejected": "Rejeté"
       },
       "toasts": {
         "created": "Élément créé",
@@ -1074,18 +1059,26 @@
       },
       "modal": {
         "createTitle": "Nouvel Élément",
+        "newElement": "Nouvel Élément",
         "editTitle": "Modifier",
+        "edit": "Modifier",
         "addContentTitle": "Ajouter contenu",
-        "workflowTitle": "Workflow"
+        "addContent": "Ajouter contenu",
+        "workflowTitle": "Workflow",
+        "workflow": "Workflow"
       },
       "fields": {
         "title": "Titre",
         "description": "Description (optionnel)",
         "lessonId": "Lecon ID (optionnel)",
+        "leconId": "Leçon associée",
         "difficulty": "Difficulté",
         "htmlContent": "Contenu HTML",
+        "contenuHtml": "Contenu HTML",
         "videoUrl": "URL vidéo",
+        "urlVideo": "URL vidéo",
         "duration": "Durée (secondes)",
+        "duree": "Durée (secondes)",
         "quizSoon": "Formulaire quiz à venir"
       },
       "difficulty": {
@@ -1204,6 +1197,7 @@
     },
     "parcours": {
       "title": "Parcours",
+      "titleSuffix": "Pédagogiques",
       "subtitle": "Créez et gérez vos parcours pédagogiques",
       "newParcours": "Nouveau Parcours",
       "loading": "Chargement...",
@@ -1261,6 +1255,13 @@
       "notifiedOn": "Notifié le",
       "expiredSilence": "Expiré (silence = accepté)",
       "deadline": "Deadline:",
+      "labels": {
+        "profile": "Profil #",
+        "student": "Élève #",
+        "notified": "Notifié le",
+        "expired": "Expiré (silence = accepté)",
+        "deadline": "Deadline:"
+      },
       "btn": {
         "confirm": "Confirmer",
         "cancel": "Annuler"
@@ -1284,7 +1285,8 @@
       "kpi": {
         "totalSales": "Total ventes",
         "totalRevenue": "Revenu total",
-        "avgPerSale": "Moyenne par vente"
+        "avgPerSale": "Moyenne par vente",
+        "averagePerSale": "Moyenne par vente"
       },
       "historyTitle": "Historique des ventes",
       "loading": "Chargement...",
@@ -1295,6 +1297,7 @@
         "amountPaid": "Montant payé",
         "commission": "Commission",
         "revenue": "Votre revenu",
+        "yourRevenue": "Votre revenu",
         "date": "Date"
       },
       "error": "Erreur de connexion"
@@ -1307,9 +1310,9 @@
       "noCreditsDesc": "Vous n'avez pas encore de crédits IA. Contactez votre école ou achetez des crédits.",
       "aiCredits": "Crédits IA",
       "tokens": "Tokens",
+      "credits": "Crédits",
       "detailBySource": "Détail par source",
-      "expiresOn": "expire le",
-      "credits": "crédits",
+      "expiresOn": "Expire le",
       "recentHistory": "Historique récent",
       "loading": "Chargement...",
       "noTransactions": "Aucune transaction",
@@ -1318,7 +1321,8 @@
         "subscription": "Abonnement",
         "school": "École",
         "purchased": "Acheté",
-        "dt_purchased": "DT Achetés"
+        "dt_purchased": "DT Achetés",
+        "dtPurchased": "DT Achetés"
       }
     },
     "classroom": {
@@ -1330,6 +1334,9 @@
       "loading": "Chargement...",
       "noClasses": "Aucune classe",
       "createFirst": "Créer une classe",
+      "createClass": "Créer une classe",
+      "classNamePlaceholder": "Nom de la classe...",
+      "courses": "cours",
       "students": "élèves",
       "coursesCount": "cours",
       "selectClass": "Sélectionnez une classe pour voir les détails",
@@ -1358,20 +1365,30 @@
       "title": "Mon",
       "titleSuffix": "Apprentissage",
       "subtitle": "Vos cours créés et le catalogue disponible",
+      "description": "Vos cours créés et le catalogue disponible",
       "myCourses": "Mes Cours Créés",
       "noCourses": "Vous n'avez pas encore créé de cours",
+      "noCoursesYet": "Vous n'avez pas encore créé de cours",
       "searchPlaceholder": "Rechercher une formation...",
+      "allCategories": "Toutes catégories",
       "categories": {
         "all": "Toutes catégories",
         "pedagogie": "Pédagogie",
         "technologie": "Technologie",
         "gestion": "Gestion"
       },
+      "pedagogy": "Pédagogie",
+      "technology": "Technologie",
+      "management": "Gestion",
       "loading": "Chargement...",
       "noResults": "Aucune formation trouvée",
+      "noTrainingsFound": "Aucune formation trouvée",
       "modules": "modules",
       "minutes": "min",
+      "min": "min",
       "free": "Gratuit",
+      "tokens": "tokens",
+      "dt": "DT",
       "viewCourse": "Voir le cours"
     }
   },

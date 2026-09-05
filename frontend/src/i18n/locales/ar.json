@@ -1019,30 +1019,11 @@
         "homework": "واجب",
         "lesson": "درس",
         "lesson_plan": "خطة الدرس",
+        "lessonPlan": "خطة الدرس",
         "outline": "المخطط السنوي",
         "quiz": "اختبار",
         "summary": "ملخص"
       }
-    },
-    "learning": {
-      "title": "تعلمّي",
-      "titleSuffix": "",
-      "description": "دروسك المُنشأة والكتالوج المتاح",
-      "myCourses": "دروسي المُنشأة",
-      "noCoursesYet": "لم تنشئ أي دروس بعد",
-      "searchPlaceholder": "ابحث عن تدريب...",
-      "allCategories": "جميع الفئات",
-      "pedagogy": "التربية والتعليم",
-      "technology": "التكنولوجيا",
-      "management": "الإدارة",
-      "loading": "جاري التحميل...",
-      "noTrainingsFound": "لم يتم العثور على تدريب",
-      "modules": "وحدات",
-      "min": "دقيقة",
-      "free": "مجاني",
-      "tokens": "رواتب",
-      "dt": "دينار",
-      "viewCourse": "عرض الدورة"
     },
     "elements": {
       "title": "العناصر",
@@ -1054,9 +1035,13 @@
       "filters": {
         "all": "الكل",
         "brouillon": "مسودة",
+        "draft": "مسودة",
         "en_review": "قيد المراجعة",
+        "review": "قيد المراجعة",
         "publie": "منشور",
-        "rejete": "مرفوض"
+        "published": "منشور",
+        "rejete": "مرفوض",
+        "rejected": "مرفوض"
       },
       "toasts": {
         "created": "تم إنشاء العنصر",
@@ -1074,18 +1059,26 @@
       },
       "modal": {
         "createTitle": "عنصر جديد",
+        "newElement": "عنصر جديد",
         "editTitle": "تعديل",
+        "edit": "تعديل",
         "addContentTitle": "إضافة محتوى",
-        "workflowTitle": "سير العمل"
+        "addContent": "إضافة محتوى",
+        "workflowTitle": "سير العمل",
+        "workflow": "سير العمل"
       },
       "fields": {
         "title": "العنوان",
         "description": "الوصف (اختياري)",
         "lessonId": "معرّف الدرس (اختياري)",
+        "leconId": "الدرس المرتبط",
         "difficulty": "الصعوبة",
         "htmlContent": "المحتوى HTML",
+        "contenuHtml": "المحتوى HTML",
         "videoUrl": "رابط الفيديو",
+        "urlVideo": "رابط الفيديو",
         "duration": "المدة (ثوانٍ)",
+        "duree": "المدة (ثوانٍ)",
         "quizSoon": "استمارة الاختبار قادمة قريباً"
       },
       "difficulty": {
@@ -1204,6 +1197,7 @@
     },
     "parcours": {
       "title": "المسارات",
+      "titleSuffix": "التربوية",
       "subtitle": "إنشاء وإدارة مساراتك التعليمية",
       "newParcours": "مسار جديد",
       "loading": "جارٍ التحميل...",
@@ -1261,6 +1255,13 @@
       "notifiedOn": "تم الإشعار في",
       "expiredSilence": "منتهي (الصمت = مقبول)",
       "deadline": "الموعد النهائي:",
+      "labels": {
+        "profile": "الملف #",
+        "student": "الطالب #",
+        "notified": "تم الإشعار في",
+        "expired": "منتهي (الصمت = مقبول)",
+        "deadline": "الموعد النهائي:"
+      },
       "btn": {
         "confirm": "تأكيد",
         "cancel": "إلغاء"
@@ -1284,7 +1285,8 @@
       "kpi": {
         "totalSales": "إجمالي المبيعات",
         "totalRevenue": "إجمالي الإيرادات",
-        "avgPerSale": "المتوسط لكل عملية"
+        "avgPerSale": "المتوسط لكل عملية",
+        "averagePerSale": "المتوسط لكل عملية"
       },
       "historyTitle": "سجل المبيعات",
       "loading": "جارٍ التحميل...",
@@ -1295,6 +1297,7 @@
         "amountPaid": "المبلغ المدفوع",
         "commission": "العمولة",
         "revenue": "إيرادك",
+        "yourRevenue": "إيرادك",
         "date": "التاريخ"
       },
       "error": "خطأ في الاتصال"
@@ -1309,7 +1312,7 @@
       "tokens": "الرموز",
       "detailBySource": "التفاصيل حسب المصدر",
       "expiresOn": "تنتهي في",
-      "credits": "ائتمان",
+      "credits": "ائتمانات",
       "recentHistory": "السجل الأخير",
       "loading": "جارٍ التحميل...",
       "noTransactions": "لا توجد معاملات",
@@ -1318,7 +1321,8 @@
         "subscription": "اشتراك",
         "school": "المدرسة",
         "purchased": "مشتراة",
-        "dt_purchased": "دينار مشتراة"
+        "dt_purchased": "دينار مشتراة",
+        "dtPurchased": "دينار مشتراة"
       }
     },
     "classroom": {
@@ -1330,6 +1334,9 @@
       "loading": "جارٍ التحميل...",
       "noClasses": "لا توجد فِئَات",
       "createFirst": "إنشاء فِئَة",
+      "createClass": "إنشاء فِئَة",
+      "classNamePlaceholder": "اسم الفِئَة...",
+      "courses": "دورة",
       "students": "طالب",
       "coursesCount": "دورة",
       "selectClass": "اختر فِئَة لعرض التفاصيل",
@@ -1358,20 +1365,30 @@
       "title": "تعلمي",
       "titleSuffix": "",
       "subtitle": "دوراتك المنشأة والكتالوج المتاح",
+      "description": "دوراتك المنشأة والكتالوج المتاح",
       "myCourses": "دوراتي المنشأة",
       "noCourses": "لم تنشئ أي دورة بعد",
+      "noCoursesYet": "لم تنشئ أي دورة بعد",
       "searchPlaceholder": "البحث عن تدريب...",
+      "allCategories": "جميع الفئات",
       "categories": {
         "all": "جميع الفئات",
         "pedagogie": "التربية",
         "technologie": "التكنولوجيا",
         "gestion": "الإدارة"
       },
+      "pedagogy": "التربية",
+      "technology": "التكنولوجيا",
+      "management": "الإدارة",
       "loading": "جارٍ التحميل...",
       "noResults": "لم يتم العثور على تدريب",
+      "noTrainingsFound": "لم يتم العثور على تدريب",
       "modules": "وحدات",
       "minutes": "دقيقة",
+      "min": "دقيقة",
       "free": "مجاني",
+      "tokens": "رموز",
+      "dt": "دينار",
       "viewCourse": "عرض الدورة"
     }
   },
