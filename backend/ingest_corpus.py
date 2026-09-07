@@ -298,7 +298,7 @@ def main() -> int:
 
     rag = RAGService(index_path=str(INDEX_PATH))
     if rag.embeddings_service is None:
-        print("[ERREUR] EmbeddingsService indisponible (dépendances sklearn manquantes ?)")
+        print("[ERREUR] EmbeddingsService indisponible (dépendances sentence-transformers manquantes ?)")
         return 2
 
     stats = {

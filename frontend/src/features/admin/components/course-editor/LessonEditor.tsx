@@ -1,5 +1,6 @@
-import { Save, FileText, Video, HelpCircle, File, Image, Link } from "lucide-react";
+import { Save, FileText, Video, HelpCircle, File, Image, Link, FileCode } from "lucide-react";
 import { Button, Input, Modal } from "../../../../components/ui";
+import { RichTextEditor } from "../../../../components/ui/RichTextEditor";
 import type { LessonForm } from "../../hooks/useCourseEditor";
 
 const LESSON_TYPES = [
@@ -7,6 +8,7 @@ const LESSON_TYPES = [
   { value: "video", label: "Vidéo", icon: Video },
   { value: "pdf", label: "Document PDF", icon: File },
   { value: "image", label: "Image", icon: Image },
+  { value: "html", label: "Page HTML", icon: FileCode },
   { value: "link", label: "Lien externe", icon: Link },
   { value: "quiz", label: "Quiz/Examen", icon: HelpCircle },
 ];
@@ -22,7 +24,7 @@ interface LessonEditorProps {
 export function LessonEditor({ open, form, onFormChange, onClose, onSave }: LessonEditorProps) {
   return (
     <Modal open={open} onClose={onClose} title="Éditer la leçon" maxWidth="max-w-2xl">
-      <div className="space-y-4">
+      <div className="max-h-[70vh] overflow-y-auto pr-1 space-y-4">
         {/* Type selector */}
         <div>
           <label className="block text-sm font-medium mb-2">Type de contenu</label>
@@ -53,10 +55,12 @@ export function LessonEditor({ open, form, onFormChange, onClose, onSave }: Less
         {/* Type-specific fields */}
         {form.lesson_type === "text" && (
           <div>
-            <label className="block text-sm font-medium mb-1">Contenu texte</label>
-            <textarea value={form.content_text} onChange={e => onFormChange({ ...form, content_text: e.target.value })}
-              className="w-full px-3 py-2 border rounded-lg font-mono text-sm" rows={10}
-              placeholder="Entrez le contenu de la leçon..." />
+            <label className="block text-sm font-medium mb-1">Contenu texte (mise en page riche)</label>
+            <RichTextEditor
+              value={form.content_html}
+              onChange={(html, text) => onFormChange({ ...form, content_html: html, content_text: text })}
+            />
+            <p className="text-xs text-gray-500 mt-1">Gras, italique, titres, couleurs, images, vidéos, listes... Le tout s'affichera comme une seule leçon enrichie.</p>
           </div>
         )}
 
@@ -80,6 +84,20 @@ export function LessonEditor({ open, form, onFormChange, onClose, onSave }: Less
           </div>
         )}
 
+        {form.lesson_type === "html" && (
+          <div>
+            <label className="block text-sm font-medium mb-1">Code HTML</label>
+            <textarea
+              value={form.content_html}
+              onChange={e => onFormChange({ ...form, content_html: e.target.value })}
+              className="w-full px-3 py-2 border rounded-lg font-mono text-sm"
+              rows={14}
+              placeholder={"<section>\n  <h1>Ma page interactive</h1>\n  <p>Écrivez votre code HTML ici...</p>\n</section>"}
+            />
+            <p className="text-xs text-gray-500 mt-1">Le code HTML saisi sera affiché à l'apprenant comme une page interactive complète.</p>
+          </div>
+        )}
+
         {form.lesson_type === "link" && (
           <>
             <Input label="Titre du lien" value={form.link_title} onChange={e => onFormChange({ ...form, link_title: e.target.value })} />
@@ -94,7 +112,7 @@ export function LessonEditor({ open, form, onFormChange, onClose, onSave }: Less
         )}
       </div>
 
-      <div className="flex justify-end gap-2 mt-6">
+      <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
         <Button variant="ghost" onClick={onClose}>Annuler</Button>
         <Button onClick={onSave}><Save className="w-4 h-4" /> Enregistrer</Button>
       </div>

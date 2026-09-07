@@ -204,14 +204,26 @@ class PDFProcessor:
     OCR_MAX_PAGES = 40        # limiter le temps d'OCR (≈ 2 pages/seconde)
     OCR_DPI = 300             # résolution de conversion image
 
-    def __init__(self, chunk_size: int = 500, chunk_overlap: int = 100):
+    def __init__(self, chunk_size: int = 1000, chunk_overlap: int = 200):
         if not PDF_SUPPORT_AVAILABLE:
             raise ImportError("pdfplumber and langchain-text-splitters are required for PDF processing")
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
             length_function=len,
-            separators=["\n\n", "\n", "۔", "؛", ".", " ", ""],
+            separators=[
+                "\n\n## ",   # markdown section headers
+                "\n\n",       # paragraph break (both languages)
+                "\n",         # line break
+                ". ",         # French sentence boundary
+                "؟ ",         # Arabic question mark sentence boundary
+                "! ",         # exclamation
+                "؟",          # Arabic question mark (no space)
+                "؛",          # Arabic semicolon
+                "،",          # Arabic comma
+                " ",          # word boundary
+                "",
+            ],
         )
 
     # ------------------------------------------------------------------

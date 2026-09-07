@@ -1,4 +1,4 @@
-import { Plus, Trash2, FileText, Video, HelpCircle, File, Image, Link, ChevronDown } from "lucide-react";
+import { Plus, Trash2, FileText, Video, HelpCircle, File, Image, Link, FileCode, ChevronDown } from "lucide-react";
 import { Button, EmptyState } from "../../../../components/ui";
 import type { Chapter, Lesson } from "../../hooks/useCourseEditor";
 
@@ -7,6 +7,7 @@ const LESSON_TYPES = [
   { value: "video", label: "Vidéo", icon: Video },
   { value: "pdf", label: "Document PDF", icon: File },
   { value: "image", label: "Image", icon: Image },
+  { value: "html", label: "Page HTML", icon: FileCode },
   { value: "link", label: "Lien externe", icon: Link },
   { value: "quiz", label: "Quiz/Examen", icon: HelpCircle },
 ];
@@ -21,6 +22,7 @@ function getLessonBg(type: string) {
     case "video": return "bg-blue-50 text-blue-600";
     case "pdf": return "bg-red-50 text-red-600";
     case "image": return "bg-green-50 text-green-600";
+    case "html": return "bg-indigo-50 text-indigo-600";
     case "link": return "bg-purple-50 text-purple-600";
     case "quiz": return "bg-orange-50 text-orange-600";
     default: return "bg-gray-50 text-gray-600";

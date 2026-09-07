@@ -169,6 +169,7 @@ def _serialize_lesson(row: dict) -> dict:
         "description": row.get("description"),
         "lesson_type": row.get("lesson_type") or "text",
         "content_text": row.get("content_text"),
+        "content_html": row.get("content_html"),
         "content_url": row.get("content_url"),
         "video_url": row.get("video_url"),
         "pdf_url": row.get("pdf_url"),
@@ -194,7 +195,7 @@ def _serialize_chapter(db: Session, module: Module, include_lessons: bool = True
         rows = db.execute(
             text("""
                 SELECT id, module_id, title, description, lesson_type, content_text,
-                       content_url, video_url, pdf_url, image_urls, link_url, link_title,
+                       content_html, content_url, video_url, pdf_url, image_urls, link_url, link_title,
                        "order", duration_minutes, is_free, created_at
                 FROM lessons WHERE module_id = :module_id ORDER BY "order"
             """),

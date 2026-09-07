@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File as FastAPIFile
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, UploadFile, File as FastAPIFile
 from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -17,7 +17,7 @@ from app.models import User, School, ClassRoom, Course, Assignment, Submission, 
 from app.core.security import get_password_hash
 from app.core.validation import validate_password_strength
 from app.schemas import (
-    UserRead, UserUpdate, SchoolCreate, SchoolRead, ClassCreate, ClassRead,
+    UserRead, UserUpdate, UserCreate, SchoolCreate, SchoolRead, ClassCreate, ClassRead,
     EnrollmentCreate, EnrollmentRead, CourseRead, AssignmentCreate, AssignmentRead,
     AnalyticsOverview, UserAnalytics, UserBalanceUpdate, UserApproval,
     CourseCreate, CourseUpdate, CourseStatusUpdate, CourseWithDetails,
@@ -313,14 +313,25 @@ def reset_user_password(user_id: int, body: dict, db: Session = Depends(get_db),
 
 @router.post("/users")
 def create_user(
-    email: str,
-    password: str,
-    full_name: str | None = None,
-    role: str = "student",
-    school_id: int | None = None,
+    user_in: UserCreate | None = Body(default=None),
+    email: str | None = Query(default=None),
+    password: str | None = Query(default=None),
+    full_name: str | None = Query(default=None),
+    role: str = Query(default="student"),
+    school_id: int | None = Query(default=None),
     db: Session = Depends(get_db),
     admin=Depends(require_admin),
 ):
+    # Accepte un corps JSON (frontend) OU des query params (legacy/tests).
+    if user_in is not None:
+        email = user_in.email or email
+        password = user_in.password or password
+        full_name = user_in.full_name if user_in.full_name is not None else full_name
+        role = user_in.role or role
+        school_id = user_in.school_id if user_in.school_id is not None else school_id
+
+    if not email or not password:
+        raise HTTPException(status_code=422, detail="email et password sont requis.")
     if _is_super(admin):
         target_school_id = school_id or admin.school_id
     else:

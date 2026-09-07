@@ -31,19 +31,21 @@ export function Modal({ open, onClose, title, children, maxWidth = "max-w-md" }:
   return createPortal(
     <div
       ref={overlayRef}
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/50 z-50 overflow-y-auto"
       onClick={(e) => e.target === overlayRef.current && onClose()}
     >
-      <div className={`bg-white rounded-3xl ${maxWidth} w-full p-8 relative`}>
-        {title && (
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-semibold text-navy">{title}</h2>
-            <button onClick={onClose} className="p-2 hover:bg-cream rounded-lg">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        )}
-        {children}
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className={`bg-white rounded-3xl ${maxWidth} w-full p-8 relative my-auto`}>
+          {title && (
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-semibold text-navy">{title}</h2>
+              <button onClick={onClose} className="p-2 hover:bg-cream rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          )}
+          {children}
+        </div>
       </div>
     </div>,
     document.body

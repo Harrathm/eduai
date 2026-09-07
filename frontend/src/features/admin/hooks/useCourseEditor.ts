@@ -9,6 +9,7 @@ export interface Lesson {
   order: number;
   duration_minutes: number;
   content_text?: string;
+  content_html?: string;
   video_url?: string;
   pdf_url?: string;
   image_urls?: string[];
@@ -30,6 +31,8 @@ export interface LessonForm {
   description: string;
   lesson_type: string;
   content_text: string;
+  content_html: string;
+  content_url: string;
   video_url: string;
   pdf_url: string;
   image_urls: string;
@@ -41,7 +44,7 @@ export interface LessonForm {
 
 const EMPTY_FORM: LessonForm = {
   title: "", description: "", lesson_type: "text", content_text: "",
-  video_url: "", pdf_url: "", image_urls: "", link_url: "", link_title: "",
+  content_html: "", content_url: "", video_url: "", pdf_url: "", image_urls: "", link_url: "", link_title: "",
   duration_minutes: 0, is_free: false,
 };
 
@@ -272,6 +275,8 @@ export function useCourseEditor(courseId: string | undefined) {
       description: lesson.description || "",
       lesson_type: lesson.lesson_type || "text",
       content_text: lesson.content_text || "",
+      content_html: lesson.content_html || "",
+      content_url: lesson.content_url || "",
       video_url: lesson.video_url || "",
       pdf_url: lesson.pdf_url || "",
       image_urls: lesson.image_urls
@@ -292,6 +297,8 @@ export function useCourseEditor(courseId: string | undefined) {
         title: editLessonForm.title,
         lesson_type: editLessonForm.lesson_type,
         content_text: editLessonForm.content_text,
+        content_html: editLessonForm.content_html,
+        content_url: editLessonForm.content_url,
         video_url: editLessonForm.video_url,
         pdf_url: editLessonForm.pdf_url,
         image_urls: (() => {

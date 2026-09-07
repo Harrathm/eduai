@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activité SVT : Appareil Reproducteur Masculin</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        h1, h2 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        .instructions {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+            color: #555;
+        }
+        /* Conteneur des étiquettes (plaques) */
+        .labels-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .draggable {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: grab;
+            font-weight: bold;
+            user-select: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: transform 0.1s;
+        }
+        .draggable:active {
+            cursor: grabbing;
+            transform: scale(0.95);
+        }
+        /* Style du tableau */
+        table {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            border-collapse: collapse;
+            background-color: #fff;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 15px;
+            text-align: left;
+        }
+        th {
+            background-color: #2c3e50;
+            color: white;
+            text-align: center;
+        }
+        .category {
+            font-weight: bold;
+            color: #2c3e50;
+            background-color: #ecf0f1;
+        }
+        /* Zones de dépôt (Drop zones) */
+        .drop-zone {
+            min-width: 180px;
+            min-height: 40px;
+            border: 2px dashed #bdc3c7;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        .drop-zone.drag-over {
+            background-color: #e8f4f8;
+            border-color: #3498db;
+            transform: scale(1.02);
+        }
+        .drop-zone.correct {
+            border: 2px solid #2ecc71;
+            background-color: #eafaf1;
+        }
+        /* Message de réussite */
+        #success-message {
+            display: none;
+            text-align: center;
+            color: #27ae60;
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-top: 30px;
+            animation: fadeIn 1s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Activité 1 : L'organisation de l'appareil reproducteur</h1>
+    <p class="instructions"><strong>Consigne :</strong> Lisez attentivement le rôle de chaque organe dans le tableau, puis glissez-déposez les étiquettes à leur emplacement exact. (Auto-correction activée !)</p>
+
+    <!-- Zone des organes à glisser -->
+    <div class="labels-container" id="bank">
+        <div class="draggable" draggable="true" id="testicules">Les testicules</div>
+        <div class="draggable" draggable="true" id="epididyme">L'épididyme</div>
+        <div class="draggable" draggable="true" id="canal">Le canal déférent</div>
+        <div class="draggable" draggable="true" id="uretre">L'urètre</div>
+        <div class="draggable" draggable="true" id="vesicules">Les vésicules séminales</div>
+        <div class="draggable" draggable="true" id="prostate">La prostate</div>
+        <div class="draggable" draggable="true" id="cowper">Les glandes de Cowper</div>
+        <div class="draggable" draggable="true" id="penis">Le pénis (ou verge)</div>
+    </div>
+
+    <!-- Tableau de synthèse -->
+    <table>
+        <thead>
+            <tr>
+                <th>Catégorie d'organes</th>
+                <th>Nom de l'organe (Glisser ici)</th>
+                <th>Rôle(s) principal(aux)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="category">1. Les Gonades</td>
+                <td><div class="drop-zone" data-target="testicules"></div></td>
+                <td>Production continue des spermatozoïdes et sécrétion d'hormones (Testostérone).</td>
+            </tr>
+            <tr>
+                <td rowspan="3" class="category">2. Les Voies génitales</td>
+                <td><div class="drop-zone" data-target="epididyme"></div></td>
+                <td>Lieu de transit, de stockage et de maturation des spermatozoïdes (acquisition de la mobilité).</td>
+            </tr>
+            <tr>
+                <td><div class="drop-zone" data-target="canal"></div></td>
+                <td>Canal qui conduit les spermatozoïdes vers l'urètre.</td>
+            </tr>
+            <tr>
+                <td><div class="drop-zone" data-target="uretre"></div></td>
+                <td>Canal uro-génital qui évacue le sperme vers l'extérieur.</td>
+            </tr>
+            <tr>
+                <td rowspan="3" class="category">3. Les Glandes annexes</td>
+                <td><div class="drop-zone" data-target="vesicules"></div></td>
+                <td>Sécrètent un liquide riche en fructose (nourriture des spermatozoïdes).</td>
+            </tr>
+            <tr>
+                <td><div class="drop-zone" data-target="prostate"></div></td>
+                <td>Sécrète un liquide riche en enzymes favorisant la mobilité des spermatozoïdes.</td>
+            </tr>
+            <tr>
+                <td><div class="drop-zone" data-target="cowper"></div></td>
+                <td>Sécrètent un liquide lubrifiant et nettoyant pour l'urètre.</td>
+            </tr>
+            <tr>
+                <td class="category">4. Organe d'accouplement</td>
+                <td><div class="drop-zone" data-target="penis"></div></td>
+                <td>Permet l'éjaculation et le dépôt du sperme dans les voies génitales féminines.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div id="success-message">🎉 Bravo ! Le tableau de synthèse est complet ! 🎉</div>
+
+    <script>
+        // Sélection des éléments
+        const draggables = document.querySelectorAll('.draggable');
+        const dropZones = document.querySelectorAll('.drop-zone');
+        let correctCount = 0;
+        const totalItems = draggables.length;
+
+        // Configuration du Drag (Glisser)
+        draggables.forEach(draggable => {
+            draggable.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', draggable.id);
+                setTimeout(() => {
+                    draggable.style.opacity = '0.5';
+                }, 0);
+            });
+
+            draggable.addEventListener('dragend', () => {
+                draggable.style.opacity = '1';
+            });
+        });
+
+        // Configuration du Drop (Déposer)
+        dropZones.forEach(zone => {
+            zone.addEventListener('dragover', (e) => {
+                e.preventDefault(); // Nécessaire pour autoriser le drop
+                if (!zone.classList.contains('correct')) {
+                    zone.classList.add('drag-over');
+                }
+            });
+
+            zone.addEventListener('dragleave', () => {
+                zone.classList.remove('drag-over');
+            });
+
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                zone.classList.remove('drag-over');
+
+                const draggedId = e.dataTransfer.getData('text/plain');
+                const draggedElement = document.getElementById(draggedId);
+                const targetId = zone.getAttribute('data-target');
+
+                // Vérification : est-ce le bon organe pour cette case ?
+                if (draggedId === targetId && draggedElement) {
+                    // C'est correct !
+                    zone.appendChild(draggedElement);
+                    zone.classList.add('correct');
+                    draggedElement.setAttribute('draggable', 'false'); // On bloque l'élément
+                    draggedElement.style.cursor = 'default';
+                    draggedElement.style.boxShadow = 'none';
+                    
+                    correctCount++;
+                    // Vérifier si l'activité est finie
+                    if (correctCount === totalItems) {
+                        document.getElementById('success-message').style.display = 'block';
+                    }
+                } else {
+                    // C'est faux, on peut ajouter une petite alerte si désiré, 
+                    // mais l'élément retourne de lui-même à sa place.
+                    // alert("Observez bien le rôle de l'organe !");
+                }
+            });
+        });
+    </script>
+</body>
+</html>

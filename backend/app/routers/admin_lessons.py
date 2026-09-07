@@ -38,6 +38,7 @@ class LessonCreate(BaseModel):
     description: str | None = None
     lesson_type: str = Field(default="text")
     content_text: str | None = None
+    content_html: str | None = None
     content_url: str | None = None
     video_url: str | None = None
     pdf_url: str | None = None
@@ -83,6 +84,7 @@ def _serialize_lesson(lesson: Lesson) -> dict:
         "lesson_type": lesson.lesson_type or "text",
         "content_type": lesson.content_type.value if hasattr(lesson.content_type, 'value') else (lesson.content_type or "text"),
         "content_text": lesson.content_text,
+        "content_html": lesson.content_html,
         "content_url": lesson.content_url,
         "video_url": lesson.video_url,
         "pdf_url": lesson.pdf_url,
@@ -183,6 +185,7 @@ def create_lesson(
         description=data.description,
         lesson_type=data.lesson_type,
         content_text=data.content_text,
+        content_html=data.content_html,
         content_url=data.content_url,
         video_url=data.video_url,
         pdf_url=data.pdf_url,

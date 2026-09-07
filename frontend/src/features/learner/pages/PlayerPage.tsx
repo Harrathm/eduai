@@ -432,6 +432,18 @@ export default function LearnerPlayerPage() {
             </div>
           )}
 
+          {currentLesson?.lesson_type === "html" && currentLesson.content_html && (
+            <div className="mb-6">
+              <iframe
+                srcDoc={currentLesson.content_html}
+                className="w-full rounded-lg border bg-white"
+                style={{ height: "70vh" }}
+                sandbox="allow-scripts allow-forms allow-popups allow-modals"
+                title={currentLesson.title}
+              />
+            </div>
+          )}
+
           {currentLesson?.content_text && (
             <div className="prose max-w-none mb-6">
               <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentLesson.content_html || currentLesson.content_text) }} />
