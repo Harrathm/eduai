@@ -387,6 +387,11 @@ class AIQuery(BaseModel):
     question: str
     mode: str = "tutor"
     conversation_id: Optional[int] = None
+    # Mode de réponse du RAG de conformité :
+    # - "pedagogical" (défaut) : le LLM reformule à partir du contexte.
+    # - "strict_official"     : réponse EXTRACTIVE — retourne le chunk officiel
+    #   le plus pertinent sans aucun appel LLM (conformité exacte).
+    response_mode: str = "pedagogical"
 
 
 class AIResult(BaseModel):

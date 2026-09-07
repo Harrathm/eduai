@@ -149,7 +149,7 @@ async def ask_tutor(
     6. On error: refund consumed credits
     """
     from app.ai import RAGService
-    from app.ai.rag_service import moderate_prompt, _MODERATION_BLOCKED_MESSAGE
+    from app.ai.rag_service import moderate_prompt, _MODERATION_BLOCKED_MESSAGE, STRICT_OFFICIAL_PREFIX
     from app.ai.provider_client import generate_chat_stream
 
     # Rate limit check
@@ -194,6 +194,45 @@ async def ask_tutor(
     if not conv_id:
         conv = _get_or_create_conversation(db, current_user.id, query.question[:255])
         conv_id = conv.id
+
+    # ── STRICT_OFFICIAL : réponse extractive SANS appel LLM ─────────────
+    # Retourne directement le chunk officiel le plus pertinent (retrieval
+    # hybride + reranking) avec le préfixe demandé. Aucune hallucination
+    # possible : le texte renvoyé = texte indexé tel quel.
+    if query.response_mode == "strict_official":
+        async def _strict_generator():
+            try:
+                best = rag.get_best_official_chunk(school_id=school_id, query=query.question)
+                if best is None:
+                    answer = "Je n'ai pas l'information dans les documents officiels."
+                    sources = []
+                else:
+                    answer = STRICT_OFFICIAL_PREFIX + "\n\n" + best["content"]
+                    sources = best["sources"]
+                # Streaming : un seul chunk, puis signal done
+                _save_chat_message(db, conv_id, "user", query.question, current_user.id)
+                _save_chat_message(db, conv_id, "assistant", answer, current_user.id)
+                log_ai_usage(db, current_user, "ask_tutor_strict_official", 0, 0.0)
+                payload = {
+                    "chunk": answer, "done": True,
+                    "conversation_id": conv_id,
+                    "tokens": 0, "sources": sources,
+                }
+                yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+            except Exception as e:
+                logger.error("AI strict_official stream error: %s: %s", type(e).__name__, e)
+                _safe_refund(db, current_user.id, debits)
+                yield f"data: {json.dumps({'error': 'Service IA temporairement indisponible', 'done': True})}\n\n"
+
+        return StreamingResponse(
+            _strict_generator(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
 
     history = _load_conversation_history(db, conv_id)
     messages = rag._build_messages(
@@ -425,6 +464,7 @@ async def ingest_pdf(
     file: UploadFile = File(...),
     niveau_scolaire: Optional[str] = Form(None),
     matiere: Optional[str] = Form(None),
+    source_type: str = Form("professor_document"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -463,6 +503,7 @@ async def ingest_pdf(
                 "school_id": effective_school_id,
                 "niveau_scolaire": niveau_scolaire,
                 "matiere": matiere,
+                "source_type": source_type,
             }
             for c in chunks
         ]
@@ -481,6 +522,7 @@ def ingest_text(
     source: str = "manual",
     niveau_scolaire: Optional[str] = None,
     matiere: Optional[str] = None,
+    source_type: str = "professor_document",
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -516,6 +558,7 @@ def ingest_text(
                 "school_id": current_user.school_id,
                 "niveau_scolaire": niveau_scolaire,
                 "matiere": matiere,
+                "source_type": source_type,
             }
             for i in range(len(chunks))
         ]
@@ -534,6 +577,7 @@ def ingest_lesson(
     lesson_id: int,
     niveau_scolaire: Optional[str] = None,
     matiere: Optional[str] = None,
+    source_type: str = "programme_officiel",
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -566,6 +610,7 @@ def ingest_lesson(
             "school_id": current_user.school_id,
             "niveau_scolaire": niveau_scolaire,
             "matiere": matiere,
+            "source_type": source_type,
         }
         for i in range(len(chunks))
     ]
@@ -622,7 +667,7 @@ def generate_content(
     db: Session = Depends(get_db),
 ):
     from app.ai import RAGService
-    from app.ai.rag_service import NO_CONTEXT_REFUSAL, _normalize_matiere, _normalize_niveau
+    from app.ai.rag_service import NO_CONTEXT_REFUSAL, STRICT_OFFICIAL_PREFIX, _normalize_matiere, _normalize_niveau
 
     # Tier check: generate requires curriculum_aligned (etablissement only)
     # Teachers and admins are exempt — they create content for students
@@ -656,6 +701,7 @@ def generate_content(
     subject = body.get("subject", "")
     level = body.get("level", "")
     trimester = body.get("trimester", "")
+    response_mode = body.get("response_mode", "pedagogical")
 
     if not prompt:
         raise HTTPException(status_code=400, detail="Le prompt est requis")
@@ -690,11 +736,36 @@ def generate_content(
     try:
         rag = RAGService(db=db)
 
-        # RAG grounding : récupère le contexte officiel filtré par niveau/matière.
         # Traduction des libellés arabes/français vers les codes canoniques de l'index
         # (ex: "علوم الحياة والارض" -> "svt", "سابعة أساسي" -> "7eme_base").
         level_code = _normalize_niveau(level)
         matiere_code = _normalize_matiere(subject)
+
+        # ── STRICT_OFFICIAL : réponse extractive SANS appel LLM ───────────
+        # Retourne le chunk officiel le plus pertinent tel quel (conformité
+        # exacte au programme). Aucune reformulation → aucune dénaturation.
+        if response_mode == "strict_official":
+            best = rag.get_best_official_chunk(
+                school_id=current_user.school_id or 0,
+                query=f"{subject} {prompt}".strip(),
+                niveau_scolaire=level_code,
+                matiere=matiere_code,
+            )
+            if best is None:
+                content = "Je n'ai pas l'information dans les documents officiels."
+                sources = []
+            else:
+                content = STRICT_OFFICIAL_PREFIX + "\n\n" + best["content"]
+                sources = best["sources"]
+            log_ai_usage(db, current_user, f"ai_studio_{content_type}_strict_official", 0, 0.0)
+
+            conversation_id = body.get("conversation_id")
+            if conversation_id:
+                _save_chat_message(db, conversation_id, "user", prompt, current_user.id)
+                _save_chat_message(db, conversation_id, "assistant", content, current_user.id)
+            return {"content": content, "sources": sources}
+
+        # RAG grounding : récupère le contexte officiel filtré par niveau/matière.
         retrieval = rag.retrieve_with_sources(
             school_id=current_user.school_id or 0,
             query=f"{subject} {prompt}".strip(),

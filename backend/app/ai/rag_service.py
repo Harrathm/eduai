@@ -40,6 +40,29 @@ _NO_CONTEXT_MARKERS = ("no relevant content found", "no content found")
 # (sinon le LLM est "ancré" sur du bruit et l'anti-hallucination ne se déclenche jamais).
 MIN_RELEVANT_SCORE = 0.25
 
+# Seuil ADAPTATIF : un chunk est aussi accepté si son score sémantique dépasse
+# RELATIVE_SEMANTIC_FACTOR * meilleur_score_de_la_recherche. Nécessaire en arabe :
+# les cosinus MiniLM d'une requête verbeuse ("اريد درس ...") sont souvent sous
+# le plancher absolu 0.25 alors que le chunk est bien LE meilleur disponible.
+RELATIVE_SEMANTIC_FACTOR = 0.6
+
+# Seuil de similarité lexicale TF-IDF (char_wb) placé en complément du seuil
+# sémantique : un chunk restant pertinent par son vocabulaire exact officiel
+# (ex: "Cellules de Leydig") est accepté même si son cosinus MiniLM est bas.
+LEXICAL_SCORE_THRESHOLD = 0.05
+
+# Poids du reranking basique appliqué après la fusion hybride.
+# - source officielle prioritaire quelle que soit la méthode de recherche,
+# - présence dans les DEUX branches (TF-IDF ET MiniLM) en second critère.
+RERANK_OFFICIAL_SOURCE_BOOST = 2.0
+RERANK_DUAL_MATCH_BOOST = 1.0
+
+# Préfixe ajouté dans le mode extractif STRICT_OFFICIAL
+STRICT_OFFICIAL_PREFIX = "Voici l'extrait officiel du programme :"
+
+# Nom du type de source marquant un document officiel du programme tunisien
+SOURCE_TYPE_OFFICIAL = "programme_officiel"
+
 
 def _has_lexical_overlap(query: str, text: str) -> bool:
     """Garde-fou anti-bruit — vérifie qu'au moins UN mot de contenu significatif
@@ -358,6 +381,7 @@ class RAGService:
     def ingest_pdf(
         self, school_id: int, pdf_path: str,
         niveau_scolaire: Optional[str] = None, matiere: Optional[str] = None,
+        source_type: str = "professor_document",
     ) -> dict:
         if not self.pdf_processor or not self.embeddings_service:
             return {"error": "PDF processing not available - missing dependencies"}
@@ -370,6 +394,7 @@ class RAGService:
                 "school_id": school_id,
                 "niveau_scolaire": niveau_scolaire,
                 "matiere": matiere,
+                "source_type": source_type,
             }
             for c in chunks
         ]
@@ -379,6 +404,7 @@ class RAGService:
     def ingest_pdf_bytes(
         self, school_id: int, pdf_bytes: bytes, source_name: str = "document",
         niveau_scolaire: Optional[str] = None, matiere: Optional[str] = None,
+        source_type: str = "professor_document",
     ) -> dict:
         if not self.pdf_processor or not self.embeddings_service:
             return {"error": "PDF processing not available - missing dependencies"}
@@ -391,6 +417,7 @@ class RAGService:
                 "school_id": school_id,
                 "niveau_scolaire": niveau_scolaire,
                 "matiere": matiere,
+                "source_type": source_type,
             }
             for c in chunks
         ]
@@ -400,6 +427,7 @@ class RAGService:
     def ingest_text(
         self, school_id: int, text: str, source: str = "manual",
         niveau_scolaire: Optional[str] = None, matiere: Optional[str] = None,
+        source_type: str = "professor_document",
     ) -> dict:
         if not self.pdf_processor or not self.embeddings_service:
             return {"error": "Text processing not available - missing dependencies"}
@@ -411,6 +439,7 @@ class RAGService:
                 "school_id": school_id,
                 "niveau_scolaire": niveau_scolaire,
                 "matiere": matiere,
+                "source_type": source_type,
             }
             for i in range(len(chunks))
         ]
@@ -433,20 +462,41 @@ class RAGService:
                 school_id, query, k=k,
                 niveau_scolaire=niveau_scolaire, matiere=matiere,
             )
-            # Filtre de pertinence : score plancher + garde-fou lexical.
-            # Les chunks avec un score de similarité sémantique trop bas sont
-            # traités comme une absence de contexte (anti-hallucination).
-            relevant = [
-                doc for doc in results
-                if float((doc.metadata or {}).get("_score", 0.0)) >= MIN_RELEVANT_SCORE
-                and _has_lexical_overlap(query, doc.page_content)
-            ]
+            # Filtre de pertinence HYBRIDE : un chunk est accepté s'il est
+            # retenu par la branche sémantique OU par la branche lexicale
+            # exacte. Le plancher sémantique est ADAPTATIF : on accepte un
+            # chunk si son cosinus >= MIN_RELEVANT_SCORE, OU s'il reste proche
+            # du meilleur score de la recherche (corrige les éxées arabes où
+            # toute la recherche plafonne sous 0.25). Le garde-fou lexical
+            # _has_lexical_overlap filtre les faux positifs purs.
+            top_sem = 0.0
+            if results:
+                top_sem = max(float((d.metadata or {}).get("_semantic_score", 0.0)) for d in results)
+
+            def _is_relevant(doc) -> bool:
+                meta = doc.metadata or {}
+                sem = float(meta.get("_semantic_score", 0.0))
+                lex = float(meta.get("_lexical_score", 0.0))
+                if sem <= 0.0 and lex <= 0.0:
+                    return False
+                sem_ok = sem >= MIN_RELEVANT_SCORE or (
+                    top_sem > 0.0 and sem >= RELATIVE_SEMANTIC_FACTOR * top_sem
+                )
+                lex_ok = lex >= LEXICAL_SCORE_THRESHOLD
+                if not (sem_ok or lex_ok):
+                    return False
+                return _has_lexical_overlap(query, doc.page_content)
+
+            relevant = [doc for doc in results if _is_relevant(doc)]
             if len(relevant) < len(results):
                 logger.info(
                     f"RAG relevance filter: dropped {len(results) - len(relevant)}/{len(results)} "
-                    f"chunks below score {MIN_RELEVANT_SCORE}"
+                    f"chunks below score {MIN_RELEVANT_SCORE} (sem) / {LEXICAL_SCORE_THRESHOLD} (lex)"
                 )
-            results = relevant
+
+            # Reranking basique : sources officielles d'abord, puis chunks
+            # présents dans LES DEUX recherches (TF-IDF + embeddings).
+            results = self._rerank_results(relevant)
             contexts = [doc.page_content for doc in results]
             sources = []
             seen = set()
@@ -491,6 +541,58 @@ class RAGService:
         self.last_retrieval_sources = result["sources"]
         return result["contexts"]
 
+    def _rerank_results(self, docs: List[Document]) -> List[Document]:
+        """Reranking basique des chunks fusionnés par le retrieval hybride.
+
+        Priorités (poids décroissant) :
+        1. Métadonnées ``source_type: "programme_officiel"`` (par rapport aux
+           devoirs ou parascolaire).
+        2. Chunk ayant un score significatif dans LES DEUX recherches
+           (TF-IDF ET Embeddings) → agrégation robuste.
+        3. Score de fusion RRF (``_score``) en base.
+        """
+        def _rerank_key(doc: Document):
+            meta = doc.metadata or {}
+            source_type = str(meta.get("source_type", "") or "").strip().lower()
+            official = 1.0 if source_type == SOURCE_TYPE_OFFICIAL else 0.0
+            sem = float(meta.get("_semantic_score", 0.0))
+            lex = float(meta.get("_lexical_score", 0.0))
+            dual = 1.0 if (sem >= MIN_RELEVANT_SCORE and lex >= LEXICAL_SCORE_THRESHOLD) else 0.0
+            base = float(meta.get("_score", 0.0))
+            return (
+                official * RERANK_OFFICIAL_SOURCE_BOOST
+                + dual * RERANK_DUAL_MATCH_BOOST
+                + base
+            )
+
+        return sorted(docs, key=_rerank_key, reverse=True)
+
+    def get_best_official_chunk(
+        self,
+        school_id: int,
+        query: str,
+        niveau_scolaire: Optional[str] = None,
+        matiere: Optional[str] = None,
+    ) -> Optional[Dict]:
+        """Mode extractif STRICT_OFFICIAL : retourne le chunk officiel le plus
+        pertinent (via le retrieval hybride reclassé par ``_rerank_results``)
+        SANS passer par le LLM.
+
+        Retourne ``None`` si aucun chunk pertinent n'est trouvé.
+        """
+        retrieval = self.retrieve_with_sources(
+            school_id, query, k=15,
+            niveau_scolaire=niveau_scolaire, matiere=matiere,
+        )
+        if not retrieval["contexts"]:
+            return None
+        best = {
+            "content": retrieval["contexts"][0],
+            "sources": retrieval["sources"][:1],
+        }
+        self.last_retrieval_sources = retrieval["sources"]
+        return best
+
     def _build_messages(
         self,
         school_id: int,
@@ -514,7 +616,21 @@ class RAGService:
         if custom_context is not None:
             context = custom_context
         else:
-            retrieval = self.retrieve_with_sources(school_id, prompt, k=5)
+            # Extraction AUTOMATIQUE de la matière et du niveau depuis le texte
+            # de l'élève (arabe ou français) : "علوم الحياة والارض" -> svt,
+            # "سنة سابعة اساسي" -> 7eme_base. Si aucun libellé n'est détecté,
+            # les codes restent None → la recherche couvre TOUT l'index.
+            matiere_code = _normalize_matiere(prompt) if isinstance(prompt, str) else None
+            niveau_code = _normalize_niveau(prompt) if isinstance(prompt, str) else None
+            if matiere_code or niveau_code:
+                logger.info(
+                    "Tutor auto-detect: matiere=%s niveau=%s from prompt",
+                    matiere_code, niveau_code,
+                )
+            retrieval = self.retrieve_with_sources(
+                school_id, prompt, k=5,
+                niveau_scolaire=niveau_code, matiere=matiere_code,
+            )
             self.last_retrieval_sources = retrieval["sources"]
             context = "\n\n".join(retrieval["contexts"])
 

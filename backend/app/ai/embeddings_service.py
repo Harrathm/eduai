@@ -1,19 +1,31 @@
-"""Embeddings service with semantic embeddings (sentence-transformers).
+"""Hybrid retrieval service — lexical (TF-IDF char_wb) + semantic (MiniLM).
 
-Replaces the legacy TF-IDF char_wb approach with dense embeddings from
-``paraphrase-multilingual-MiniLM-L12-v2`` for true semantic similarity
-across Arabic and French.
+Dense embeddings from ``paraphrase-multilingual-MiniLM-L12-v2`` provide true
+semantic similarity across Arabic and French, while a parallel TF-IDF
+``char_wb`` (ngram 2-4) branch catches exact official terms (ex: "Cellules de
+Leydig") that embeddings may miss. ``similarity_search`` fuses both branches.
 """
 
 import os
 import json
 import logging
+from collections import defaultdict
 from typing import List, Optional, Tuple
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Retrieval hybride — constantes de fusion
+# ---------------------------------------------------------------------------
+# Chaque signal (lexical TF-IDF / sémantique MiniLM) produit un Top-10.
+# La fusion utilise le Reciprocal Rank Fusion (RRF) : score = Σ 1/(K + rank).
+# Un chunk présent dans LES DEUX listes obtient donc un score supérieur.
+_RRF_CONSTANT = 60.0
+_LEXICAL_TOP_K = 10
+_SEMANTIC_TOP_K = 10
 
 # ---------------------------------------------------------------------------
 # Sentence-transformers model (lazy loaded — only once per process)
@@ -74,11 +86,14 @@ class Document(BaseModel):
 
 
 class EmbeddingsService:
-    """Semantic embeddings service backed by sentence-transformers.
+    """Hybrid retrieval service — semantic (MiniLM) + lexical (TF-IDF char_wb).
 
     Stores dense vectors (normalized) per chunk in the JSON docstore alongside
     the text content and metadata.  The in-memory cache holds the full
-    embeddings matrix per school_id for fast cosine search.
+    embeddings matrix per school_id for fast cosine search.  A parallel
+    TF-IDF char_wb branch (ngram 2-4) recovers exact scientific terms that
+    semantic embeddings may miss.  ``similarity_search`` fuses both branches
+    with Reciprocal Rank Fusion (dedup + Top-15).
     """
 
     def __init__(self, index_path: str = "data/faiss_indexes", **kwargs):
@@ -88,6 +103,8 @@ class EmbeddingsService:
         self._embeddings_cache: dict[int, np.ndarray] = {}
         self._doc_hashes: dict[int, int] = {}
         self._doc_mtimes: dict[int, float] = {}
+        # Clé (hash du corpus) -> (TfidfVectorizer, matrix csr) pour la branche lexicale
+        self._tfidf_cache: dict[int, tuple] = {}
 
     # ------------------------------------------------------------------
     # File helpers
@@ -248,21 +265,119 @@ class EmbeddingsService:
         return True
 
     # ------------------------------------------------------------------
+    # Lexical retrieval — TF-IDF char_wb (ngram 2-4), branché EN PARALLÈLE
+    # de la recherche sémantique MiniLM pour rattraper les noms scientifiques
+    # exacts (ex: "Cellules de Leydig") que les embeddings peuvent manquer.
+    # ------------------------------------------------------------------
+    def _get_lexical_model(self, texts: List[str]):
+        """Build (or fetch from cache) the TF-IDF model + matrix for a corpus."""
+        from sklearn.feature_extraction.text import TfidfVectorizer
+
+        corpus_key = hash(tuple(texts))
+        cached = self._tfidf_cache.get(corpus_key)
+        if cached is not None:
+            return cached
+        vectorizer = TfidfVectorizer(
+            analyzer="char_wb",
+            ngram_range=(2, 4),
+            max_features=10000,
+        )
+        tfidf = vectorizer.fit_transform(texts)  # rows L2-normalized by default
+        self._tfidf_cache[corpus_key] = (vectorizer, tfidf)
+        logger.debug("Built TF-IDF model for %d chunks (char_wb, ngram 2-4)", len(texts))
+        return vectorizer, tfidf
+
+    def _lexical_similarity(self, texts: List[str], query: str) -> np.ndarray:
+        """Cosine similarity between the query and every text (TF-IDF char_wb).
+
+        Returns an array of shape (len(texts),) in the SAME order as ``texts``.
+        """
+        vectorizer, tfidf = self._get_lexical_model(texts)
+        q_vec = vectorizer.transform([query])
+        scores = (tfidf @ q_vec.T).toarray().ravel()
+        return scores.astype(np.float64)
+
+    # ------------------------------------------------------------------
+    # Fused hybrid ranking (lexical TF-IDF + semantic MiniLM) — RRF
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _merge_rankings(
+        docs: List["Document"],
+        semantic_scores: np.ndarray,
+        lexical_scores: np.ndarray,
+        semantic_ok: bool,
+        lexical_ok: bool,
+        k: int,
+    ) -> List["Document"]:
+        """Fuse les Top-10 lexicaux et sémantiques via Reciprocal Rank Fusion.
+
+        - Déduplique les chunks présents dans les deux listes (même position
+          dans ``docs``) — ils cumulent les deux contributions RRF.
+        - Enrichit chaque document avec ``_score`` (RRF), ``_semantic_score``
+          et ``_lexical_score`` pour le reranking côté RAGService.
+        - Retourne le Top-k global sur l'union des deux listes.
+        """
+
+        def _top_positions(scores: np.ndarray, use: bool, cutoff: float) -> List[int]:
+            if not use:
+                return []
+            order = np.argsort(scores)[::-1]
+            out = []
+            for pos in order:
+                if float(scores[pos]) <= cutoff:
+                    continue
+                out.append(int(pos))
+                if len(out) >= _SEMANTIC_TOP_K:
+                    break
+            return out
+
+        sem_positions = _top_positions(semantic_scores, semantic_ok, 0.0)
+        lex_positions = _top_positions(lexical_scores, lexical_ok, 0.0)
+
+        if not sem_positions and not lex_positions:
+            return []
+
+        rrf: dict[int, float] = defaultdict(float)
+        for rank, pos in enumerate(sem_positions):
+            rrf[pos] += 1.0 / (_RRF_CONSTANT + rank)
+        for rank, pos in enumerate(lex_positions):
+            rrf[pos] += 1.0 / (_RRF_CONSTANT + rank)
+
+        ordered = sorted(rrf, key=lambda p: rrf[p], reverse=True)[:k]
+
+        results: List[Document] = []
+        for pos in ordered:
+            doc = docs[pos]
+            doc.metadata["_score"] = float(rrf[pos])
+            doc.metadata["_semantic_score"] = float(semantic_scores[pos]) if semantic_ok else 0.0
+            doc.metadata["_lexical_score"] = float(lexical_scores[pos]) if lexical_ok else 0.0
+            results.append(doc)
+        return results
+
+    # ------------------------------------------------------------------
     # Semantic similarity search
     # ------------------------------------------------------------------
     def similarity_search(
         self,
         school_id: int,
         query: str,
-        k: int = 10,
+        k: int = 15,
         niveau_scolaire: Optional[str] = None,
         matiere: Optional[str] = None,
     ) -> List[Document]:
+        """Retrieval HYBRIDE : lexical (TF-IDF char_wb ngram 2-4) + sémantique (MiniLM).
+
+        1. Pré-filtre métadonnées (niveau_scolaire / matiere).
+        2. Recherche sémantique  -> Top-10 (cosinus sur embeddings normalisés).
+        3. Recherche lexicale    -> Top-10 (cosinus TF-IDF char_wb).
+        4. Fusion RRF des deux listes (déduplication des chunks identiques),
+           retour du Top-k global (k=15 par défaut).
+        """
         raw_docs = self._load_docs(school_id)
         if not raw_docs:
             return []
 
-        # --- Metadata filtering (pre-filter before embedding search) ---
+        # --- Metadata filtering (pre-filter before hybrid retrieval) ---
         filtered_indices: List[int] = []
         docs: List[Document] = []
         for i, d in enumerate(raw_docs):
@@ -284,53 +399,56 @@ class EmbeddingsService:
 
         if not docs:
             logger.info(
-                "Semantic search school_id=%d: 0 chunks match filters "
+                "Hybrid search school_id=%d: 0 chunks match filters "
                 "(niveau_scolaire=%r, matiere=%r)",
                 school_id, niveau_scolaire, matiere,
             )
             return []
 
-        # --- Load or rebuild the embeddings matrix ---
+        n_filtered = len(docs)
+        semantic_scores = np.zeros(n_filtered, dtype=np.float64)
+        lexical_scores = np.zeros(n_filtered, dtype=np.float64)
+        semantic_ok = False
+        lexical_ok = False
+
+        # --- 1) Semantic branch (MiniLM embeddings) ---
         try:
             embeddings_matrix = self._get_embeddings_matrix(school_id, raw_docs)
+            if embeddings_matrix is not None:
+                filtered_matrix = embeddings_matrix[filtered_indices]
+                query_vec = _encode_query(query)
+                # Cosine similarity (L2-normalized → dot product = cosine)
+                semantic_scores = filtered_matrix @ query_vec  # shape (n_filtered,)
+                semantic_ok = True
         except Exception as e:
-            logger.warning("Semantic search failed (embeddings unavailable): %s", e)
-            # Fallback: return filtered docs without ranking
-            return docs[:k]
+            logger.warning("Semantic branch failed (embeddings unavailable): %s", e)
 
-        if embeddings_matrix is None or len(filtered_indices) == 0:
-            return docs[:k]
-
-        # Subset the matrix to only filtered chunks
-        filtered_matrix = embeddings_matrix[filtered_indices]
-
-        # --- Encode query and compute cosine similarity ---
+        # --- 2) Lexical branch (TF-IDF char_wb, ngram 2-4) ---
         try:
-            query_vec = _encode_query(query)
+            lexical_scores = self._lexical_similarity([d.page_content for d in docs], query)
+            lexical_ok = True
         except Exception as e:
-            logger.warning("Query encoding failed: %s", e)
+            logger.warning("Lexical branch failed (sklearn TfidfVectorizer unavailable): %s", e)
+
+        # --- 3) Hybrid fusion (RRF) or degraded fallback ---
+        if not semantic_ok and not lexical_ok:
+            # Ni embeddings ni TF-IDF : retour les chunks filtrés sans classement
             return docs[:k]
 
-        # Cosine similarity (both vectors are L2-normalized → dot product = cosine)
-        scores = filtered_matrix @ query_vec  # shape (n_filtered,)
+        results = self._merge_rankings(
+            docs, semantic_scores, lexical_scores,
+            semantic_ok, lexical_ok, k,
+        )
+        if not results:
+            return docs[:k]
 
-        # Sort descending and take top-k
-        top_local_indices = scores.argsort()[::-1][:k]
-
-        results: List[Document] = []
-        for local_idx in top_local_indices:
-            score = float(scores[local_idx])
-            if score <= 0.01:
-                continue
-            doc = docs[local_idx]
-            doc.metadata["_score"] = score
-            results.append(doc)
-
-        top_score = float(scores[top_local_indices[0]]) if len(top_local_indices) > 0 else 0.0
+        top_score = float(results[0].metadata.get("_score", 0.0))
         logger.info(
-            "Semantic search school_id=%d: %d results, top_score=%.4f "
-            "(filtered %d/%d chunks)",
+            "Hybrid search school_id=%d: %d fused results, top_rrf=%.4f "
+            "(semantic=%.4f, lexical=%.4f, filtered %d/%d chunks)",
             school_id, len(results), top_score,
+            float(np.max(semantic_scores)) if semantic_ok else 0.0,
+            float(np.max(lexical_scores)) if lexical_ok else 0.0,
             len(filtered_indices), len(raw_docs),
         )
         return results
@@ -436,6 +554,7 @@ class EmbeddingsService:
             "indexed_docs": len(raw_docs),
             "has_index": True,
             "embedding_model": _ST_MODEL_NAME,
+            "retrieval": "hybrid_tfidf_embeddings",
             "has_persisted_embeddings": has_embeddings,
         }
 

@@ -39,3 +39,6 @@ pdf2image>=1.16.0
 sentence-transformers>=2.2.0
 torch>=2.0.0
 huggingface-hub>=0.14.0
+
+# Retrieval hybride — branche lexicale TF-IDF (char_wb, ngram 2-4)
+scikit-learn>=1.0.0
