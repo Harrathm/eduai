@@ -7,6 +7,7 @@ Leydig") that embeddings may miss. ``similarity_search`` fuses both branches.
 """
 
 import os
+import re
 import json
 import logging
 from collections import defaultdict
@@ -154,6 +155,14 @@ class EmbeddingsService:
             except Exception:
                 pass
 
+        if raw_docs is not None:
+            # Les vecteurs vivent dans le .npy (school_<id>_embeddings.npy),
+            # PAS dans le JSON : retirer la clé "embedding" évite de conserver
+            # ~700 Mo d'objets Python flottants en mémoire à chaque chargement
+            # (source de MemoryError sur les gros index).
+            for d in raw_docs:
+                if isinstance(d, dict):
+                    d.pop("embedding", None)
         return raw_docs
 
     def _save_docs(self, school_id: int, docs: List[dict]) -> None:
@@ -209,8 +218,10 @@ class EmbeddingsService:
 
         self._save_docs(school_id, existing)
 
-        # Rebuild the full embeddings matrix and persist it
-        all_embeddings = np.array([d["embedding"] for d in existing], dtype=np.float32)
+        # Rebuild de la matrice complète depuis les textes (les documents
+        # chargés par _load_docs n'embarquent plus de vecteurs).
+        all_texts = [d["page_content"] for d in existing] + texts
+        all_embeddings = np.array(_encode_texts(all_texts), dtype=np.float32)
         self._save_embeddings(school_id, all_embeddings)
 
         # Invalidate in-memory cache so next search picks up the new .npy
@@ -296,6 +307,33 @@ class EmbeddingsService:
         q_vec = vectorizer.transform([query])
         scores = (tfidf @ q_vec.T).toarray().ravel()
         return scores.astype(np.float64)
+
+    def _jaccard_similarity(self, texts: List[str], query: str) -> np.ndarray:
+        """Similarité Jaccard (intersection / union des mots) — aucune dépendance.
+
+        Fallback utilisé quand ni torch (embeddings) ni scikit-learn (TF-IDF)
+        ne sont disponibles. Gère les tokens arabes (séparés par espaces).
+        """
+        _punct = re.compile(r"[^\w\s]", re.UNICODE)
+        q_tokens = set(
+            t for t in _punct.sub(" ", query).lower().split() if t
+        )
+        scores = np.zeros(len(texts), dtype=np.float64)
+        if not q_tokens:
+            return scores
+        for i, text in enumerate(texts):
+            if not text:
+                continue
+            d_tokens = set(
+                t for t in _punct.sub(" ", text).lower().split() if t
+            )
+            if not d_tokens:
+                continue
+            inter = len(q_tokens & d_tokens)
+            union = len(q_tokens | d_tokens)
+            if union:
+                scores[i] = inter / union
+        return scores
 
     # ------------------------------------------------------------------
     # Fused hybrid ranking (lexical TF-IDF + semantic MiniLM) — RRF
@@ -432,8 +470,25 @@ class EmbeddingsService:
 
         # --- 3) Hybrid fusion (RRF) or degraded fallback ---
         if not semantic_ok and not lexical_ok:
-            # Ni embeddings ni TF-IDF : retour les chunks filtrés sans classement
-            return docs[:k]
+            # Ni embeddings ni TF-IDF (dépendances absentes) : Jaccard
+            # (intersection/union mots) — aucune dépendance requise.
+            jacc = self._jaccard_similarity(
+                [d.page_content for d in docs], query,
+            )
+            for d, s in zip(docs, jacc):
+                d.metadata["_semantic_score"] = 0.0
+                d.metadata["_lexical_score"] = float(s)
+                d.metadata["_fallback"] = True
+                d.metadata["_score"] = float(s)
+            ranked = sorted(
+                zip(docs, jacc), key=lambda x: x[1], reverse=True,
+            )[:k]
+            logger.warning(
+                "Hybrid search school_id=%d: BOTH branches failed — "
+                "Jaccard fallback (%d chunks, best=%.4f)",
+                school_id, len(jacc), max(jacc) if jacc else 0.0,
+            )
+            return [d for d, _ in ranked]
 
         results = self._merge_rankings(
             docs, semantic_scores, lexical_scores,
@@ -493,25 +548,18 @@ class EmbeddingsService:
             )
             return npy_emb
 
-        # --- Rebuild: check if any docs have stored embeddings, else encode all ---
-        has_embeddings = all("embedding" in d for d in raw_docs)
-        if has_embeddings:
-            matrix = np.array(
-                [d["embedding"] for d in raw_docs], dtype=np.float32
-            )
-        else:
-            logger.info(
-                "Encoding %d chunks from scratch for school_id=%d "
-                "(no pre-computed embeddings found)",
-                len(raw_docs), school_id,
-            )
-            texts = [d.get("page_content", "") for d in raw_docs]
-            matrix = _encode_texts(texts)
-            # Persist embeddings back into docstore and .npy
-            for d, emb in zip(raw_docs, matrix):
-                d["embedding"] = emb.tolist()
-            self._save_docs(school_id, raw_docs)
-            self._save_embeddings(school_id, matrix)
+        # --- Rebuild: encode all chunks from scratch ---
+        # Les vecteurs sont persistés dans le .npy uniquement ; le JSON
+        # docstore porte page_content + metadata (ne PAS réécrire la clé
+        # "embedding", sinon le fichier re-dégrade vers ~700 Mo).
+        logger.info(
+            "Encoding %d chunks from scratch for school_id=%d "
+            "(no pre-computed embeddings found)",
+            len(raw_docs), school_id,
+        )
+        texts = [d.get("page_content", "") for d in raw_docs]
+        matrix = _encode_texts(texts)
+        self._save_embeddings(school_id, matrix)
 
         self._embeddings_cache[school_id] = matrix
         self._doc_hashes[school_id] = doc_hash

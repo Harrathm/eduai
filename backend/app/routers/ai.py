@@ -235,12 +235,21 @@ async def ask_tutor(
         )
 
     history = _load_conversation_history(db, conv_id)
+
+    # ── DEBUG: visibilité du parcours RAG côté API ─────────────────────
+    print(f"[AI/ask] school_id={school_id}", flush=True)
+    print(f"[AI/ask] query={query.question!r}", flush=True)
+    print(f"[AI/ask] response_mode={query.response_mode}", flush=True)
+
     messages = rag._build_messages(
         school_id=school_id,
         prompt=query.question,
         mode="tutor",
         conversation_history=history,
     )
+
+    # ── DEBUG: nombre de chunks finalement fournis au Tuteur ───────────
+    print(f"[AI/ask] contexts_found={len(rag.last_retrieval_sources)}", flush=True)
 
     # ── SSE streaming generator ─────────────────────────────────────────
     async def _stream_generator():

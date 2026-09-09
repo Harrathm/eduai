@@ -473,11 +473,54 @@ class RAGService:
             if results:
                 top_sem = max(float((d.metadata or {}).get("_semantic_score", 0.0)) for d in results)
 
+            # True si AU MOINS un chunk porte un score exploitable (branche
+            # sémantique OU lexicale) hors mode dégradé. Si False → tous les
+            # chunks sont à 0.0 (sentence-transformers/sklearn non chargés,
+            # ou Jaccard=0) : on passe en "dernier recours".
+            any_real_score = any(
+                not (d.metadata or {}).get("_fallback")
+                and (
+                    float((d.metadata or {}).get("_semantic_score", 0.0)) > 0.0
+                    or float((d.metadata or {}).get("_lexical_score", 0.0)) > 0.0
+                )
+                for d in results
+            )
+
+            # ── DEBUG: visibilité du filtre de pertinence ───────────────
+            print(
+                f"[RAGService] retrieve_with_sources school_id={school_id} "
+                f"raw_chunks={len(results)} filters(niveau={niveau_scolaire},matiere={matiere}) "
+                f"top_sem={top_sem:.4f}",
+                flush=True,
+            )
+
             def _is_relevant(doc) -> bool:
                 meta = doc.metadata or {}
                 sem = float(meta.get("_semantic_score", 0.0))
                 lex = float(meta.get("_lexical_score", 0.0))
-                if sem <= 0.0 and lex <= 0.0:
+                overlap = _has_lexical_overlap(query, doc.page_content)
+                degraded = meta.get("_fallback") or (sem <= 0.0 and lex <= 0.0)
+                if degraded:
+                    # Mode dégradé (modèle d'embedding/TF-IDF indisponible,
+                    # scores 0.0) : NE PAS tuer les chunks silencieusement.
+                    # On accepte sur overlap lexical, OU en dernier recours si
+                    # AUCUN chunk de la recherche ne porte de score exploitable
+                    # → le Tuteur répondra sur le texte brut plutôt que de
+                    # renvoyer "je n'ai pas de ressources".
+                    if overlap:
+                        logger.warning(
+                            "RAG degraded: accepted chunk %s on lexical "
+                            "overlap (sem=%.4f, lex=%.4f)",
+                            meta.get("source") or "?", sem, lex,
+                        )
+                        return True
+                    if not any_real_score:
+                        logger.warning(
+                            "RAG last-resort: accepted unscored chunk %s "
+                            "(no chunk carries usable scores)",
+                            meta.get("source") or "?",
+                        )
+                        return True
                     return False
                 sem_ok = sem >= MIN_RELEVANT_SCORE or (
                     top_sem > 0.0 and sem >= RELATIVE_SEMANTIC_FACTOR * top_sem
@@ -485,9 +528,21 @@ class RAGService:
                 lex_ok = lex >= LEXICAL_SCORE_THRESHOLD
                 if not (sem_ok or lex_ok):
                     return False
-                return _has_lexical_overlap(query, doc.page_content)
+                # Score sémantique élevé → confiance multilingue : le modèle
+                # relie une requête arabe à un chunk français même sans overlap
+                # lexical. En dessous du seuil, exiger l'overlap pour éviter
+                # le bruit.
+                if sem >= 0.40:
+                    return True
+                return overlap
 
             relevant = [doc for doc in results if _is_relevant(doc)]
+            # ── DEBUG: chunks restants après _is_relevant ───────────────
+            print(
+                f"[RAGService] _is_relevant kept={len(relevant)}/{len(results)} "
+                f"school_id={school_id}",
+                flush=True,
+            )
             if len(relevant) < len(results):
                 logger.info(
                     f"RAG relevance filter: dropped {len(results) - len(relevant)}/{len(results)} "
@@ -519,7 +574,9 @@ class RAGService:
                 contexts = combined.split("\n\n")
             return {"contexts": contexts, "sources": sources}
         except Exception as e:
-            logger.warning(f"RAG retrieval failed: {e}")
+            logger.warning(
+                "RAG retrieval failed: %r", e, exc_info=True
+            )
             return {"contexts": [], "sources": []}
 
     def retrieve_context(
@@ -622,6 +679,12 @@ class RAGService:
             # les codes restent None → la recherche couvre TOUT l'index.
             matiere_code = _normalize_matiere(prompt) if isinstance(prompt, str) else None
             niveau_code = _normalize_niveau(prompt) if isinstance(prompt, str) else None
+            # ── DEBUG: filtres auto-détectés appliqués à la recherche ──
+            print(
+                f"[RAGService] _build_messages auto-detect matiere={matiere_code} "
+                f"niveau={niveau_code}",
+                flush=True,
+            )
             if matiere_code or niveau_code:
                 logger.info(
                     "Tutor auto-detect: matiere=%s niveau=%s from prompt",
